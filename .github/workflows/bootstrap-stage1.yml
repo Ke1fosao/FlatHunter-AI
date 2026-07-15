@@ -1,0 +1,32 @@
+name: Bootstrap Stage 1 source
+
+on:
+  push:
+    branches: [stage-1-foundation]
+    paths:
+      - stage1-source.tar.gz.b64
+
+permissions:
+  contents: write
+
+jobs:
+  unpack:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: stage-1-foundation
+          fetch-depth: 0
+      - name: Extract verified source tree
+        run: |
+          base64 --decode stage1-source.tar.gz.b64 > /tmp/stage1-source.tar.gz
+          tar --extract --gzip --file /tmp/stage1-source.tar.gz
+          rm stage1-source.tar.gz.b64
+      - name: Commit extracted source
+        run: |
+          git config user.name "FlatHunter CI"
+          git config user.email "actions@users.noreply.github.com"
+          git add --all
+          git commit -m "feat: implement stage 1 foundation"
+          git push origin HEAD:stage-1-foundation
