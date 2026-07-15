@@ -88,6 +88,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
+      - name: Scan current source tree with Gitleaks
+        run: >-
+          docker run --rm
+          -v "$PWD:/repo:ro"
+          zricethezav/gitleaks:v8.27.2
+          detect --source=/repo --no-git --redact --exit-code=1
