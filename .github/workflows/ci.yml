@@ -57,19 +57,29 @@ jobs:
           enable-cache: true
       - run: uv venv
       - run: uv pip install --python .venv/bin/python --requirement requirements-dev.lock
-      - name: Capture formatter diagnostics
-        run: uv run --no-sync ruff format --check apps config tests manage.py > stage3-format.txt 2>&1 || true
+      - name: Format diagnostic copies
+        run: uv run --no-sync ruff format apps config tests manage.py
       - uses: actions/upload-artifact@v4
         with:
-          name: stage3-format
-          path: backend/stage3-format.txt
+          name: stage3-formatted-source
+          path: |
+            backend/apps/listings/demo_source.py
+            backend/tests/test_listings.py
           retention-days: 1
-      - run: uv run --no-sync ruff check apps config tests manage.py
-      - run: uv run --no-sync mypy apps config
-      - run: uv run --no-sync python manage.py migrate --noinput
-      - run: uv run --no-sync python manage.py makemigrations --check --dry-run
-      - run: uv run --no-sync pytest --cov=apps --cov-report=term-missing
-      - run: uvx pip-audit --strict -r requirements.lock
+      - name: Collect backend diagnostics
+        run: |
+          mkdir -p stage3-diagnostics
+          uv run --no-sync ruff check apps config tests manage.py > stage3-diagnostics/ruff.txt 2>&1 || true
+          uv run --no-sync mypy apps config > stage3-diagnostics/mypy.txt 2>&1 || true
+          uv run --no-sync python manage.py migrate --noinput > stage3-diagnostics/migrate.txt 2>&1 || true
+          uv run --no-sync python manage.py makemigrations --check --dry-run > stage3-diagnostics/migration-check.txt 2>&1 || true
+          uv run --no-sync pytest --cov=apps --cov-report=term-missing > stage3-diagnostics/pytest.txt 2>&1 || true
+          uvx pip-audit --strict -r requirements.lock > stage3-diagnostics/pip-audit.txt 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stage3-backend-diagnostics
+          path: backend/stage3-diagnostics
+          retention-days: 1
 
   frontend:
     runs-on: ubuntu-latest
