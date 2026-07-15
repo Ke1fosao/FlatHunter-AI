@@ -13,6 +13,10 @@ from apps.listings.contracts import ListingSourceAdapter, SourceSearchRequest
 from apps.listings.models import Listing, ListingSource, RawListing, SourceAccessMode
 
 
+class SourceUnavailableError(RuntimeError):
+    pass
+
+
 @dataclass(frozen=True)
 class IngestionResult:
     received: int
@@ -57,7 +61,11 @@ async def ingest_source(
     adapter: ListingSourceAdapter,
     request: SourceSearchRequest,
 ) -> IngestionResult:
-    source, _ = await ListingSource.objects.aget_or_create(
+    health = await adapter.health_check()
+    if not health.healthy:
+        raise SourceUnavailableError(health.message)
+
+    source, created_source = await ListingSource.objects.aget_or_create(
         code=adapter.source_code,
         defaults={
             "display_name": adapter.display_name,
@@ -67,6 +75,11 @@ async def ingest_source(
             "health_status": "healthy",
         },
     )
+    if not created_source and (
+        not source.enabled or source.legal_status not in {"approved_demo", "approved"}
+    ):
+        raise SourceUnavailableError("Source is disabled or has no approved legal status")
+
     raw_items = await adapter.search(request)
     created = 0
     updated = 0
@@ -83,6 +96,7 @@ async def ingest_source(
         status = await _persist_listing(source, raw_item, normalized.external_id, normalized.values)
         created += int(status == "created")
         updated += int(status == "updated")
+
     source.last_success_at = timezone.now()
     source.health_status = "healthy"
     await source.asave(update_fields=("last_success_at", "health_status"))
