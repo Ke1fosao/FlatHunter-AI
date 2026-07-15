@@ -54,7 +54,7 @@ The backend container runs migrations and static collection when `RUN_MIGRATIONS
 Manual command:
 
 ```bash
-docker compose exec backend uv run python manage.py migrate
+docker compose exec backend python manage.py migrate
 ```
 
 ## Verification
