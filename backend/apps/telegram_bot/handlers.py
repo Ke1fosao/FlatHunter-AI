@@ -187,7 +187,10 @@ async def confirm_search(message: Message, state: FSMContext) -> None:
     text = (
         "✅ Пошук створено й активовано."
         if saved
-        else "✅ Дані зібрано. Відкрийте Mini App один раз для безпечної авторизації та збереження профілю."
+        else (
+            "✅ Дані зібрано. Відкрийте Mini App один раз для безпечної "
+            "авторизації та збереження профілю."
+        )
     )
     await message.answer(text, reply_markup=ReplyKeyboardRemove())
 
