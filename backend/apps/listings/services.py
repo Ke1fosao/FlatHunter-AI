@@ -86,14 +86,23 @@ async def ingest_source(
     unchanged = 0
     for raw_item in raw_items:
         normalized = await adapter.normalize(raw_item)
-        current_hash = await Listing.objects.filter(
-            source=source,
-            external_id=normalized.external_id,
-        ).values_list("raw_listing__payload_hash", flat=True).afirst()
+        current_hash = await (
+            Listing.objects.filter(
+                source=source,
+                external_id=normalized.external_id,
+            )
+            .values_list("raw_listing__payload_hash", flat=True)
+            .afirst()
+        )
         if current_hash == _payload_hash(raw_item):
             unchanged += 1
             continue
-        status = await _persist_listing(source, raw_item, normalized.external_id, normalized.values)
+        status = await _persist_listing(
+            source,
+            raw_item,
+            normalized.external_id,
+            normalized.values,
+        )
         created += int(status == "created")
         updated += int(status == "updated")
 
