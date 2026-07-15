@@ -100,8 +100,8 @@ export function SearchWizard({ onClose, onCreated }: Props) {
         </header>
 
         <div className="wizard-mode-switch">
-          <button type="button" className={mode === "form" ? "is-active" : ""} onClick={() => setMode("form")}>Покроково</button>
-          <button type="button" className={mode === "natural" ? "is-active" : ""} onClick={() => setMode("natural")}>Описати словами</button>
+          <button type="button" className={mode === "form" ? "is-active" : ""} onClick={() => { setMode("form"); }}>Покроково</button>
+          <button type="button" className={mode === "natural" ? "is-active" : ""} onClick={() => { setMode("natural"); }}>Описати словами</button>
         </div>
 
         {mode === "natural" && step < 3 ? (
@@ -110,7 +110,7 @@ export function SearchWizard({ onClose, onCreated }: Props) {
             <textarea
               id="natural-search"
               value={naturalText}
-              onChange={(event) => setNaturalText(event.target.value)}
+              onChange={(event) => { setNaturalText(event.target.value); }}
               placeholder="Шукаю однокімнатну квартиру у Львові до 18 тисяч, новобудова, не перший поверх, можна з котом, без комісії…"
             />
             <button type="button" className="button button--primary" disabled={busy || naturalText.trim().length < 10} onClick={() => void parseText()}>
@@ -123,23 +123,23 @@ export function SearchWizard({ onClose, onCreated }: Props) {
 
             {step === 1 && (
               <div className="wizard-grid">
-                <label>Назва пошуку<input value={form.name} onChange={(event) => patch("name", event.target.value)} required /></label>
-                <label>Місто<input value={form.city} onChange={(event) => patch("city", event.target.value)} required /></label>
-                <label>Тип угоди<select value={form.deal_type} onChange={(event) => patch("deal_type", event.target.value as "rent" | "buy")}><option value="rent">Оренда</option><option value="buy">Купівля</option></select></label>
-                <label>Максимальна ціна<input type="number" min="1000" value={form.price_max ?? ""} onChange={(event) => patch("price_max", event.target.value ? Number(event.target.value) : null)} required /></label>
-                <label>Кімнати<input value={form.rooms.join(",")} onChange={(event) => patch("rooms", event.target.value.split(",").map(Number).filter(Boolean))} required /></label>
-                <label>Хто житиме<input type="number" min="1" max="20" value={form.occupants} onChange={(event) => patch("occupants", Number(event.target.value))} /></label>
+                <label>Назва пошуку<input value={form.name} onChange={(event) => { patch("name", event.target.value); }} required /></label>
+                <label>Місто<input value={form.city} onChange={(event) => { patch("city", event.target.value); }} required /></label>
+                <label>Тип угоди<select value={form.deal_type} onChange={(event) => { patch("deal_type", event.target.value as "rent" | "buy"); }}><option value="rent">Оренда</option><option value="buy">Купівля</option></select></label>
+                <label>Максимальна ціна<input type="number" min="1000" value={form.price_max ?? ""} onChange={(event) => { patch("price_max", event.target.value ? Number(event.target.value) : null); }} required /></label>
+                <label>Кімнати<input value={form.rooms.join(",")} onChange={(event) => { patch("rooms", event.target.value.split(",").map(Number).filter(Boolean)); }} required /></label>
+                <label>Хто житиме<input type="number" min="1" max="20" value={form.occupants} onChange={(event) => { patch("occupants", Number(event.target.value)); }} /></label>
               </div>
             )}
 
             {step === 2 && (
               <div className="wizard-options">
-                <button type="button" className={form.pets.cat ? "option-chip is-active" : "option-chip"} onClick={() => patch("pets", { ...form.pets, cat: !form.pets.cat })}>🐈 Можна з котом</button>
-                <button type="button" className={form.pets.dog ? "option-chip is-active" : "option-chip"} onClick={() => patch("pets", { ...form.pets, dog: !form.pets.dog })}>🐕 Можна із собакою</button>
-                <button type="button" className={form.filters.exclude_first_floor ? "option-chip is-active" : "option-chip"} onClick={() => patch("filters", { ...form.filters, exclude_first_floor: !form.filters.exclude_first_floor })}>Не перший поверх</button>
-                <button type="button" className={form.filters.exclude_last_floor ? "option-chip is-active" : "option-chip"} onClick={() => patch("filters", { ...form.filters, exclude_last_floor: !form.filters.exclude_last_floor })}>Не останній поверх</button>
-                <button type="button" className={form.filters.commission_allowed === false ? "option-chip is-active" : "option-chip"} onClick={() => patch("filters", { ...form.filters, commission_allowed: form.filters.commission_allowed !== false ? false : true })}>Без комісії</button>
-                <button type="button" className={form.children ? "option-chip is-active" : "option-chip"} onClick={() => patch("children", !form.children)}>Можна з дітьми</button>
+                <button type="button" className={form.pets.cat ? "option-chip is-active" : "option-chip"} onClick={() => { patch("pets", { ...form.pets, cat: !form.pets.cat }); }}>🐈 Можна з котом</button>
+                <button type="button" className={form.pets.dog ? "option-chip is-active" : "option-chip"} onClick={() => { patch("pets", { ...form.pets, dog: !form.pets.dog }); }}>🐕 Можна із собакою</button>
+                <button type="button" className={form.filters.exclude_first_floor ? "option-chip is-active" : "option-chip"} onClick={() => { patch("filters", { ...form.filters, exclude_first_floor: !form.filters.exclude_first_floor }); }}>Не перший поверх</button>
+                <button type="button" className={form.filters.exclude_last_floor ? "option-chip is-active" : "option-chip"} onClick={() => { patch("filters", { ...form.filters, exclude_last_floor: !form.filters.exclude_last_floor }); }}>Не останній поверх</button>
+                <button type="button" className={form.filters.commission_allowed === false ? "option-chip is-active" : "option-chip"} onClick={() => { patch("filters", { ...form.filters, commission_allowed: form.filters.commission_allowed !== false ? false : true }); }}>Без комісії</button>
+                <button type="button" className={form.children ? "option-chip is-active" : "option-chip"} onClick={() => { patch("children", !form.children); }}>Можна з дітьми</button>
               </div>
             )}
 
@@ -158,9 +158,9 @@ export function SearchWizard({ onClose, onCreated }: Props) {
 
             {error && <p className="wizard-error">{error}</p>}
             <footer className="wizard-footer">
-              <button type="button" className="button button--secondary" onClick={() => step === 1 ? onClose() : setStep((value) => value - 1)}>Назад</button>
+              <button type="button" className="button button--secondary" onClick={() => { step === 1 ? onClose() : setStep((value) => value - 1); }}>Назад</button>
               {step < 3 ? (
-                <button type="button" className="button button--primary" onClick={() => setStep((value) => value + 1)}>Продовжити</button>
+                <button type="button" className="button button--primary" onClick={() => { setStep((value) => value + 1); }}>Продовжити</button>
               ) : (
                 <button type="submit" className="button button--primary" disabled={busy}>{busy ? "Зберігаю…" : "Створити пошук"}</button>
               )}

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from asgiref.sync import sync_to_async
 from aiogram import F, Router
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
@@ -15,6 +14,7 @@ from aiogram.types import (
     ReplyKeyboardRemove,
     WebAppInfo,
 )
+from asgiref.sync import sync_to_async
 
 router = Router(name=__name__)
 
@@ -30,7 +30,9 @@ def build_start_keyboard(mini_app_url: str) -> InlineKeyboardMarkup:
     first_button = (
         InlineKeyboardButton(text="📱 Відкрити застосунок", web_app=WebAppInfo(url=mini_app_url))
         if mini_app_url
-        else InlineKeyboardButton(text="📱 Застосунок налаштовується", callback_data="app_unavailable")
+        else InlineKeyboardButton(
+            text="📱 Застосунок налаштовується", callback_data="app_unavailable"
+        )
     )
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -47,7 +49,9 @@ def onboarding_keyboard(*, allow_skip: bool = False) -> ReplyKeyboardMarkup:
     if allow_skip:
         rows.insert(0, [KeyboardButton(text="⏭ Пропустити")])
     rows.append([KeyboardButton(text="⚙️ Розширені налаштування")])
-    return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True, input_field_placeholder="Введіть відповідь")
+    return ReplyKeyboardMarkup(
+        keyboard=rows, resize_keyboard=True, input_field_placeholder="Введіть відповідь"
+    )
 
 
 @router.message(CommandStart())
@@ -66,7 +70,9 @@ async def create_search(callback: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
     await state.set_state(SearchOnboarding.city)
     if callback.message:
-        await callback.message.answer("У якому місті шукаємо житло?", reply_markup=onboarding_keyboard())
+        await callback.message.answer(
+            "У якому місті шукаємо житло?", reply_markup=onboarding_keyboard()
+        )
     await callback.answer()
 
 
@@ -79,8 +85,18 @@ async def cancel_onboarding(message: Message, state: FSMContext) -> None:
 @router.message(F.text == "⚙️ Розширені налаштування")
 async def open_advanced(message: Message, mini_app_url: str = "") -> None:
     if mini_app_url:
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Відкрити Mini App", web_app=WebAppInfo(url=mini_app_url))]])
-        await message.answer("Розширені фільтри зручніше налаштувати у Mini App.", reply_markup=keyboard)
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="Відкрити Mini App", web_app=WebAppInfo(url=mini_app_url)
+                    )
+                ]
+            ]
+        )
+        await message.answer(
+            "Розширені фільтри зручніше налаштувати у Mini App.", reply_markup=keyboard
+        )
     else:
         await message.answer("Mini App ще не налаштований. Продовжимо короткий onboarding у боті.")
 
@@ -92,7 +108,9 @@ async def receive_city(message: Message, state: FSMContext) -> None:
         return
     await state.update_data(city=message.text.strip())
     await state.set_state(SearchOnboarding.price_max)
-    await message.answer("Який максимальний бюджет на місяць у гривнях?", reply_markup=onboarding_keyboard())
+    await message.answer(
+        "Який максимальний бюджет на місяць у гривнях?", reply_markup=onboarding_keyboard()
+    )
 
 
 @router.message(SearchOnboarding.price_max)
@@ -103,13 +121,17 @@ async def receive_price(message: Message, state: FSMContext) -> None:
         return
     await state.update_data(price_max=int(raw))
     await state.set_state(SearchOnboarding.rooms)
-    await message.answer("Скільки кімнат потрібно? Наприклад: 1 або 1,2.", reply_markup=onboarding_keyboard())
+    await message.answer(
+        "Скільки кімнат потрібно? Наприклад: 1 або 1,2.", reply_markup=onboarding_keyboard()
+    )
 
 
 @router.message(SearchOnboarding.rooms)
 async def receive_rooms(message: Message, state: FSMContext) -> None:
     try:
-        rooms = sorted({int(value.strip()) for value in (message.text or "").split(",") if value.strip()})
+        rooms = sorted(
+            {int(value.strip()) for value in (message.text or "").split(",") if value.strip()}
+        )
     except ValueError:
         rooms = []
     if not rooms or any(room < 1 or room > 10 for room in rooms):
@@ -126,7 +148,11 @@ async def receive_rooms(message: Message, state: FSMContext) -> None:
         "• довгострокова оренда\n\n"
         "Напишіть «✅ Все правильно» для збереження або «⬅️ Назад».",
         reply_markup=ReplyKeyboardMarkup(
-            keyboard=[[KeyboardButton(text="✅ Все правильно")], [KeyboardButton(text="⬅️ Назад"), KeyboardButton(text="❌ Скасувати")], [KeyboardButton(text="⚙️ Розширені налаштування")]],
+            keyboard=[
+                [KeyboardButton(text="✅ Все правильно")],
+                [KeyboardButton(text="⬅️ Назад"), KeyboardButton(text="❌ Скасувати")],
+                [KeyboardButton(text="⚙️ Розширені налаштування")],
+            ],
             resize_keyboard=True,
         ),
     )
@@ -137,7 +163,9 @@ def _save_profile(telegram_id: int, data: dict[str, object]) -> bool:
     from apps.accounts.models import TelegramProfile
     from apps.searches.models import NotificationPreference, SearchProfile
 
-    telegram_profile = TelegramProfile.objects.filter(telegram_id=telegram_id).select_related("user").first()
+    telegram_profile = (
+        TelegramProfile.objects.filter(telegram_id=telegram_id).select_related("user").first()
+    )
     if telegram_profile is None:
         return False
     profile = SearchProfile.objects.create(
@@ -156,7 +184,11 @@ async def confirm_search(message: Message, state: FSMContext) -> None:
     data = await state.get_data()
     saved = await _save_profile(message.from_user.id, data) if message.from_user else False
     await state.clear()
-    text = "✅ Пошук створено й активовано." if saved else "✅ Дані зібрано. Відкрийте Mini App один раз для безпечної авторизації та збереження профілю."
+    text = (
+        "✅ Пошук створено й активовано."
+        if saved
+        else "✅ Дані зібрано. Відкрийте Mini App один раз для безпечної авторизації та збереження профілю."
+    )
     await message.answer(text, reply_markup=ReplyKeyboardRemove())
 
 

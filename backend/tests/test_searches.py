@@ -36,7 +36,9 @@ def test_user_can_create_and_list_only_own_search_profiles(db):
             "currency": "UAH",
             "rooms": [1],
             "pets": {"cat": True},
-            "important_places": [{"name": "Львівська політехніка", "max_transit_minutes": 25, "importance": 5}],
+            "important_places": [
+                {"name": "Львівська політехніка", "max_transit_minutes": 25, "importance": 5}
+            ],
             "notification_preference": {"frequency": "instant", "min_match_score": 80},
         },
         format="json",

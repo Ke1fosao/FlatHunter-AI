@@ -12,17 +12,17 @@ export function StageTwoShell() {
   return (
     <>
       <AppShell />
-      <button className="stage-two-create" type="button" onClick={() => setOpen(true)}>
+      <button className="stage-two-create" type="button" onClick={() => { setOpen(true); }}>
         ＋ Створити пошук
       </button>
       {created && <div className="stage-two-toast">✅ Пошуковий профіль створено</div>}
       {open && (
         <SearchWizard
-          onClose={() => setOpen(false)}
+          onClose={() => { setOpen(false); }}
           onCreated={() => {
             setOpen(false);
             setCreated(true);
-            window.setTimeout(() => setCreated(false), 3000);
+            window.setTimeout(() => { setCreated(false); }, 3000);
           }}
         />
       )}

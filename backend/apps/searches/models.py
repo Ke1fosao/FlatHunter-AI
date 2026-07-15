@@ -14,7 +14,9 @@ class DealType(models.TextChoices):
 
 class SearchProfile(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="search_profiles")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="search_profiles"
+    )
     name = models.CharField(max_length=120)
     city = models.CharField(max_length=120, db_index=True)
     deal_type = models.CharField(max_length=16, choices=DealType.choices, default=DealType.RENT)
@@ -25,7 +27,9 @@ class SearchProfile(models.Model):
     desired_districts = models.JSONField(default=list, blank=True)
     excluded_districts = models.JSONField(default=list, blank=True)
     move_in_date = models.DateField(null=True, blank=True)
-    occupants = models.PositiveSmallIntegerField(default=1, validators=[MinValueValidator(1), MaxValueValidator(20)])
+    occupants = models.PositiveSmallIntegerField(
+        default=1, validators=[MinValueValidator(1), MaxValueValidator(20)]
+    )
     children = models.BooleanField(default=False)
     pets = models.JSONField(default=dict, blank=True)
     property_types = models.JSONField(default=list, blank=True)
@@ -53,7 +57,9 @@ class SearchProfile(models.Model):
 
 class ImportantPlace(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    search_profile = models.ForeignKey(SearchProfile, on_delete=models.CASCADE, related_name="important_places")
+    search_profile = models.ForeignKey(
+        SearchProfile, on_delete=models.CASCADE, related_name="important_places"
+    )
     name = models.CharField(max_length=160)
     address = models.CharField(max_length=255, blank=True)
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
@@ -62,7 +68,9 @@ class ImportantPlace(models.Model):
     max_walk_minutes = models.PositiveSmallIntegerField(null=True, blank=True)
     max_drive_minutes = models.PositiveSmallIntegerField(null=True, blank=True)
     max_transit_minutes = models.PositiveSmallIntegerField(null=True, blank=True)
-    importance = models.PositiveSmallIntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    importance = models.PositiveSmallIntegerField(
+        default=3, validators=[MinValueValidator(1), MaxValueValidator(5)]
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
 
@@ -75,11 +83,21 @@ class NotificationPreference(models.Model):
         DAILY = "daily", "Щодня"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    search_profile = models.OneToOneField(SearchProfile, on_delete=models.CASCADE, related_name="notification_preference")
-    frequency = models.CharField(max_length=24, choices=Frequency.choices, default=Frequency.INSTANT)
-    min_match_score = models.PositiveSmallIntegerField(default=70, validators=[MinValueValidator(0), MaxValueValidator(100)])
-    max_risk_score = models.PositiveSmallIntegerField(default=70, validators=[MinValueValidator(0), MaxValueValidator(100)])
-    daily_limit = models.PositiveSmallIntegerField(default=20, validators=[MinValueValidator(1), MaxValueValidator(100)])
+    search_profile = models.OneToOneField(
+        SearchProfile, on_delete=models.CASCADE, related_name="notification_preference"
+    )
+    frequency = models.CharField(
+        max_length=24, choices=Frequency.choices, default=Frequency.INSTANT
+    )
+    min_match_score = models.PositiveSmallIntegerField(
+        default=70, validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+    max_risk_score = models.PositiveSmallIntegerField(
+        default=70, validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+    daily_limit = models.PositiveSmallIntegerField(
+        default=20, validators=[MinValueValidator(1), MaxValueValidator(100)]
+    )
     quiet_hours_enabled = models.BooleanField(default=True)
     quiet_hours_start = models.TimeField(default="23:00")
     quiet_hours_end = models.TimeField(default="08:00")

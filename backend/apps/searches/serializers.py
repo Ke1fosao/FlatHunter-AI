@@ -32,7 +32,9 @@ class SearchProfileSerializer(serializers.ModelSerializer):
         price_min = attrs.get("price_min", getattr(self.instance, "price_min", None))
         price_max = attrs.get("price_max", getattr(self.instance, "price_max", None))
         if price_min is not None and price_max is not None and int(price_min) > int(price_max):
-            raise serializers.ValidationError({"price_max": "Максимальна ціна має бути не меншою за мінімальну."})
+            raise serializers.ValidationError(
+                {"price_max": "Максимальна ціна має бути не меншою за мінімальну."}
+            )
         return attrs
 
     def create(self, validated_data: dict[str, object]) -> SearchProfile:

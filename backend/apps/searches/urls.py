@@ -7,6 +7,10 @@ router = DefaultRouter()
 router.register("search-profiles", SearchProfileViewSet, basename="search-profile")
 
 urlpatterns = [
-    path("search-profiles/parse-natural-language/", ParseNaturalLanguageView.as_view(), name="parse-natural-language"),
+    path(
+        "search-profiles/parse-natural-language/",
+        ParseNaturalLanguageView.as_view(),
+        name="parse-natural-language",
+    ),
     path("", include(router.urls)),
 ]
