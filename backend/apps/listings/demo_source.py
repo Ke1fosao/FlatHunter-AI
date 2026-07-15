@@ -59,9 +59,7 @@ class DemoListingSourceAdapter(ListingSourceAdapter):
                     "floor": floor,
                     "floors_total": floors_total,
                     "building_type": rng.choice(["new_building", "brick", "panel", "historical"]),
-                    "renovation_level": rng.choice(
-                        ["modern", "good", "cosmetic", "needs_repair"]
-                    ),
+                    "renovation_level": rng.choice(["modern", "good", "cosmetic", "needs_repair"]),
                     "heating_type": rng.choice(["individual", "central", "electric"]),
                     "pets_allowed": rng.choice([True, False, None]),
                     "children_allowed": rng.choice([True, True, False, None]),
