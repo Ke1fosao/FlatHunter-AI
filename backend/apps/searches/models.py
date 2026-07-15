@@ -49,7 +49,12 @@ class SearchProfile(models.Model):
                 name="search_price_range_valid",
             )
         ]
-        indexes = [models.Index(fields=("user", "is_active"))]
+        indexes = [
+            models.Index(
+                fields=("user", "is_active"),
+                name="searches_se_user_id_bda538_idx",
+            )
+        ]
 
     def __str__(self) -> str:
         return f"{self.name} · {self.city}"
