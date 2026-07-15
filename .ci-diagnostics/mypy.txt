@@ -1,9 +1,1 @@
-apps/telegram_bot/handlers.py:175: error: No overload variant of "int" matches argument type "object"  [call-overload]
-apps/telegram_bot/handlers.py:175: note: Possible overload variants:
-apps/telegram_bot/handlers.py:175: note:     def int(str | Buffer | SupportsInt | SupportsIndex | SupportsTrunc = ..., /) -> int
-apps/telegram_bot/handlers.py:175: note:     def int(str | bytes | bytearray, /, base: SupportsIndex) -> int
-apps/telegram_bot/handlers.py:176: error: No overload variant of "list" matches argument type "object"  [call-overload]
-apps/telegram_bot/handlers.py:176: note: Possible overload variants:
-apps/telegram_bot/handlers.py:176: note:     def [_T] list() -> list[_T]
-apps/telegram_bot/handlers.py:176: note:     def [_T] list(Iterable[_T], /) -> list[_T]
-Found 2 errors in 1 file (checked 39 source files)
+Success: no issues found in 39 source files
