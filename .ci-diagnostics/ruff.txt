@@ -1,0 +1,40 @@
+DJ008 Model does not define `__str__` method
+  --> apps/searches/models.py:58:7
+   |
+58 | class ImportantPlace(models.Model):
+   |       ^^^^^^^^^^^^^^
+59 |     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+60 |     search_profile = models.ForeignKey(
+   |
+
+DJ008 Model does not define `__str__` method
+  --> apps/searches/models.py:77:7
+   |
+77 | class NotificationPreference(models.Model):
+   |       ^^^^^^^^^^^^^^^^^^^^^^
+78 |     class Frequency(models.TextChoices):
+79 |         INSTANT = "instant", "Миттєво"
+   |
+
+E501 Line too long (108 > 100)
+   --> apps/telegram_bot/handlers.py:190:100
+    |
+188 |         "✅ Пошук створено й активовано."
+189 |         if saved
+190 |         else "✅ Дані зібрано. Відкрийте Mini App один раз для безпечної авторизації та збереження профілю."
+    |                                                                                                     ^^^^^^^^
+191 |     )
+192 |     await message.answer(text, reply_markup=ReplyKeyboardRemove())
+    |
+
+E501 Line too long (111 > 100)
+  --> tests/test_searches.py:11:101
+   |
+ 9 | def test_natural_language_parser_extracts_supported_criteria():
+10 |     parsed = parse_search_text(
+11 |         "Шукаю однокімнатну квартиру у Львові до 18 тисяч, новобудова, не перший поверх, з котом і без комісії"
+   |                                                                                                     ^^^^^^^^^^^
+12 |     )
+   |
+
+Found 4 errors.

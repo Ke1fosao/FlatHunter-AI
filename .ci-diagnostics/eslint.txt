@@ -1,0 +1,14 @@
+
+> flathunter-miniapp@0.1.0 lint
+> eslint . --max-warnings=0
+
+
+/home/runner/work/FlatHunter-AI/FlatHunter-AI/miniapp/src/components/search-wizard.tsx
+   77:32  error  `FormEvent` is deprecated. FormEvent doesn't actually exist.
+You probably meant to use {@link ChangeEvent}, {@link InputEvent}, {@link SubmitEvent}, or just {@link SyntheticEvent} instead
+depending on the event type  @typescript-eslint/no-deprecated
+  122:71  error  Invalid type "number" of template literal expression                                                                                                                                                                     @typescript-eslint/restrict-template-expressions
+  161:91  error  Expected an assignment or function call and instead saw an expression                                                                                                                                                    @typescript-eslint/no-unused-expressions
+
+✖ 3 problems (3 errors, 0 warnings)
+
