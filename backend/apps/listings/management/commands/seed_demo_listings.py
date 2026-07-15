@@ -1,3 +1,5 @@
+from typing import Any
+
 from asgiref.sync import async_to_sync
 from django.core.management.base import BaseCommand, CommandParser
 
@@ -13,11 +15,12 @@ class Command(BaseCommand):
         parser.add_argument("--count", type=int, default=150)
         parser.add_argument("--seed", type=int, default=20260716)
 
-    def handle(self, *args: object, **options: object) -> None:
+    def handle(self, *args: Any, **options: Any) -> None:
         count = max(1, min(int(options["count"]), 1000))
         seed = int(options["seed"])
         result = async_to_sync(ingest_source)(
-            DemoListingSourceAdapter(), SourceSearchRequest(limit=count, seed=seed)
+            DemoListingSourceAdapter(),
+            SourceSearchRequest(limit=count, seed=seed),
         )
         self.stdout.write(
             self.style.SUCCESS(
