@@ -4,7 +4,7 @@ on:
   push:
     branches: [stage-1-foundation]
     paths:
-      - stage1-source.tar.gz.b64
+      - stage1-source.ready
 
 permissions:
   contents: write
@@ -20,9 +20,9 @@ jobs:
           fetch-depth: 0
       - name: Extract verified source tree
         run: |
-          base64 --decode stage1-source.tar.gz.b64 > /tmp/stage1-source.tar.gz
+          cat stage1-source.part-* | base64 --decode > /tmp/stage1-source.tar.gz
           tar --extract --gzip --file /tmp/stage1-source.tar.gz
-          rm stage1-source.tar.gz.b64
+          rm stage1-source.part-* stage1-source.ready
       - name: Commit extracted source
         run: |
           git config user.name "FlatHunter CI"
