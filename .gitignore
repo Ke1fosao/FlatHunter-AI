@@ -1,0 +1,40 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+*.sqlite3
+backend/db.sqlite3
+backend/.venv/
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/.ruff_cache/
+backend/htmlcov/
+backend/coverage.xml
+backend/staticfiles/
+
+# Node / Next.js
+miniapp/node_modules/
+miniapp/.next/
+miniapp/coverage/
+miniapp/.turbo/
+miniapp/*.tsbuildinfo
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Runtime
+logs/
+media/
+*.log
+
+# Worktrees
+.worktrees/

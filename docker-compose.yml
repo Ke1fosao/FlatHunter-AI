@@ -1,0 +1,127 @@
+name: flathunter-ai
+
+x-backend-environment: &backend-environment
+  DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-local-development-key-change-before-production}
+  DJANGO_DEBUG: ${DJANGO_DEBUG:-true}
+  DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,backend,gateway}
+  DATABASE_URL: ${DATABASE_URL:-postgresql://flathunter:flathunter@db:5432/flathunter}
+  REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+  CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8080}
+  CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-http://localhost:3000,http://localhost:8080}
+  TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+  TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
+  TELEGRAM_MODE: ${TELEGRAM_MODE:-polling}
+  TELEGRAM_WEBHOOK_URL: ${TELEGRAM_WEBHOOK_URL:-}
+  TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-}
+  TELEGRAM_MINI_APP_URL: ${TELEGRAM_MINI_APP_URL:-http://localhost:8080}
+  TELEGRAM_AUTH_MAX_AGE: ${TELEGRAM_AUTH_MAX_AGE:-300}
+  TELEGRAM_UPDATE_TTL: ${TELEGRAM_UPDATE_TTL:-86400}
+  CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/1}
+  CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/2}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+x-backend-service: &backend-service
+  build:
+    context: ./backend
+  environment: *backend-environment
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-flathunter}
+      POSTGRES_USER: ${POSTGRES_USER:-flathunter}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-flathunter}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  redis:
+    image: redis:8-alpine
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  backend:
+    <<: *backend-service
+    environment:
+      <<: *backend-environment
+      RUN_MIGRATIONS: "true"
+      COLLECT_STATIC: "true"
+    command: ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--access-logfile", "-"]
+    volumes:
+      - static_data:/app/staticfiles
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8000/health/live/"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  celery-worker:
+    <<: *backend-service
+    command: ["celery", "-A", "config", "worker", "--loglevel=INFO", "--queues=default,sources,normalization,images,matching,ai,notifications,analytics,maintenance"]
+    stop_grace_period: 30s
+
+  celery-beat:
+    <<: *backend-service
+    command: ["celery", "-A", "config", "beat", "--loglevel=INFO", "--pidfile=/tmp/celerybeat.pid", "--schedule=/tmp/celerybeat-schedule"]
+
+  telegram-bot:
+    <<: *backend-service
+    profiles: ["polling"]
+    command: ["python", "manage.py", "runbot"]
+
+  miniapp:
+    build:
+      context: ./miniapp
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api/v1}
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api/v1}
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  gateway:
+    image: nginx:1.29-alpine
+    ports:
+      - "${GATEWAY_PORT:-8080}:80"
+    volumes:
+      - ./infrastructure/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - static_data:/var/www/static:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+      miniapp:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  static_data:

@@ -1,0 +1,60 @@
+[project]
+name = "flathunter-backend"
+version = "0.1.0"
+description = "FlatHunter AI backend and Telegram bot"
+requires-python = ">=3.13,<3.15"
+dependencies = [
+  "aiogram==3.29.1",
+  "celery[redis]==5.6.3",
+  "django==6.0.7",
+  "django-cors-headers==4.9.0",
+  "django-environ==0.14.0",
+  "djangorestframework==3.17.1",
+  "drf-spectacular==0.30.0",
+  "gunicorn==26.0.0",
+  "psycopg[binary]==3.3.4",
+  "redis==6.4.0",
+  "structlog==26.1.0",
+  "uvicorn[standard]==0.51.0",
+]
+
+[dependency-groups]
+dev = [
+  "django-stubs[compatible-mypy]==6.0.7",
+  "djangorestframework-stubs==3.17.0",
+  "mypy==2.3.0",
+  "pytest==9.1.1",
+  "pytest-cov==7.1.0",
+  "pytest-django==4.12.0",
+  "ruff==0.15.21",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+extend-exclude = [".venv", "migrations"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "DJ"]
+ignore = ["DJ001"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.13"
+plugins = ["mypy_django_plugin.main"]
+disallow_untyped_defs = true
+check_untyped_defs = true
+ignore_missing_imports = true
+warn_unused_ignores = true
+exclude = ["migrations"]
+
+[tool.django-stubs]
+django_settings_module = "config.settings"
