@@ -49,6 +49,30 @@ export type ParsedSearchResponse = {
   missing_fields: string[];
 };
 
+export type ListingFeedItem = {
+  id: string;
+  source_name: string;
+  title: string;
+  city: string;
+  district: string;
+  price_uah: number;
+  rooms: number;
+  total_area: string | null;
+  floor: number | null;
+  floors_total: number | null;
+  renovation_level: string;
+  pets_allowed: boolean | null;
+  commission_percent: string | null;
+  is_demo: boolean;
+};
+
+export type ListingFeedResponse = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: ListingFeedItem[];
+};
+
 type TelegramAuthResponse = { user: AuthenticatedUser; csrfToken: string };
 type ApiErrorPayload = { error?: { code?: string; message?: string } };
 
@@ -121,4 +145,21 @@ export async function createSearchProfile(payload: SearchProfileInput): Promise<
     body: JSON.stringify(payload)
   });
   return parseResponse<{ id: string }>(response);
+}
+
+export async function fetchListings(
+  filters: { city?: string; rooms?: string } = {},
+  signal?: AbortSignal
+): Promise<ListingFeedResponse> {
+  const params = new URLSearchParams();
+  if (filters.city) params.set("city", filters.city);
+  if (filters.rooms) params.set("rooms", filters.rooms);
+  const query = params.size > 0 ? `?${params.toString()}` : "";
+  const response = await fetch(buildApiUrl(apiBaseUrl, `/listings/${query}`), {
+    credentials: "include",
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+    signal
+  });
+  return parseResponse<ListingFeedResponse>(response);
 }
