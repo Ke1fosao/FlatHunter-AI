@@ -6,43 +6,9 @@ on:
   pull_request:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  format-stage2:
-    if: github.head_ref == 'stage-2-search-profiles' && github.actor != 'github-actions[bot]'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: stage-2-search-profiles
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-      - uses: astral-sh/setup-uv@v6
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Format backend
-        working-directory: backend
-        run: |
-          uv venv
-          uv pip install --python .venv/bin/python --requirement requirements-dev.lock
-          uv run --no-sync ruff format apps config tests manage.py
-          uv run --no-sync ruff check --fix apps config tests manage.py || true
-      - name: Format frontend
-        working-directory: miniapp
-        run: |
-          npm install --ignore-scripts --no-audit --no-fund
-          npm run lint -- --fix || true
-      - name: Commit formatting
-        run: |
-          git config user.name 'FlatHunter CI'
-          git config user.email 'actions@users.noreply.github.com'
-          git add backend miniapp
-          git diff --cached --quiet || git commit -m 'style: format Stage 2 implementation'
-          git push origin HEAD:stage-2-search-profiles
-
   backend:
     runs-on: ubuntu-latest
     services:
