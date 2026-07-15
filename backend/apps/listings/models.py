@@ -39,7 +39,11 @@ class ListingSource(models.Model):
 
 class RawListing(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    source = models.ForeignKey(ListingSource, on_delete=models.PROTECT, related_name="raw_listings")
+    source = models.ForeignKey(
+        ListingSource,
+        on_delete=models.PROTECT,
+        related_name="raw_listings",
+    )
     external_id = models.CharField(max_length=128)
     payload = models.JSONField()
     payload_hash = models.CharField(max_length=64, db_index=True)
@@ -55,14 +59,27 @@ class RawListing(models.Model):
                 name="raw_listing_payload_unique",
             )
         ]
-        indexes = [models.Index(fields=("source", "external_id"), name="raw_source_external_idx")]
+        indexes = [
+            models.Index(
+                fields=("source", "external_id"),
+                name="raw_source_external_idx",
+            )
+        ]
 
 
 class Listing(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    source = models.ForeignKey(ListingSource, on_delete=models.PROTECT, related_name="listings")
+    source = models.ForeignKey(
+        ListingSource,
+        on_delete=models.PROTECT,
+        related_name="listings",
+    )
     raw_listing = models.OneToOneField(
-        RawListing, on_delete=models.SET_NULL, null=True, blank=True, related_name="listing"
+        RawListing,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="listing",
     )
     external_id = models.CharField(max_length=128)
     source_url = models.URLField(max_length=500)
@@ -83,7 +100,12 @@ class Listing(models.Model):
     currency = models.CharField(max_length=3, default="UAH")
     price_uah = models.PositiveIntegerField(db_index=True)
     rooms = models.PositiveSmallIntegerField(db_index=True)
-    total_area = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
+    total_area = models.DecimalField(
+        max_digits=7,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
     floor = models.PositiveSmallIntegerField(null=True, blank=True)
     floors_total = models.PositiveSmallIntegerField(null=True, blank=True)
     building_type = models.CharField(max_length=48, blank=True)
@@ -91,7 +113,12 @@ class Listing(models.Model):
     heating_type = models.CharField(max_length=48, blank=True)
     pets_allowed = models.BooleanField(null=True, blank=True)
     children_allowed = models.BooleanField(null=True, blank=True)
-    commission_percent = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    commission_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
     is_owner = models.BooleanField(null=True, blank=True)
     images = models.JSONField(default=list, blank=True)
     attributes = models.JSONField(default=dict, blank=True)
@@ -104,11 +131,20 @@ class Listing(models.Model):
     class Meta:
         ordering = ("-published_at", "-first_seen_at")
         constraints = [
-            models.UniqueConstraint(fields=("source", "external_id"), name="listing_source_external_unique")
+            models.UniqueConstraint(
+                fields=("source", "external_id"),
+                name="listing_source_external_unique",
+            )
         ]
         indexes = [
-            models.Index(fields=("is_active", "city", "-published_at"), name="listing_active_city_pub_idx"),
-            models.Index(fields=("city", "rooms", "price_uah"), name="listing_city_rooms_price_idx"),
+            models.Index(
+                fields=("is_active", "city", "-published_at"),
+                name="listing_active_city_pub_idx",
+            ),
+            models.Index(
+                fields=("city", "rooms", "price_uah"),
+                name="listing_city_rooms_price_idx",
+            ),
         ]
 
     def __str__(self) -> str:
