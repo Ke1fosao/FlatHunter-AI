@@ -1,21 +1,3 @@
-apps/searches/parser.py:73: error: No overload variant of "dict" matches argument type "object"  [call-overload]
-apps/searches/parser.py:73: note: Possible overload variants:
-apps/searches/parser.py:73: note:     def [_KT, _VT] dict() -> dict[_KT, _VT]
-apps/searches/parser.py:73: note:     def [_KT, _VT] dict(**kwargs: _VT) -> dict[str, _VT]
-apps/searches/parser.py:73: note:     def [_KT, _VT] dict(SupportsKeysAndGetItem[_KT, _VT], /) -> dict[_KT, _VT]
-apps/searches/parser.py:73: note:     def [_KT, _VT] dict(SupportsKeysAndGetItem[str, _VT], /, **kwargs: _VT) -> dict[str, _VT]
-apps/searches/parser.py:73: note:     def [_KT, _VT] dict(Iterable[tuple[_KT, _VT]], /) -> dict[_KT, _VT]
-apps/searches/parser.py:73: note:     def [_KT, _VT] dict(Iterable[tuple[str, _VT]], /, **kwargs: _VT) -> dict[str, _VT]
-apps/searches/parser.py:73: note:     def [_KT, _VT] dict(Iterable[list[str]], /) -> dict[str, str]
-apps/searches/parser.py:73: note:     def [_KT, _VT] dict(Iterable[list[bytes]], /) -> dict[bytes, bytes]
-apps/searches/serializers.py:34: error: No overload variant of "int" matches argument type "object"  [call-overload]
-apps/searches/serializers.py:34: note: Possible overload variants:
-apps/searches/serializers.py:34: note:     def int(str | Buffer | SupportsInt | SupportsIndex | SupportsTrunc = ..., /) -> int
-apps/searches/serializers.py:34: note:     def int(str | bytes | bytearray, /, base: SupportsIndex) -> int
-apps/searches/serializers.py:45: error: "object" has no attribute "__iter__"; maybe "__dir__" or "__str__"? (not iterable)  [attr-defined]
-apps/searches/serializers.py:47: error: Argument after ** must be a mapping, not "object"  [arg-type]
-apps/searches/serializers.py:59: error: "object" has no attribute "__iter__"; maybe "__dir__" or "__str__"? (not iterable)  [attr-defined]
-apps/searches/serializers.py:63: error: Argument "defaults" to "update_or_create" of "Manager" has incompatible type "object"; expected "Mapping[str, Any] | None"  [arg-type]
 apps/telegram_bot/handlers.py:175: error: No overload variant of "int" matches argument type "object"  [call-overload]
 apps/telegram_bot/handlers.py:175: note: Possible overload variants:
 apps/telegram_bot/handlers.py:175: note:     def int(str | Buffer | SupportsInt | SupportsIndex | SupportsTrunc = ..., /) -> int
@@ -24,9 +6,4 @@ apps/telegram_bot/handlers.py:176: error: No overload variant of "list" matches 
 apps/telegram_bot/handlers.py:176: note: Possible overload variants:
 apps/telegram_bot/handlers.py:176: note:     def [_T] list() -> list[_T]
 apps/telegram_bot/handlers.py:176: note:     def [_T] list(Iterable[_T], /) -> list[_T]
-apps/searches/views.py:14: error: Function is missing a return type annotation  [no-untyped-def]
-apps/searches/views.py:15: error: Incompatible type for lookup 'user': (got "User | AnonymousUser", expected "User | UUID | None")  [misc]
-apps/searches/views.py:20: error: Function is missing a type annotation  [no-untyped-def]
-apps/searches/views.py:27: error: Function is missing a type annotation  [no-untyped-def]
-apps/searches/views.py:35: error: Function is missing a type annotation  [no-untyped-def]
-Found 13 errors in 4 files (checked 39 source files)
+Found 2 errors in 1 file (checked 39 source files)
