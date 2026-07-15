@@ -1,5 +1,5 @@
-import { AppShell } from "@/components/app-shell";
+import { StageTwoShell } from "@/components/stage-two-shell";
 
 export default function HomePage() {
-  return <AppShell />;
+  return <StageTwoShell />;
 }
