@@ -3,6 +3,7 @@ from __future__ import annotations
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
+from aiogram.fsm.storage.memory import MemoryStorage
 
 from apps.telegram_bot.handlers import router
 
@@ -12,7 +13,7 @@ def create_bot(token: str) -> Bot:
 
 
 def create_dispatcher(*, mini_app_url: str = "") -> Dispatcher:
-    dispatcher = Dispatcher()
+    dispatcher = Dispatcher(storage=MemoryStorage())
     dispatcher["mini_app_url"] = mini_app_url
     dispatcher.include_router(router)
     return dispatcher
