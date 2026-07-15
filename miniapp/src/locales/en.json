@@ -1,0 +1,76 @@
+{
+  "meta": {
+    "title": "FlatHunter AI — smart housing search",
+    "description": "Telegram Mini App for smart apartment search in Ukraine"
+  },
+  "brand": {
+    "name": "FlatHunter AI",
+    "tagline": "Smart housing search"
+  },
+  "header": {
+    "preview": "Demo mode",
+    "telegram": "Telegram Mini App"
+  },
+  "hero": {
+    "eyebrow": "Search runs 24/7",
+    "title": "Great apartments — before everyone else.",
+    "description": "One workspace instead of dozens of tabs. FlatHunter AI checks sources, removes duplicates and shows only relevant options.",
+    "primaryAction": "Create a search",
+    "secondaryAction": "Launch demo"
+  },
+  "stats": {
+    "found": "New in 24 hours",
+    "matches": "Strong matches",
+    "best": "Best match"
+  },
+  "search": {
+    "title": "Active search",
+    "name": "Apartment near university",
+    "criteria": "Lviv · 1 room · up to UAH 18,000",
+    "status": "Active",
+    "newItems": "7 new options",
+    "edit": "Configure"
+  },
+  "listing": {
+    "badge": "Best new option",
+    "title": "1-bedroom apartment",
+    "location": "Lviv · Frankivskyi district",
+    "price": "UAH 16,500",
+    "details": "42 m² · floor 6/10 · new building",
+    "match": "93% match",
+    "travel": "18 min to Polytechnic",
+    "pet": "Cat friendly",
+    "risk": "Commission requires confirmation",
+    "open": "View apartment"
+  },
+  "status": {
+    "title": "System status",
+    "backend": "Backend API",
+    "database": "Database",
+    "cache": "Redis cache",
+    "ready": "Ready",
+    "checking": "Checking",
+    "offline": "No connection",
+    "degraded": "Partially unavailable",
+    "previewDescription": "Open the app in Telegram to use secure authentication. The browser provides a safe UI preview without a development login bypass.",
+    "authError": "Telegram session validation failed. Close and reopen the Mini App.",
+    "apiError": "The backend is currently unavailable. The interface remains in demo mode."
+  },
+  "daily": {
+    "title": "Daily AI summary",
+    "text": "During the last 24 hours, 42 listings were found. Seven match the core criteria and two scored above 85%.",
+    "note": "The AI module will be connected in stage 8"
+  },
+  "navigation": {
+    "search": "Search",
+    "map": "Map",
+    "favorites": "Saved",
+    "compare": "Compare",
+    "profile": "Profile"
+  },
+  "language": {
+    "uk": "UA",
+    "en": "EN",
+    "label": "Language"
+  }
+}
