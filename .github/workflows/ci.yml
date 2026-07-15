@@ -6,9 +6,35 @@ on:
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
+  mypy-diagnostics-stage2:
+    if: github.head_ref == 'stage-2-search-profiles' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: stage-2-search-profiles
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: astral-sh/setup-uv@v6
+      - name: Capture mypy output
+        working-directory: backend
+        run: |
+          uv venv
+          uv pip install --python .venv/bin/python --requirement requirements-dev.lock
+          mkdir -p ../.ci-diagnostics
+          uv run --no-sync mypy apps config > ../.ci-diagnostics/mypy.txt 2>&1 || true
+      - name: Commit diagnostics
+        run: |
+          git config user.name 'FlatHunter CI'
+          git config user.email 'actions@users.noreply.github.com'
+          git add .ci-diagnostics/mypy.txt
+          git diff --cached --quiet || git commit -m 'chore: capture Stage 2 mypy diagnostics'
+          git push origin HEAD:stage-2-search-profiles
+
   backend:
     runs-on: ubuntu-latest
     services:
