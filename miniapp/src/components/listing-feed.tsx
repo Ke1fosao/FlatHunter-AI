@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 
-import { fetchListings, type ListingFeedItem } from "@/lib/api";
+import {
+  fetchListings,
+  TELEGRAM_AUTHENTICATED_EVENT,
+  type ListingFeedItem
+} from "@/lib/api";
 
 function ListingCard({ item }: { item: ListingFeedItem }) {
   return (
@@ -29,21 +33,36 @@ export function ListingFeed() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const controller = new AbortController();
-    setLoading(true);
-    fetchListings({ city, rooms }, controller.signal)
-      .then((response) => {
-        setItems(response.results);
-        setMessage(response.results.length === 0 ? "За цими фільтрами нічого не знайдено." : "");
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) {
-          setItems([]);
-          setMessage("Відкрий Mini App у Telegram, щоб побачити персональну стрічку.");
-        }
-      })
-      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
-    return () => { controller.abort(); };
+    let controller = new AbortController();
+
+    const load = () => {
+      controller.abort();
+      controller = new AbortController();
+      setLoading(true);
+      fetchListings({ city, rooms }, controller.signal)
+        .then((response) => {
+          setItems(response.results);
+          setMessage(
+            response.results.length === 0 ? "За цими фільтрами нічого не знайдено." : ""
+          );
+        })
+        .catch(() => {
+          if (!controller.signal.aborted) {
+            setItems([]);
+            setMessage("Відкрий Mini App у Telegram, щоб побачити персональну стрічку.");
+          }
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setLoading(false);
+        });
+    };
+
+    load();
+    window.addEventListener(TELEGRAM_AUTHENTICATED_EVENT, load);
+    return () => {
+      controller.abort();
+      window.removeEventListener(TELEGRAM_AUTHENTICATED_EVENT, load);
+    };
   }, [city, rooms]);
 
   return (
