@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { useState } from "react";
+import type { SyntheticEvent } from "react";
 
 import {
   createSearchProfile,
@@ -74,7 +75,7 @@ export function SearchWizard({ onClose, onCreated }: Props) {
     }
   };
 
-  const submit = async (event: FormEvent) => {
+  const submit = async (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     setBusy(true);
     setError("");
@@ -119,7 +120,7 @@ export function SearchWizard({ onClose, onCreated }: Props) {
           </div>
         ) : (
           <form onSubmit={(event) => void submit(event)}>
-            <div className="wizard-progress"><span style={{ width: `${(step / 3) * 100}%` }} /></div>
+            <div className="wizard-progress"><span style={{ width: `${String((step / 3) * 100)}%` }} /></div>
 
             {step === 1 && (
               <div className="wizard-grid">
@@ -138,7 +139,7 @@ export function SearchWizard({ onClose, onCreated }: Props) {
                 <button type="button" className={form.pets.dog ? "option-chip is-active" : "option-chip"} onClick={() => { patch("pets", { ...form.pets, dog: !form.pets.dog }); }}>🐕 Можна із собакою</button>
                 <button type="button" className={form.filters.exclude_first_floor ? "option-chip is-active" : "option-chip"} onClick={() => { patch("filters", { ...form.filters, exclude_first_floor: !form.filters.exclude_first_floor }); }}>Не перший поверх</button>
                 <button type="button" className={form.filters.exclude_last_floor ? "option-chip is-active" : "option-chip"} onClick={() => { patch("filters", { ...form.filters, exclude_last_floor: !form.filters.exclude_last_floor }); }}>Не останній поверх</button>
-                <button type="button" className={form.filters.commission_allowed === false ? "option-chip is-active" : "option-chip"} onClick={() => { patch("filters", { ...form.filters, commission_allowed: form.filters.commission_allowed !== false ? false : true }); }}>Без комісії</button>
+                <button type="button" className={form.filters.commission_allowed === false ? "option-chip is-active" : "option-chip"} onClick={() => { patch("filters", { ...form.filters, commission_allowed: form.filters.commission_allowed !== false }); }}>Без комісії</button>
                 <button type="button" className={form.children ? "option-chip is-active" : "option-chip"} onClick={() => { patch("children", !form.children); }}>Можна з дітьми</button>
               </div>
             )}
@@ -158,7 +159,19 @@ export function SearchWizard({ onClose, onCreated }: Props) {
 
             {error && <p className="wizard-error">{error}</p>}
             <footer className="wizard-footer">
-              <button type="button" className="button button--secondary" onClick={() => { step === 1 ? onClose() : setStep((value) => value - 1); }}>Назад</button>
+              <button
+                type="button"
+                className="button button--secondary"
+                onClick={() => {
+                  if (step === 1) {
+                    onClose();
+                  } else {
+                    setStep((value) => value - 1);
+                  }
+                }}
+              >
+                Назад
+              </button>
               {step < 3 ? (
                 <button type="button" className="button button--primary" onClick={() => { setStep((value) => value + 1); }}>Продовжити</button>
               ) : (
