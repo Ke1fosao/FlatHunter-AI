@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "apps.core",
     "apps.accounts",
+    "apps.searches",
     "apps.telegram_bot",
 ]
 
@@ -61,7 +62,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
             ],
         },
-    },
+    }
 ]
 
 DATABASE_URL = env("DATABASE_URL", default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}")
@@ -73,10 +74,7 @@ AUTH_USER_MODEL = "accounts.User"
 REDIS_URL = env("REDIS_URL", default="")
 if REDIS_URL:
     CACHES = {
-        "default": {
-            "BACKEND": "django.core.cache.backends.redis.RedisCache",
-            "LOCATION": REDIS_URL,
-        }
+        "default": {"BACKEND": "django.core.cache.backends.redis.RedisCache", "LOCATION": REDIS_URL}
     }
 else:
     CACHES = {
@@ -94,13 +92,11 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 CORS_ALLOWED_ORIGINS = env.list(
-    "CORS_ALLOWED_ORIGINS",
-    default=["http://localhost:3000", "http://localhost:8080"],
+    "CORS_ALLOWED_ORIGINS", default=["http://localhost:3000", "http://localhost:8080"]
 )
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = env.list(
-    "CSRF_TRUSTED_ORIGINS",
-    default=["http://localhost:3000", "http://localhost:8080"],
+    "CSRF_TRUSTED_ORIGINS", default=["http://localhost:3000", "http://localhost:8080"]
 )
 
 SESSION_COOKIE_NAME = "flathunter_session"
@@ -124,6 +120,8 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "apps.core.exceptions.api_exception_handler",
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 20,
 }
 SPECTACULAR_SETTINGS = {
     "TITLE": "FlatHunter AI API",
@@ -153,11 +151,7 @@ LOG_LEVEL = env("LOG_LEVEL", default="INFO")
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "formatters": {
-        "json": {"()": "apps.core.logging.JsonFormatter"},
-    },
-    "handlers": {
-        "console": {"class": "logging.StreamHandler", "formatter": "json"},
-    },
+    "formatters": {"json": {"()": "apps.core.logging.JsonFormatter"}},
+    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "json"}},
     "root": {"handlers": ["console"], "level": LOG_LEVEL},
 }

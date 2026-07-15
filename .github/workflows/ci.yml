@@ -1,12 +1,16 @@
 name: CI
 
 on:
-  push:
-    branches: [main, stage-1-foundation]
   pull_request:
+  push:
+    branches: [main]
 
 permissions:
   contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   backend:
@@ -57,6 +61,7 @@ jobs:
       - run: uv run --no-sync ruff check apps config tests manage.py
       - run: uv run --no-sync mypy apps config
       - run: uv run --no-sync python manage.py migrate --noinput
+      - run: uv run --no-sync python manage.py makemigrations --check --dry-run
       - run: uv run --no-sync pytest --cov=apps --cov-report=term-missing
       - run: uvx pip-audit --strict -r requirements.lock
 
@@ -70,7 +75,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: npm install --ignore-scripts --no-audit --no-fund
+          cache: npm
+          cache-dependency-path: miniapp/package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
