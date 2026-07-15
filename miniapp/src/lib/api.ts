@@ -76,6 +76,8 @@ export type ListingFeedResponse = {
 type TelegramAuthResponse = { user: AuthenticatedUser; csrfToken: string };
 type ApiErrorPayload = { error?: { code?: string; message?: string } };
 
+export const TELEGRAM_AUTHENTICATED_EVENT = "flathunter:authenticated";
+
 export class ApiError extends Error {
   constructor(message: string, readonly status: number, readonly code = "api_error") {
     super(message);
@@ -124,7 +126,9 @@ export async function authenticateTelegram(initData: string, signal?: AbortSigna
     body: JSON.stringify({ initData }),
     signal
   });
-  return parseResponse<TelegramAuthResponse>(response);
+  const payload = await parseResponse<TelegramAuthResponse>(response);
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(TELEGRAM_AUTHENTICATED_EVENT));
+  return payload;
 }
 
 export async function parseNaturalLanguageSearch(text: string): Promise<ParsedSearchResponse> {
