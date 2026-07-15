@@ -28,10 +28,10 @@ logs:
 	docker compose logs -f --tail=150
 
 migrate:
-	docker compose exec backend uv run --no-sync python manage.py migrate
+	docker compose exec backend python manage.py migrate
 
 superuser:
-	docker compose exec backend uv run --no-sync python manage.py createsuperuser
+	docker compose exec backend python manage.py createsuperuser
 
 backend-check:
 	cd backend && uv run --no-sync ruff format --check apps config tests manage.py
