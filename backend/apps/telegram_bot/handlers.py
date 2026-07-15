@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from aiogram import F, Router
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
@@ -159,7 +161,7 @@ async def receive_rooms(message: Message, state: FSMContext) -> None:
 
 
 @sync_to_async
-def _save_profile(telegram_id: int, data: dict[str, object]) -> bool:
+def _save_profile(telegram_id: int, data: dict[str, Any]) -> bool:
     from apps.accounts.models import TelegramProfile
     from apps.searches.models import NotificationPreference, SearchProfile
 
