@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "apps.core",
     "apps.accounts",
     "apps.searches",
+    "apps.listings",
     "apps.telegram_bot",
 ]
 
