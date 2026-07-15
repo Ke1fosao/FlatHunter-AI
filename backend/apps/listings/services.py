@@ -41,7 +41,7 @@ def _persist_listing(
         payload_hash=payload_hash,
         defaults={"payload": payload, "expires_at": timezone.now() + timedelta(days=30)},
     )
-    listing, created = Listing.objects.update_or_create(
+    _listing, created = Listing.objects.update_or_create(
         source=source,
         external_id=external_id,
         defaults={**values, "raw_listing": raw},
@@ -73,15 +73,16 @@ async def ingest_source(
     unchanged = 0
     for raw_item in raw_items:
         normalized = await adapter.normalize(raw_item)
-        existing = await Listing.objects.filter(
-            source=source, external_id=normalized.external_id
-        ).afirst()
-        if existing and existing.raw_listing and existing.raw_listing.payload_hash == _payload_hash(raw_item):
+        current_hash = await Listing.objects.filter(
+            source=source,
+            external_id=normalized.external_id,
+        ).values_list("raw_listing__payload_hash", flat=True).afirst()
+        if current_hash == _payload_hash(raw_item):
             unchanged += 1
             continue
         status = await _persist_listing(source, raw_item, normalized.external_id, normalized.values)
-        created += status == "created"
-        updated += status == "updated"
+        created += int(status == "created")
+        updated += int(status == "updated")
     source.last_success_at = timezone.now()
     source.health_status = "healthy"
     await source.asave(update_fields=("last_success_at", "health_status"))
