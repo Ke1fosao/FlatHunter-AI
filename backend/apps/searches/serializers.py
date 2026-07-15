@@ -41,9 +41,7 @@ class SearchProfileSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data: dict[str, Any]) -> SearchProfile:
         places = cast(list[dict[str, Any]], validated_data.pop("important_places", []))
-        notification_data = cast(
-            dict[str, Any], validated_data.pop("notification_preference", {})
-        )
+        notification_data = cast(dict[str, Any], validated_data.pop("notification_preference", {}))
         profile = SearchProfile.objects.create(user=self.context["request"].user, **validated_data)
         ImportantPlace.objects.bulk_create(
             [ImportantPlace(search_profile=profile, **place) for place in places]
@@ -52,9 +50,7 @@ class SearchProfileSerializer(serializers.ModelSerializer):
         return profile
 
     def update(self, instance: SearchProfile, validated_data: dict[str, Any]) -> SearchProfile:
-        places = cast(
-            list[dict[str, Any]] | None, validated_data.pop("important_places", None)
-        )
+        places = cast(list[dict[str, Any]] | None, validated_data.pop("important_places", None))
         notification_data = cast(
             dict[str, Any] | None, validated_data.pop("notification_preference", None)
         )
