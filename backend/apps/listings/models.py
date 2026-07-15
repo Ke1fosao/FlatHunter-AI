@@ -66,6 +66,9 @@ class RawListing(models.Model):
             )
         ]
 
+    def __str__(self) -> str:
+        return f"{self.source_id}:{self.external_id}"
+
 
 class Listing(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
