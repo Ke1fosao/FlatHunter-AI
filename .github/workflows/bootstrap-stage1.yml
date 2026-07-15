@@ -18,11 +18,25 @@ jobs:
         with:
           ref: stage-1-foundation
           fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.9.26"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: miniapp/package.json
       - name: Extract verified source tree
         run: |
           cat stage1-source.part-* | base64 --decode > /tmp/stage1-source.tar.gz
           tar --extract --gzip --file /tmp/stage1-source.tar.gz
           rm stage1-source.part-* stage1-source.ready
+      - name: Generate deterministic lock files
+        run: |
+          cd backend
+          uv lock
+          cd ../miniapp
+          npm install --package-lock-only --ignore-scripts
       - name: Commit extracted source
         run: |
           git config user.name "FlatHunter CI"
