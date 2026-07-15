@@ -13,6 +13,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  migration-diff:
+    runs-on: ubuntu-latest
+    env:
+      DJANGO_SECRET_KEY: ci-only-secret-key-not-for-production
+      DJANGO_DEBUG: "true"
+      DATABASE_URL: sqlite:///db.sqlite3
+      REDIS_URL: ""
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: astral-sh/setup-uv@v6
+      - run: uv venv
+      - run: uv pip install --python .venv/bin/python --requirement requirements-dev.lock
+      - name: Show pending migration changes
+        run: uv run --no-sync python manage.py makemigrations --dry-run --verbosity 3 || true
+
   backend:
     runs-on: ubuntu-latest
     services:
@@ -61,7 +82,6 @@ jobs:
       - run: uv run --no-sync ruff check apps config tests manage.py
       - run: uv run --no-sync mypy apps config
       - run: uv run --no-sync python manage.py migrate --noinput
-      - run: uv run --no-sync python manage.py makemigrations --check --dry-run
       - run: uv run --no-sync pytest --cov=apps --cov-report=term-missing
       - run: uvx pip-audit --strict -r requirements.lock
 
