@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from typing import Any
 
 CITY_ALIASES = {
     "львів": "Львів",
@@ -15,14 +16,14 @@ CITY_ALIASES = {
 
 @dataclass(frozen=True)
 class ParsedSearch:
-    data: dict[str, object]
+    data: dict[str, Any]
     confidence: dict[str, float]
     missing_fields: list[str]
 
 
 def parse_search_text(text: str) -> ParsedSearch:
     normalized = " ".join(text.lower().split())
-    data: dict[str, object] = {"deal_type": "rent", "currency": "UAH", "filters": {}}
+    data: dict[str, Any] = {"deal_type": "rent", "currency": "UAH", "filters": {}}
     confidence: dict[str, float] = {"deal_type": 0.95, "currency": 0.9}
 
     for alias, city in CITY_ALIASES.items():
@@ -52,8 +53,7 @@ def parse_search_text(text: str) -> ParsedSearch:
             data["price_max"] = int(raw_price.group(1))
             confidence["price_max"] = 0.92
 
-    filters = data["filters"]
-    assert isinstance(filters, dict)
+    filters: dict[str, Any] = data["filters"]
     if "не перший" in normalized:
         filters["exclude_first_floor"] = True
         confidence["filters.exclude_first_floor"] = 0.99
@@ -70,7 +70,9 @@ def parse_search_text(text: str) -> ParsedSearch:
         data["pets"] = {"cat": True}
         confidence["pets.cat"] = 0.97
     if "собак" in normalized or "пес" in normalized:
-        data["pets"] = {**dict(data.get("pets", {})), "dog": True}
+        pets: dict[str, bool] = dict(data.get("pets", {}))
+        pets["dog"] = True
+        data["pets"] = pets
         confidence["pets.dog"] = 0.97
 
     missing_fields = [field for field in ("city", "price_max", "rooms") if field not in data]
