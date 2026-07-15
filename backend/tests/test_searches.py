@@ -8,7 +8,8 @@ from apps.searches.parser import parse_search_text
 
 def test_natural_language_parser_extracts_supported_criteria():
     parsed = parse_search_text(
-        "Шукаю однокімнатну квартиру у Львові до 18 тисяч, новобудова, не перший поверх, з котом і без комісії"
+        "Шукаю однокімнатну квартиру у Львові до 18 тисяч, новобудова, "
+        "не перший поверх, з котом і без комісії"
     )
 
     assert parsed.data["city"] == "Львів"
