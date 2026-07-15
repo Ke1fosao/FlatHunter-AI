@@ -73,6 +73,9 @@ class ImportantPlace(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self) -> str:
+        return f"{self.name} · {self.search_profile.name}"
+
 
 class NotificationPreference(models.Model):
     class Frequency(models.TextChoices):
@@ -104,3 +107,6 @@ class NotificationPreference(models.Model):
     notify_price_changes = models.BooleanField(default=True)
     notify_reactivated = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self) -> str:
+        return f"Сповіщення · {self.search_profile.name}"
