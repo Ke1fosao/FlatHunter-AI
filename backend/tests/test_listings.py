@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from asgiref.sync import async_to_sync
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
 from rest_framework.test import APIClient
 
 from apps.listings.contracts import SourceSearchRequest
@@ -33,10 +34,16 @@ def test_ingestion_is_idempotent(db):
     assert RawListing.objects.count() == 5
 
 
+def test_seed_demo_listings_command_is_repeatable(db):
+    call_command("seed_demo_listings", count=4, seed=23)
+    call_command("seed_demo_listings", count=4, seed=23)
+
+    assert Listing.objects.count() == 4
+    assert RawListing.objects.count() == 4
+
+
 def test_authenticated_listing_feed_supports_filters(db):
-    async_to_sync(ingest_source)(
-        DemoListingSourceAdapter(), SourceSearchRequest(limit=30, seed=19)
-    )
+    async_to_sync(ingest_source)(DemoListingSourceAdapter(), SourceSearchRequest(limit=30, seed=19))
     user = get_user_model().objects.create_user(username="feed", password="secret")
     client = APIClient()
     client.force_authenticate(user)
