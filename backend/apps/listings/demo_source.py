@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import random
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
-
-from django.utils import timezone
 
 from apps.listings.contracts import (
     ListingSourceAdapter,
@@ -30,7 +28,7 @@ class DemoListingSourceAdapter(ListingSourceAdapter):
 
     async def search(self, request: SourceSearchRequest) -> list[dict[str, Any]]:
         rng = random.Random(request.seed)
-        now = timezone.now()
+        reference_time = datetime(2026, 7, 16, 12, 0, tzinfo=UTC)
         results: list[dict[str, Any]] = []
         city_names = list(self.cities)
         for index in range(request.limit):
@@ -39,7 +37,10 @@ class DemoListingSourceAdapter(ListingSourceAdapter):
             rooms = rng.randint(1, 4)
             area = round(rng.uniform(28 + rooms * 7, 42 + rooms * 18), 1)
             base_price = {"Львів": 14500, "Рівне": 10500, "Київ": 18500}[city]
-            price = max(base_price + rooms * rng.randint(1800, 3900) + rng.randint(-2500, 3500), 6000)
+            price = max(
+                base_price + rooms * rng.randint(1800, 3900) + rng.randint(-2500, 3500),
+                6000,
+            )
             floor = rng.randint(1, 14)
             floors_total = max(floor, rng.randint(5, 18))
             external_id = f"demo-{index + 1:04d}"
@@ -58,13 +59,17 @@ class DemoListingSourceAdapter(ListingSourceAdapter):
                     "floor": floor,
                     "floors_total": floors_total,
                     "building_type": rng.choice(["new_building", "brick", "panel", "historical"]),
-                    "renovation_level": rng.choice(["modern", "good", "cosmetic", "needs_repair"]),
+                    "renovation_level": rng.choice(
+                        ["modern", "good", "cosmetic", "needs_repair"]
+                    ),
                     "heating_type": rng.choice(["individual", "central", "electric"]),
                     "pets_allowed": rng.choice([True, False, None]),
                     "children_allowed": rng.choice([True, True, False, None]),
                     "commission_percent": rng.choice([0, 50, 100, None]),
                     "is_owner": rng.choice([True, False, None]),
-                    "published_at": (now - timedelta(minutes=rng.randint(5, 14400))).isoformat(),
+                    "published_at": (
+                        reference_time - timedelta(minutes=rng.randint(5, 14400))
+                    ).isoformat(),
                     "attributes": {
                         "balcony": rng.choice([True, False]),
                         "elevator": floors_total > 5,
