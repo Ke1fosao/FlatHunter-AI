@@ -31,8 +31,14 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - run: uv venv
       - run: uv pip install --python .venv/bin/python --requirement requirements-dev.lock
-      - name: Show pending migration changes
-        run: uv run --no-sync python manage.py makemigrations --dry-run --verbosity 3 || true
+      - name: Capture pending migration changes
+        run: uv run --no-sync python manage.py makemigrations --dry-run --verbosity 3 > migration-diff.txt 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: migration-diff
+          path: backend/migration-diff.txt
+          if-no-files-found: error
+          retention-days: 1
 
   backend:
     runs-on: ubuntu-latest
