@@ -1,12 +1,1 @@
-E501 Line too long (108 > 100)
-   --> apps/telegram_bot/handlers.py:190:100
-    |
-188 |         "✅ Пошук створено й активовано."
-189 |         if saved
-190 |         else "✅ Дані зібрано. Відкрийте Mini App один раз для безпечної авторизації та збереження профілю."
-    |                                                                                                     ^^^^^^^^
-191 |     )
-192 |     await message.answer(text, reply_markup=ReplyKeyboardRemove())
-    |
-
-Found 1 error.
+All checks passed!
