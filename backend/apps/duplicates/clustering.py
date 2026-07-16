@@ -128,6 +128,21 @@ def _component_can_merge(
     return primary_compatible and compatible_pairs >= required_pairs
 
 
+def _candidate_priority(
+    candidate: DuplicateCandidate,
+    listings: dict[str, Listing],
+) -> tuple[Any, ...]:
+    left = listings[str(candidate.left_listing_id)]
+    right = listings[str(candidate.right_listing_id)]
+    qualities = sorted((primary_quality(left), primary_quality(right)), reverse=True)
+    return (
+        float(candidate.final_score),
+        qualities[0],
+        qualities[1],
+        _pair_key(candidate.left_listing_id, candidate.right_listing_id),
+    )
+
+
 def build_guarded_components(
     listings: list[Listing],
     candidates: list[DuplicateCandidate],
@@ -146,14 +161,12 @@ def build_guarded_components(
             item = parent[item]
         return item
 
-    for candidate in sorted(
+    ordered_candidates = sorted(
         (item for item in candidates if item.decision in ACCEPTED_DECISIONS),
-        key=lambda item: (
-            -float(item.final_score),
-            str(item.left_listing_id),
-            str(item.right_listing_id),
-        ),
-    ):
+        key=lambda item: _candidate_priority(item, listing_map),
+        reverse=True,
+    )
+    for candidate in ordered_candidates:
         left_id = str(candidate.left_listing_id)
         right_id = str(candidate.right_listing_id)
         if left_id not in parent or right_id not in parent:
