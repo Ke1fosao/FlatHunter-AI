@@ -6,55 +6,105 @@ on:
     branches: [main]
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  format-stage-five:
-    if: github.actor != 'github-actions[bot]'
+  backend:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_DB: flathunter_test
+          POSTGRES_USER: flathunter
+          POSTGRES_PASSWORD: flathunter
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U flathunter -d flathunter_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+    env:
+      DJANGO_SECRET_KEY: ci-only-secret-key-not-for-production
+      DJANGO_DEBUG: "true"
+      DATABASE_URL: postgresql://flathunter:flathunter@127.0.0.1:5432/flathunter_test
+      REDIS_URL: redis://127.0.0.1:6379/0
+      TELEGRAM_WEBHOOK_SECRET: ci-webhook-secret
+    defaults:
+      run:
+        working-directory: backend
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: stage-5-miniapp-ui
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
       - uses: astral-sh/setup-uv@v6
-      - run: |
-          cd backend
-          uv venv
-          uv pip install --python .venv/bin/python --requirement requirements-dev.lock
-          uv run --no-sync ruff format apps config tests manage.py
+        with:
+          enable-cache: true
+      - run: uv venv
+      - run: uv pip install --python .venv/bin/python --requirement requirements-dev.lock
+      - run: uv run --no-sync ruff format --check apps config tests manage.py
+      - run: uv run --no-sync ruff check apps config tests manage.py
+      - run: uv run --no-sync mypy apps config
+      - run: uv run --no-sync python manage.py migrate --noinput
+      - run: uv run --no-sync python manage.py makemigrations --check --dry-run
+      - name: Run backend tests and capture diagnostics
+        run: uv run --no-sync pytest --cov=apps --cov-report=term-missing > ../pytest-report.txt 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stage5-pytest-report
+          path: pytest-report.txt
+          retention-days: 1
+      - run: uv run --no-sync pytest --cov=apps --cov-report=term-missing
+      - run: uvx pip-audit --strict -r requirements.lock
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: miniapp
+    steps:
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
           cache-dependency-path: miniapp/package-lock.json
-      - run: |
-          cd miniapp
-          npm ci --ignore-scripts --no-audit --no-fund
-          npx eslint . --fix || true
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('src/components/listing-feed.tsx')
-          text = path.read_text()
-          text = text.replace('`${listing.floor}/${listing.floors_total ?? "?"}`', '`${String(listing.floor)}/${listing.floors_total === null ? "?" : String(listing.floors_total)}`')
-          text = text.replace('`${item.floor}/${item.floors_total ?? "?"}`', '`${String(item.floor)}/${item.floors_total === null ? "?" : String(item.floors_total)}`')
-          path.write_text(text)
-          PY
-          npx eslint . --fix
-      - name: Commit formatted source
-        run: |
-          if git diff --quiet; then
-            echo "No formatter changes"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add backend miniapp
-          git commit -m "style: apply Stage 5 formatters"
-          git push origin HEAD:stage-5-miniapp-ui
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm audit --audit-level=high
+
+  containers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build --tag flathunter-backend:ci ./backend
+      - run: docker build --tag flathunter-miniapp:ci ./miniapp
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan current source tree with Gitleaks
+        run: >-
+          docker run --rm
+          -v "$PWD:/repo:ro"
+          zricethezav/gitleaks:v8.27.2
+          detect --source=/repo --no-git --redact --exit-code=1
