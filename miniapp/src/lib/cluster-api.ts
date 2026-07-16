@@ -60,11 +60,6 @@ export type ClusterFeedItem = {
 };
 
 type ApiErrorPayload = { error?: { code?: string; message?: string } };
-type RawClusterListing = ListingFeedItem & Partial<ClusterListing>;
-type RawClusterDetail = Omit<ListingClusterDetail, "primary" | "members"> & {
-  primary: RawClusterListing;
-  members: Array<Omit<ClusterMember, "listing"> & { listing: RawClusterListing }>;
-};
 
 function csrfToken(): string {
   if (typeof document === "undefined") return "";
@@ -81,19 +76,6 @@ async function parseResponse<T>(response: Response): Promise<T> {
     );
   }
   return payload;
-}
-
-function normalizeClusterListing(listing: RawClusterListing): ClusterListing {
-  return {
-    ...listing,
-    floors_total: listing.floors_total === null ? null : String(listing.floors_total),
-    cluster_id: listing.cluster_id ?? null,
-    source_count: listing.source_count ?? 1,
-    member_count: listing.member_count ?? 1,
-    is_cluster_primary: listing.is_cluster_primary ?? true,
-    price_min_uah: listing.price_min_uah ?? listing.price_uah,
-    price_max_uah: listing.price_max_uah ?? listing.price_uah
-  };
 }
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -122,13 +104,13 @@ export async function fetchClusterFeed(
   if (profile !== null) {
     const response = await fetchMatches(profile.id, { minScore, ordering: "-match_score" }, signal);
     return response.results.map((item) => ({
-      listing: normalizeClusterListing(item.listing),
+      listing: item.listing as ClusterListing,
       match: item.match
     }));
   }
   const response = await fetchListings({}, signal);
   return response.results.map((listing) => ({
-    listing: normalizeClusterListing(listing),
+    listing: listing as ClusterListing,
     match: null
   }));
 }
@@ -147,15 +129,7 @@ export async function fetchListingCluster(
     cache: "no-store",
     signal
   });
-  const payload = await parseResponse<RawClusterDetail>(response);
-  return {
-    ...payload,
-    primary: normalizeClusterListing(payload.primary),
-    members: payload.members.map((member) => ({
-      ...member,
-      listing: normalizeClusterListing(member.listing)
-    }))
-  };
+  return parseResponse<ListingClusterDetail>(response);
 }
 
 export async function setClusterState(
@@ -172,13 +146,5 @@ export async function setClusterState(
     },
     body: JSON.stringify(values)
   });
-  const payload = await parseResponse<RawClusterDetail>(response);
-  return {
-    ...payload,
-    primary: normalizeClusterListing(payload.primary),
-    members: payload.members.map((member) => ({
-      ...member,
-      listing: normalizeClusterListing(member.listing)
-    }))
-  };
+  return parseResponse<ListingClusterDetail>(response);
 }
