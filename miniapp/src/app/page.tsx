@@ -1,5 +1,5 @@
-import { StageThreeShell } from "@/components/stage-three-shell";
+import { StageFourShell } from "@/components/stage-four-shell";
 
 export default function HomePage() {
-  return <StageThreeShell />;
+  return <StageFourShell />;
 }
