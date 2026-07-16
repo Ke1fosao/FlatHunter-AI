@@ -62,13 +62,6 @@ jobs:
       - run: uv run --no-sync mypy apps config
       - run: uv run --no-sync python manage.py migrate --noinput
       - run: uv run --no-sync python manage.py makemigrations --check --dry-run
-      - name: Run backend tests and capture diagnostics
-        run: uv run --no-sync pytest --cov=apps --cov-report=term-missing > ../pytest-report.txt 2>&1 || true
-      - uses: actions/upload-artifact@v4
-        with:
-          name: stage5-pytest-report
-          path: pytest-report.txt
-          retention-days: 1
       - run: uv run --no-sync pytest --cov=apps --cov-report=term-missing
       - run: uvx pip-audit --strict -r requirements.lock
 
