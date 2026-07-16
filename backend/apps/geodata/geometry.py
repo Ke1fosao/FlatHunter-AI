@@ -44,6 +44,10 @@ def point_from_coordinates(
 def coordinates_from_point(point: Point | None) -> tuple[Decimal, Decimal] | None:
     if point is None:
         return None
+    resolved = point
     if point.srid not in (None, 4326):
-        point = point.transform(4326, clone=True)
-    return normalize_coordinates(point.y, point.x)
+        transformed = point.transform(4326, clone=True)
+        if not isinstance(transformed, Point):
+            raise CoordinateValidationError("Geometry must be a point")
+        resolved = transformed
+    return normalize_coordinates(resolved.y, resolved.x)
