@@ -13,68 +13,74 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  backend-diagnostic:
+  backend:
+    runs-on: ubuntu-latest
+    env:
+      DJANGO_SECRET_KEY: ci-only-secret-key-not-for-production
+      DJANGO_DEBUG: "true"
+      DATABASE_URL: postgresql://flathunter:flathunter@flathunter-postgres:5432/flathunter_test
+      REDIS_URL: redis://flathunter-redis:6379/0
+      TELEGRAM_WEBHOOK_SECRET: ci-webhook-secret
+      GEOCODING_PROVIDER: demo
+      GEOCODING_EXTERNAL_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build --tag flathunter-backend:test ./backend
+      - name: Start backend services
+        run: |
+          docker network create flathunter-ci
+          docker run -d --network flathunter-ci --name flathunter-postgres -e POSTGRES_DB=flathunter_test -e POSTGRES_USER=flathunter -e POSTGRES_PASSWORD=flathunter postgis/postgis:17-3.5
+          docker run -d --network flathunter-ci --name flathunter-redis redis:8-alpine
+          for attempt in $(seq 1 30); do
+            docker exec flathunter-postgres pg_isready -U flathunter -d flathunter_test && exit 0
+            sleep 2
+          done
+          exit 1
+      - name: Run backend quality gates
+        run: |
+          docker run --rm --network flathunter-ci \
+            --env DJANGO_SECRET_KEY --env DJANGO_DEBUG --env DATABASE_URL --env REDIS_URL \
+            --env TELEGRAM_WEBHOOK_SECRET --env GEOCODING_PROVIDER --env GEOCODING_EXTERNAL_ENABLED \
+            --entrypoint sh flathunter-backend:test -ec '
+              uv pip install --system --requirement requirements-dev.lock
+              ruff format --check apps config tests manage.py
+              ruff check apps config tests manage.py
+              mypy apps config
+              python manage.py migrate --noinput
+              python manage.py makemigrations --check --dry-run
+              pytest --cov=apps --cov-report=term-missing
+              uvx pip-audit --strict -r requirements.lock
+            '
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: miniapp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: miniapp/package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm audit --audit-level=high
+
+  containers:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build production backend image
-        run: docker build --tag flathunter-backend:stage7 ./backend
-      - name: Start isolated PostGIS and Redis
-        run: |
-          docker network create stage7-ci
-          docker run -d --network stage7-ci --name stage7-postgres \
-            -e POSTGRES_DB=flathunter_test \
-            -e POSTGRES_USER=flathunter \
-            -e POSTGRES_PASSWORD=flathunter \
-            postgis/postgis:17-3.5
-          docker run -d --network stage7-ci --name stage7-redis redis:8-alpine
-          for attempt in $(seq 1 30); do
-            if docker exec stage7-postgres pg_isready -U flathunter -d flathunter_test; then
-              exit 0
-            fi
-            sleep 2
-          done
-          docker logs stage7-postgres
-          exit 1
-      - name: Capture backend gates inside production image
-        run: |
-          docker run --rm --network stage7-ci \
-            -e DJANGO_SECRET_KEY=ci-only-secret-key-not-for-production \
-            -e DJANGO_DEBUG=true \
-            -e DATABASE_URL=postgresql://flathunter:flathunter@stage7-postgres:5432/flathunter_test \
-            -e REDIS_URL=redis://stage7-redis:6379/0 \
-            -e TELEGRAM_WEBHOOK_SECRET=ci-webhook-secret \
-            -e GEOCODING_PROVIDER=demo \
-            -e GEOCODING_EXTERNAL_ENABLED=false \
-            -v "$PWD:/report" \
-            --entrypoint sh \
-            flathunter-backend:stage7 \
-            -c '
-              set +e
-              uv pip install --system --requirement requirements-dev.lock > /report/stage7-install.txt 2>&1
-              echo $? > /report/stage7-install.code
-              ruff format --check apps config tests manage.py > /report/stage7-ruff-format.txt 2>&1
-              echo $? > /report/stage7-ruff-format.code
-              ruff check apps config tests manage.py > /report/stage7-ruff-check.txt 2>&1
-              echo $? > /report/stage7-ruff-check.code
-              mypy apps config > /report/stage7-mypy.txt 2>&1
-              echo $? > /report/stage7-mypy.code
-              python manage.py migrate --noinput > /report/stage7-migrate.txt 2>&1
-              echo $? > /report/stage7-migrate.code
-              python manage.py makemigrations --check --dry-run > /report/stage7-migration-drift.txt 2>&1
-              echo $? > /report/stage7-migration-drift.code
-              pytest --cov=apps --cov-report=term-missing > /report/stage7-pytest.txt 2>&1
-              echo $? > /report/stage7-pytest.code
-              uvx pip-audit --strict -r requirements.lock > /report/stage7-pip-audit.txt 2>&1
-              echo $? > /report/stage7-pip-audit.code
-              exit 0
-            '
-      - uses: actions/upload-artifact@v4
-        with:
-          name: stage7-production-backend-report
-          path: |
-            stage7-*.txt
-            stage7-*.code
-          retention-days: 1
-      - name: End diagnostic run after artifact upload
-        run: exit 1
+      - run: docker build --tag flathunter-backend:ci ./backend
+      - run: docker build --tag flathunter-miniapp:ci ./miniapp
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan current source tree with Gitleaks
+        run: docker run --rm -v "$PWD:/repo:ro" zricethezav/gitleaks:v8.27.2 detect --source=/repo --no-git --redact --exit-code=1
