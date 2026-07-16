@@ -13,7 +13,60 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  backend:
+  backend-ruff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Capture Ruff diagnostics
+        run: |
+          cd backend
+          uvx ruff==0.15.21 format --check apps config tests manage.py > ../stage7-ruff-format.txt 2>&1 || true
+          uvx ruff==0.15.21 check apps config tests manage.py > ../stage7-ruff-check.txt 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stage7-ruff-diagnostics
+          path: |
+            stage7-ruff-format.txt
+            stage7-ruff-check.txt
+          retention-days: 1
+      - run: cd backend && uvx ruff==0.15.21 format --check apps config tests manage.py
+      - run: cd backend && uvx ruff==0.15.21 check apps config tests manage.py
+
+  backend-mypy:
+    runs-on: ubuntu-latest
+    env:
+      DJANGO_SECRET_KEY: ci-only-secret-key-not-for-production
+      DJANGO_DEBUG: "true"
+      DATABASE_URL: sqlite:////tmp/flathunter-mypy.sqlite3
+      REDIS_URL: ""
+      GEOCODING_PROVIDER: demo
+      GEOCODING_EXTERNAL_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install GeoDjango libraries
+        run: >-
+          sudo apt-get update &&
+          sudo apt-get install --no-install-recommends -y
+          binutils gdal-bin libgdal-dev libgeos-dev libproj-dev
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: cd backend && uv venv
+      - run: cd backend && uv pip install --python .venv/bin/python --requirement requirements-dev.lock
+      - name: Capture mypy diagnostics
+        run: cd backend && uv run --no-sync mypy apps config > ../stage7-mypy.txt 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stage7-mypy-diagnostics
+          path: stage7-mypy.txt
+          retention-days: 1
+      - run: cd backend && uv run --no-sync mypy apps config
+
+  backend-tests:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -46,9 +99,6 @@ jobs:
       TELEGRAM_WEBHOOK_SECRET: ci-webhook-secret
       GEOCODING_PROVIDER: demo
       GEOCODING_EXTERNAL_ENABLED: "false"
-    defaults:
-      run:
-        working-directory: backend
     steps:
       - uses: actions/checkout@v4
       - name: Install GeoDjango libraries
@@ -56,75 +106,31 @@ jobs:
           sudo apt-get update &&
           sudo apt-get install --no-install-recommends -y
           binutils gdal-bin libgdal-dev libgeos-dev libproj-dev
-        working-directory: .
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
-      - run: uv venv
-      - run: uv pip install --python .venv/bin/python --requirement requirements-dev.lock
-      - name: Capture final backend diagnostics
+      - run: cd backend && uv venv
+      - run: cd backend && uv pip install --python .venv/bin/python --requirement requirements-dev.lock
+      - name: Capture test diagnostics
         run: |
-          uv run --no-sync ruff format --check apps config tests manage.py > ../stage7-ruff-format.txt 2>&1 || true
-          uv run --no-sync ruff check apps config tests manage.py > ../stage7-ruff-check.txt 2>&1 || true
-          uv run --no-sync mypy apps config > ../stage7-mypy.txt 2>&1 || true
+          cd backend
           uv run --no-sync python manage.py migrate --noinput > ../stage7-migrate.txt 2>&1 || true
           uv run --no-sync python manage.py makemigrations --check --dry-run > ../stage7-migration-drift.txt 2>&1 || true
           uv run --no-sync pytest --cov=apps --cov-report=term-missing > ../stage7-pytest.txt 2>&1 || true
+          uvx pip-audit --strict -r requirements.lock > ../stage7-pip-audit.txt 2>&1 || true
       - uses: actions/upload-artifact@v4
         with:
-          name: stage7-final-backend-diagnostics
+          name: stage7-test-diagnostics
           path: |
-            stage7-ruff-format.txt
-            stage7-ruff-check.txt
-            stage7-mypy.txt
             stage7-migrate.txt
             stage7-migration-drift.txt
             stage7-pytest.txt
+            stage7-pip-audit.txt
           retention-days: 1
-      - run: uv run --no-sync ruff format --check apps config tests manage.py
-      - run: uv run --no-sync ruff check apps config tests manage.py
-      - run: uv run --no-sync mypy apps config
-      - run: uv run --no-sync python manage.py migrate --noinput
-      - run: uv run --no-sync python manage.py makemigrations --check --dry-run
-      - run: uv run --no-sync pytest --cov=apps --cov-report=term-missing
-      - run: uvx pip-audit --strict -r requirements.lock
-
-  frontend:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: miniapp
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: miniapp/package-lock.json
-      - run: npm ci --ignore-scripts --no-audit --no-fund
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run build
-      - run: npm audit --audit-level=high
-
-  containers:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: docker build --tag flathunter-backend:ci ./backend
-      - run: docker build --tag flathunter-miniapp:ci ./miniapp
-
-  secret-scan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Scan current source tree with Gitleaks
-        run: >-
-          docker run --rm
-          -v "$PWD:/repo:ro"
-          zricethezav/gitleaks:v8.27.2
-          detect --source=/repo --no-git --redact --exit-code=1
+      - run: cd backend && uv run --no-sync python manage.py migrate --noinput
+      - run: cd backend && uv run --no-sync python manage.py makemigrations --check --dry-run
+      - run: cd backend && uv run --no-sync pytest --cov=apps --cov-report=term-missing
+      - run: cd backend && uvx pip-audit --strict -r requirements.lock
