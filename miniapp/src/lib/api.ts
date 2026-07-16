@@ -49,8 +49,34 @@ export type ParsedSearchResponse = {
   missing_fields: string[];
 };
 
+export type ListingFeedItem = {
+  id: string;
+  source_name: string;
+  title: string;
+  city: string;
+  district: string;
+  price_uah: number;
+  rooms: number;
+  total_area: string | null;
+  floor: number | null;
+  floors_total: number | null;
+  renovation_level: string;
+  pets_allowed: boolean | null;
+  commission_percent: string | null;
+  is_demo: boolean;
+};
+
+export type ListingFeedResponse = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: ListingFeedItem[];
+};
+
 type TelegramAuthResponse = { user: AuthenticatedUser; csrfToken: string };
 type ApiErrorPayload = { error?: { code?: string; message?: string } };
+
+export const TELEGRAM_AUTHENTICATED_EVENT = "flathunter:authenticated";
 
 export class ApiError extends Error {
   constructor(message: string, readonly status: number, readonly code = "api_error") {
@@ -100,7 +126,9 @@ export async function authenticateTelegram(initData: string, signal?: AbortSigna
     body: JSON.stringify({ initData }),
     signal
   });
-  return parseResponse<TelegramAuthResponse>(response);
+  const payload = await parseResponse<TelegramAuthResponse>(response);
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(TELEGRAM_AUTHENTICATED_EVENT));
+  return payload;
 }
 
 export async function parseNaturalLanguageSearch(text: string): Promise<ParsedSearchResponse> {
@@ -121,4 +149,21 @@ export async function createSearchProfile(payload: SearchProfileInput): Promise<
     body: JSON.stringify(payload)
   });
   return parseResponse<{ id: string }>(response);
+}
+
+export async function fetchListings(
+  filters: { city?: string; rooms?: string } = {},
+  signal?: AbortSignal
+): Promise<ListingFeedResponse> {
+  const params = new URLSearchParams();
+  if (filters.city) params.set("city", filters.city);
+  if (filters.rooms) params.set("rooms", filters.rooms);
+  const query = params.size > 0 ? `?${params.toString()}` : "";
+  const response = await fetch(buildApiUrl(apiBaseUrl, `/listings/${query}`), {
+    credentials: "include",
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+    signal
+  });
+  return parseResponse<ListingFeedResponse>(response);
 }
