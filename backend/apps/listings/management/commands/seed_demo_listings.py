@@ -22,9 +22,11 @@ class Command(BaseCommand):
             DemoListingSourceAdapter(),
             SourceSearchRequest(limit=count, seed=seed),
         )
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"Demo pipeline: received={result.received}, created={result.created}, "
-                f"updated={result.updated}, unchanged={result.unchanged}"
-            )
+        summary = (
+            f"Demo pipeline: received={result.received}, created={result.created}, "
+            f"updated={result.updated}, unchanged={result.unchanged}, failed={result.failed}"
         )
+        if result.failed:
+            self.stdout.write(self.style.WARNING(summary))
+        else:
+            self.stdout.write(self.style.SUCCESS(summary))
