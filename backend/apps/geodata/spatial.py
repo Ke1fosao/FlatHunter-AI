@@ -7,6 +7,8 @@ from django.contrib.gis.db.models.functions import Distance
 from django.contrib.gis.geos import Polygon
 from django.db.models import QuerySet
 
+from apps.accounts.models import User
+from apps.duplicates.presentation import cluster_metadata, projected_user_state
 from apps.listings.models import Listing
 from apps.searches.models import ImportantPlace
 
@@ -63,11 +65,22 @@ def annotate_distance_to_place(
 def serialize_listing_feature(
     listing: Listing,
     match: dict[str, Any] | None = None,
+    *,
+    user: User | None = None,
 ) -> dict[str, Any]:
     if listing.location is None:
         raise ValueError("Listing has no location")
-    states = getattr(listing, "current_user_states", [])
-    state = states[0] if states else None
+    if user is not None:
+        user_state = projected_user_state(listing, user)
+    else:
+        states = getattr(listing, "current_user_states", [])
+        state = states[0] if states else None
+        user_state = {
+            "is_favorite": bool(state and state.is_favorite),
+            "is_hidden": bool(state and state.is_hidden),
+            "is_compared": bool(state and state.is_compared),
+        }
+    metadata = cluster_metadata(listing)
     return {
         "type": "Feature",
         "id": str(listing.id),
@@ -79,6 +92,8 @@ def serialize_listing_feature(
             "id": str(listing.id),
             "title": listing.title,
             "price_uah": listing.price_uah,
+            "price_min_uah": metadata["price_min_uah"],
+            "price_max_uah": metadata["price_max_uah"],
             "rooms": listing.rooms,
             "total_area": str(listing.total_area) if listing.total_area is not None else None,
             "city": listing.city,
@@ -87,10 +102,14 @@ def serialize_listing_feature(
             "is_demo": bool(listing.attributes.get("demo")),
             "published_at": listing.published_at.isoformat(),
             "user_state": {
-                "is_favorite": bool(state and state.is_favorite),
-                "is_hidden": bool(state and state.is_hidden),
-                "is_compared": bool(state and state.is_compared),
+                "is_favorite": bool(user_state["is_favorite"]),
+                "is_hidden": bool(user_state["is_hidden"]),
+                "is_compared": bool(user_state["is_compared"]),
             },
+            "cluster_id": metadata["cluster_id"],
+            "source_count": metadata["source_count"],
+            "member_count": metadata["member_count"],
+            "is_cluster_primary": metadata["is_cluster_primary"],
             "match": match,
         },
     }
