@@ -14,18 +14,28 @@ export function StageFourShell() {
     <>
       <AppShell />
       <ListingFeed />
-      <button className="stage-four-create" type="button" onClick={() => setOpen(true)}>
+      <button
+        className="stage-four-create"
+        type="button"
+        onClick={() => {
+          setOpen(true);
+        }}
+      >
         ＋ Створити пошук
       </button>
       {created && <div className="stage-four-toast">✅ Пошуковий профіль створено</div>}
       {open && (
         <SearchWizard
-          onClose={() => setOpen(false)}
+          onClose={() => {
+            setOpen(false);
+          }}
           onCreated={() => {
             setOpen(false);
             setCreated(true);
             window.dispatchEvent(new Event("flathunter:authenticated"));
-            window.setTimeout(() => setCreated(false), 3000);
+            window.setTimeout(() => {
+              setCreated(false);
+            }, 3000);
           }}
         />
       )}
