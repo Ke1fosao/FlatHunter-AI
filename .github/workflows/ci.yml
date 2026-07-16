@@ -65,6 +65,13 @@ jobs:
           enable-cache: true
       - run: uv venv
       - run: uv pip install --python .venv/bin/python --requirement requirements-dev.lock
+      - name: Capture Ruff format diagnostics
+        run: uv run --no-sync ruff format --check apps config tests manage.py > ../stage7-ruff-format.txt 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stage7-backend-format-diagnostics
+          path: stage7-ruff-format.txt
+          retention-days: 1
       - run: uv run --no-sync ruff format --check apps config tests manage.py
       - run: uv run --no-sync ruff check apps config tests manage.py
       - run: uv run --no-sync mypy apps config
@@ -86,6 +93,13 @@ jobs:
           cache: npm
           cache-dependency-path: miniapp/package-lock.json
       - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Capture ESLint diagnostics
+        run: npm run lint > ../stage7-eslint.txt 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stage7-frontend-lint-diagnostics
+          path: stage7-eslint.txt
+          retention-days: 1
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
