@@ -247,14 +247,14 @@ def rebuild_clusters(*, city: str | None = None, dry_run: bool = False) -> Clust
 
     ListingClusterMember.objects.filter(cluster__in=affected_clusters).delete()
     archived = 0
-    for cluster in affected_clusters:
-        cluster.status = ClusterStatus.ARCHIVED
-        cluster.member_count = 0
-        cluster.source_count = 0
-        cluster.primary_listing = None
-        cluster.confidence_min = None
-        cluster.confidence_max = None
-        cluster.save(
+    for archived_cluster in affected_clusters:
+        archived_cluster.status = ClusterStatus.ARCHIVED
+        archived_cluster.member_count = 0
+        archived_cluster.source_count = 0
+        archived_cluster.primary_listing = None
+        archived_cluster.confidence_min = None
+        archived_cluster.confidence_max = None
+        archived_cluster.save(
             update_fields=(
                 "status",
                 "member_count",
