@@ -30,10 +30,10 @@ export function LeafletMap({ features, places, selectedId, onSelect, onMapClick 
   useEffect(() => {
     if (container === null) return;
     let cancelled = false;
-    async function mountMap() {
+    async function mountMap(target: HTMLDivElement) {
       const L = await import("leaflet");
       if (cancelled) return;
-      const map = L.map(container, {
+      const map = L.map(target, {
         center: [49.0, 31.0],
         zoom: 6,
         zoomControl: true,
@@ -54,7 +54,7 @@ export function LeafletMap({ features, places, selectedId, onSelect, onMapClick 
       });
       mapRef.current = map;
     }
-    void mountMap();
+    void mountMap(container);
     return () => {
       cancelled = true;
       mapRef.current?.remove();
