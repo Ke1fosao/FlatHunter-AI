@@ -17,6 +17,8 @@ export type MapListingProperties = {
   id: string;
   title: string;
   price_uah: number;
+  price_min_uah: number;
+  price_max_uah: number;
   rooms: number;
   total_area: string | null;
   city: string;
@@ -25,6 +27,10 @@ export type MapListingProperties = {
   is_demo: boolean;
   published_at: string;
   user_state: MapUserState;
+  cluster_id: string | null;
+  source_count: number;
+  member_count: number;
+  is_cluster_primary: boolean;
   match: MapMatch | null;
 };
 
@@ -44,6 +50,7 @@ export type MapFeatureCollection = {
     profile_id: string | null;
     tiles_url?: string | null;
     attribution?: string | null;
+    clusters_collapsed?: boolean;
   };
 };
 
