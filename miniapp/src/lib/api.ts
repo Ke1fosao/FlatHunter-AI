@@ -43,6 +43,13 @@ export type SearchProfileInput = {
   };
 };
 
+export type SearchProfileSummary = {
+  id: string;
+  name: string;
+  city: string;
+  is_active: boolean;
+};
+
 export type ParsedSearchResponse = {
   data: Partial<SearchProfileInput>;
   confidence: Record<string, number>;
@@ -73,6 +80,41 @@ export type ListingFeedResponse = {
   results: ListingFeedItem[];
 };
 
+export type MatchComponent = {
+  code: string;
+  label: string;
+  score: number;
+  weight: number;
+  status: "strong" | "partial" | "miss" | "unknown";
+  explanation: string;
+};
+
+export type PersonalizedMatch = {
+  listing: ListingFeedItem;
+  match: {
+    score: number;
+    eligible: boolean;
+    summary: string;
+    strengths: string[];
+    compromises: string[];
+    unknowns: string[];
+    components: MatchComponent[];
+  };
+};
+
+export type MatchFeedResponse = {
+  profile: { id: string; name: string; city: string };
+  count: number;
+  results: PersonalizedMatch[];
+  meta: {
+    algorithm: string;
+    min_score: number;
+    eligible_only: boolean;
+    ordering: string;
+  };
+};
+
+type PaginatedProfiles = { count: number; results: SearchProfileSummary[] };
 type TelegramAuthResponse = { user: AuthenticatedUser; csrfToken: string };
 type ApiErrorPayload = { error?: { code?: string; message?: string } };
 
@@ -149,6 +191,34 @@ export async function createSearchProfile(payload: SearchProfileInput): Promise<
     body: JSON.stringify(payload)
   });
   return parseResponse<{ id: string }>(response);
+}
+
+export async function fetchSearchProfiles(signal?: AbortSignal): Promise<SearchProfileSummary[]> {
+  const response = await fetch(buildApiUrl(apiBaseUrl, "/search-profiles/"), {
+    credentials: "include",
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+    signal
+  });
+  const payload = await parseResponse<PaginatedProfiles | SearchProfileSummary[]>(response);
+  return Array.isArray(payload) ? payload : payload.results;
+}
+
+export async function fetchMatches(
+  profileId: string,
+  options: { minScore?: number; ordering?: string } = {},
+  signal?: AbortSignal
+): Promise<MatchFeedResponse> {
+  const params = new URLSearchParams();
+  params.set("min_score", String(options.minScore ?? 0));
+  params.set("ordering", options.ordering ?? "-match_score");
+  const response = await fetch(buildApiUrl(apiBaseUrl, `/search-profiles/${profileId}/matches/?${params.toString()}`), {
+    credentials: "include",
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+    signal
+  });
+  return parseResponse<MatchFeedResponse>(response);
 }
 
 export async function fetchListings(
