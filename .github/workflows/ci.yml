@@ -44,11 +44,19 @@ jobs:
       DATABASE_URL: postgresql://flathunter:flathunter@127.0.0.1:5432/flathunter_test
       REDIS_URL: redis://127.0.0.1:6379/0
       TELEGRAM_WEBHOOK_SECRET: ci-webhook-secret
+      GEOCODING_PROVIDER: demo
+      GEOCODING_EXTERNAL_ENABLED: "false"
     defaults:
       run:
         working-directory: backend
     steps:
       - uses: actions/checkout@v4
+      - name: Install GeoDjango libraries
+        run: >-
+          sudo apt-get update &&
+          sudo apt-get install --no-install-recommends -y
+          binutils gdal-bin libgdal-dev libgeos-dev libproj-dev
+        working-directory: .
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
