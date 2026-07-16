@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import User
+from apps.duplicates.presentation import cluster_aware_listing_queryset
 from apps.listings.models import Listing
 from apps.listings.serializers import ListingSerializer
 from apps.matching.engine import evaluate_match
@@ -28,7 +29,8 @@ class SearchProfileViewSet(viewsets.ModelViewSet):
     def get_queryset(self) -> QuerySet[SearchProfile]:
         user = cast(User, self.request.user)
         return SearchProfile.objects.filter(user=user).prefetch_related(
-            "important_places", "notification_preference"
+            "important_places",
+            "notification_preference",
         )
 
     @action(detail=True, methods=["post"])
@@ -51,15 +53,14 @@ class SearchProfileViewSet(viewsets.ModelViewSet):
         query = MatchQuerySerializer(data=request.query_params)
         query.is_valid(raise_exception=True)
         params = query.validated_data
-
+        user = cast(User, request.user)
+        base = Listing.objects.filter(
+            is_active=True,
+            source__enabled=True,
+            source__legal_status__in=("approved_demo", "approved"),
+        )
         listings = list(
-            Listing.objects.filter(
-                is_active=True,
-                source__enabled=True,
-                source__legal_status__in=("approved_demo", "approved"),
-            )
-            .select_related("source")
-            .order_by("-published_at")[:1000]
+            cluster_aware_listing_queryset(base, user=user).order_by("-published_at")[:1000]
         )
         matched: list[dict[str, Any]] = []
         for listing in listings:
@@ -81,7 +82,7 @@ class SearchProfileViewSet(viewsets.ModelViewSet):
         elif ordering == "match_score":
             matched.sort(key=lambda item: item["match"]["score"])
         elif ordering == "price_uah":
-            matched.sort(key=lambda item: item["listing"]["price_uah"])
+            matched.sort(key=lambda item: item["listing"]["price_min_uah"])
         else:
             matched.sort(key=lambda item: item["listing"]["published_at"], reverse=True)
 
@@ -96,7 +97,7 @@ class SearchProfileViewSet(viewsets.ModelViewSet):
                 "count": len(matched),
                 "results": limited,
                 "meta": {
-                    "algorithm": "deterministic-v1",
+                    "algorithm": "deterministic-v1-cluster-aware",
                     "min_score": params["min_score"],
                     "eligible_only": params["eligible_only"],
                     "ordering": ordering,
