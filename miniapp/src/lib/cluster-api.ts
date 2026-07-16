@@ -9,7 +9,8 @@ import {
   type SearchProfileSummary
 } from "@/lib/api";
 
-export type ClusterListing = ListingFeedItem & {
+export type ClusterListing = Omit<ListingFeedItem, "floors_total"> & {
+  floors_total: string | null;
   cluster_id: string | null;
   source_count: number;
   member_count: number;
