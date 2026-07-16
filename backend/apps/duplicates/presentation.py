@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.db.models import Prefetch, QuerySet
+from django.db.models import Case, IntegerField, Prefetch, QuerySet, When
 
 from apps.accounts.models import User
 from apps.duplicates.models import (
@@ -15,6 +15,12 @@ from apps.duplicates.models import (
 from apps.duplicates.services import cluster_state_payload, get_user_cluster_state
 from apps.listings.models import Listing, UserListingState
 
+_PRIMARY_FIRST = Case(
+    When(role=ClusterMemberRole.PRIMARY, then=0),
+    default=1,
+    output_field=IntegerField(),
+)
+
 
 def presentation_queryset(queryset: QuerySet[Listing], user: User) -> QuerySet[Listing]:
     listing_states = UserListingState.objects.filter(user=user)
@@ -22,7 +28,7 @@ def presentation_queryset(queryset: QuerySet[Listing], user: User) -> QuerySet[L
     cluster_members = ListingClusterMember.objects.select_related(
         "listing",
         "listing__source",
-    ).order_by("role", "-confidence", "listing__published_at")
+    ).order_by(_PRIMARY_FIRST, "-confidence", "-listing__published_at")
     return queryset.select_related(
         "source",
         "cluster_membership__cluster",
@@ -68,7 +74,7 @@ def cluster_members(cluster: ListingCluster) -> list[ListingClusterMember]:
         return prefetched
     return list(
         cluster.members.select_related("listing", "listing__source").order_by(
-            "role",
+            _PRIMARY_FIRST,
             "-confidence",
             "-listing__published_at",
         )
