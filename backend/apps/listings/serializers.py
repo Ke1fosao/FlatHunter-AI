@@ -45,51 +45,21 @@ class ListingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Listing
         fields = (
-            "id",
-            "source_code",
-            "source_name",
-            "external_id",
-            "source_url",
-            "canonical_url",
-            "title",
-            "description",
-            "deal_type",
-            "property_type",
-            "city",
-            "district",
-            "street",
-            "latitude",
-            "longitude",
-            "location_accuracy",
-            "price",
-            "price_uah",
-            "currency",
-            "rooms",
-            "total_area",
-            "floor",
-            "floors_total",
-            "building_type",
-            "renovation_level",
-            "heating_type",
-            "pets_allowed",
-            "children_allowed",
-            "commission_percent",
-            "is_owner",
-            "images",
-            "attributes",
-            "published_at",
-            "first_seen_at",
-            "last_seen_at",
-            "is_active",
-            "is_demo",
-            "user_state",
+            "id", "source_code", "source_name", "external_id", "source_url", "canonical_url",
+            "title", "description", "deal_type", "property_type", "city", "district", "street",
+            "latitude", "longitude", "location_accuracy", "price", "price_uah", "currency",
+            "rooms", "total_area", "floor", "floors_total", "building_type", "renovation_level",
+            "heating_type", "pets_allowed", "children_allowed", "commission_percent", "is_owner",
+            "images", "attributes", "published_at", "first_seen_at", "last_seen_at", "is_active",
+            "is_demo", "user_state",
         )
 
     def get_is_demo(self, instance: Listing) -> bool:
         return bool(instance.attributes.get("demo"))
 
     def get_user_state(self, instance: Listing) -> dict[str, Any]:
-        state = getattr(instance, "current_user_state", None)
+        states = getattr(instance, "current_user_states", [])
+        state = states[0] if states else None
         if state is None:
             return {
                 "is_favorite": False,
