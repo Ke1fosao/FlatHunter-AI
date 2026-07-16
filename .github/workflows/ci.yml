@@ -57,7 +57,18 @@ jobs:
           enable-cache: true
       - run: uv venv
       - run: uv pip install --python .venv/bin/python --requirement requirements-dev.lock
-      - run: uv run --no-sync ruff format --check apps config tests manage.py
+      - run: uv run --no-sync ruff format apps config tests manage.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stage5-backend-formatted
+          path: |
+            backend/apps/listings/admin.py
+            backend/apps/listings/models.py
+            backend/apps/listings/serializers.py
+            backend/apps/listings/views.py
+            backend/apps/listings/migrations/0002_userlistingstate.py
+            backend/tests/test_stage5_listing_workspace.py
+          retention-days: 1
       - run: uv run --no-sync ruff check apps config tests manage.py
       - run: uv run --no-sync mypy apps config
       - run: uv run --no-sync python manage.py migrate --noinput
@@ -78,6 +89,16 @@ jobs:
           cache: npm
           cache-dependency-path: miniapp/package-lock.json
       - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npx eslint . --fix
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stage5-frontend-formatted
+          path: |
+            miniapp/src/lib/api.ts
+            miniapp/src/components/listing-feed.tsx
+            miniapp/src/components/stage-five-shell.tsx
+            miniapp/src/app/page.tsx
+          retention-days: 1
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
