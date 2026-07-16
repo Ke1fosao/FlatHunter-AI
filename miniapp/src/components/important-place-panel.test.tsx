@@ -1,9 +1,13 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const createImportantPlace = vi.fn();
-const previewImportantPlaceGeocode = vi.fn();
-const deleteImportantPlace = vi.fn();
+const { createImportantPlace, previewImportantPlaceGeocode, deleteImportantPlace } = vi.hoisted(
+  () => ({
+    createImportantPlace: vi.fn(),
+    previewImportantPlaceGeocode: vi.fn(),
+    deleteImportantPlace: vi.fn()
+  })
+);
 
 vi.mock("@/lib/map-api", () => ({
   createImportantPlace,
