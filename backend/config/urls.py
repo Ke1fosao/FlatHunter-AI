@@ -12,6 +12,7 @@ urlpatterns = [
     path("api/v1/", include("apps.accounts.urls")),
     path("api/v1/", include("apps.searches.urls")),
     path("api/v1/", include("apps.listings.urls")),
+    path("api/v1/", include("apps.duplicates.urls")),
     path("api/v1/", include("apps.geodata.urls")),
     path("api/v1/telegram/", include("apps.telegram_bot.urls")),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
