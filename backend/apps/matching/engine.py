@@ -49,7 +49,9 @@ def _component(
     *,
     unknown: bool = False,
 ) -> MatchComponent:
-    status = "unknown" if unknown else "strong" if score >= 80 else "partial" if score >= 45 else "miss"
+    status = (
+        "unknown" if unknown else "strong" if score >= 80 else "partial" if score >= 45 else "miss"
+    )
     return MatchComponent(code, label, max(0, min(score, 100)), weight, status, explanation)
 
 
@@ -62,11 +64,15 @@ def _price_component(profile: SearchProfile, listing: Listing) -> MatchComponent
     if minimum is not None and price < minimum:
         distance = (minimum - price) / max(minimum, 1)
         score = max(55, round(90 - distance * 100))
-        return _component("price", "Бюджет", score, 30, f"Ціна на {minimum - price:,} грн нижча за мінімум.")
+        return _component(
+            "price", "Бюджет", score, 30, f"Ціна на {minimum - price:,} грн нижча за мінімум."
+        )
     if maximum is not None and price > maximum:
         over = (price - maximum) / max(maximum, 1)
         score = max(0, round(100 - over * 220))
-        return _component("price", "Бюджет", score, 30, f"Перевищення бюджету: {price - maximum:,} грн.")
+        return _component(
+            "price", "Бюджет", score, 30, f"Перевищення бюджету: {price - maximum:,} грн."
+        )
     return _component("price", "Бюджет", 100, 30, "Ціна входить у заданий діапазон.")
 
 
@@ -81,7 +87,9 @@ def _location_component(profile: SearchProfile, listing: Listing) -> MatchCompon
     if desired:
         if district in desired:
             return _component("location", "Локація", 100, 25, "Квартира у бажаному районі.")
-        return _component("location", "Локація", 55, 25, "Місто підходить, але район не серед пріоритетних.")
+        return _component(
+            "location", "Локація", 55, 25, "Місто підходить, але район не серед пріоритетних."
+        )
     return _component("location", "Локація", 90, 25, "Місто повністю відповідає пошуку.")
 
 
@@ -128,17 +136,33 @@ def _preferences_component(profile: SearchProfile, listing: Listing) -> MatchCom
             checks.append(55)
             notes.append("умови для тварин не вказані")
     if not checks:
-        return _component("preferences", "Особливі умови", 75, 10, "Додаткових обмежень немає.", unknown=True)
+        return _component(
+            "preferences", "Особливі умови", 75, 10, "Додаткових обмежень немає.", unknown=True
+        )
     score = round(sum(checks) / len(checks))
-    explanation = "Особливі умови виконані." if score == 100 else "; ".join(notes).capitalize() + "."
+    explanation = (
+        "Особливі умови виконані." if score == 100 else "; ".join(notes).capitalize() + "."
+    )
     return _component("preferences", "Особливі умови", score, 10, explanation)
 
 
 def _quality_component(listing: Listing) -> MatchComponent:
-    known = [listing.total_area, listing.floor, listing.floors_total, listing.building_type, listing.heating_type]
+    known = [
+        listing.total_area,
+        listing.floor,
+        listing.floors_total,
+        listing.building_type,
+        listing.heating_type,
+    ]
     completeness = sum(value not in (None, "") for value in known) / len(known)
     score = round(45 + completeness * 55)
-    return _component("quality", "Повнота даних", score, 10, "Оцінка залежить від повноти нормалізованих параметрів.")
+    return _component(
+        "quality",
+        "Повнота даних",
+        score,
+        10,
+        "Оцінка залежить від повноти нормалізованих параметрів.",
+    )
 
 
 def evaluate_match(profile: SearchProfile, listing: Listing) -> MatchEvaluation:
@@ -153,11 +177,19 @@ def evaluate_match(profile: SearchProfile, listing: Listing) -> MatchEvaluation:
     weighted = sum(Decimal(component.score * component.weight) for component in components)
     total_weight = sum(component.weight for component in components)
     score = int((weighted / Decimal(total_weight)).quantize(Decimal("1")))
-    hard_miss = any(component.code in {"location", "price"} and component.score == 0 for component in components)
+    hard_miss = any(
+        component.code in {"location", "price"} and component.score == 0 for component in components
+    )
     eligible = not hard_miss
-    strengths = tuple(component.explanation for component in components if component.status == "strong")
-    compromises = tuple(component.explanation for component in components if component.status in {"partial", "miss"})
-    unknowns = tuple(component.explanation for component in components if component.status == "unknown")
+    strengths = tuple(
+        component.explanation for component in components if component.status == "strong"
+    )
+    compromises = tuple(
+        component.explanation for component in components if component.status in {"partial", "miss"}
+    )
+    unknowns = tuple(
+        component.explanation for component in components if component.status == "unknown"
+    )
     if score >= 85:
         summary = "Майже повна відповідність вашому пошуку."
     elif score >= 70:

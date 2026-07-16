@@ -65,7 +65,9 @@ def test_hard_location_miss_is_ineligible(db):
     evaluation = evaluate_match(profile, listing)
 
     assert evaluation.eligible is False
-    location = next(component for component in evaluation.components if component.code == "location")
+    location = next(
+        component for component in evaluation.components if component.code == "location"
+    )
     assert location.score == 0
 
 
