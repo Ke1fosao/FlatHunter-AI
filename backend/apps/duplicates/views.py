@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, cast
 
-from django.db.models import Prefetch, QuerySet
+from django.db.models import Case, IntegerField, Prefetch, QuerySet, When
 from django.shortcuts import get_object_or_404
 from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.decorators import action
@@ -14,6 +14,7 @@ from apps.accounts.models import User
 from apps.duplicates.candidates import confirm_candidate, restore_candidate_auto, split_candidate
 from apps.duplicates.clustering import rebuild_clusters
 from apps.duplicates.models import (
+    ClusterMemberRole,
     ClusterStatus,
     DuplicateCandidate,
     ListingCluster,
@@ -29,6 +30,12 @@ from apps.duplicates.serializers import (
 from apps.duplicates.services import ComparisonLimitError, update_cluster_state
 from apps.searches.models import SearchProfile
 
+_PRIMARY_FIRST = Case(
+    When(role=ClusterMemberRole.PRIMARY, then=0),
+    default=1,
+    output_field=IntegerField(),
+)
+
 
 class ClusterDetailQuerySerializer(serializers.Serializer):
     profile_id = serializers.UUIDField(required=False)
@@ -42,7 +49,7 @@ class ListingClusterViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
         members = ListingClusterMember.objects.select_related(
             "listing",
             "listing__source",
-        ).order_by("role", "-confidence", "-listing__published_at")
+        ).order_by(_PRIMARY_FIRST, "-confidence", "-listing__published_at")
         states = UserClusterState.objects.filter(user=user)
         return (
             ListingCluster.objects.filter(status=ClusterStatus.ACTIVE)
