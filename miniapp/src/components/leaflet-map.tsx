@@ -15,6 +15,40 @@ type LeafletMapProps = {
   onMapClick: (point: MapClickPoint) => void;
 };
 
+function listingTooltip(feature: MapPointFeature): HTMLDivElement {
+  const wrapper = document.createElement("div");
+  const title = document.createElement("strong");
+  title.textContent = feature.properties.title;
+  wrapper.append(title, document.createElement("br"));
+  const format = new Intl.NumberFormat("uk-UA");
+  const minimum = feature.properties.price_min_uah;
+  const maximum = feature.properties.price_max_uah;
+  wrapper.append(
+    minimum === maximum
+      ? `${format.format(minimum)} грн`
+      : `${format.format(minimum)}–${format.format(maximum)} грн`
+  );
+  const score = feature.properties.match?.score;
+  if (score !== undefined) {
+    wrapper.append(document.createElement("br"), `Match ${String(score)}%`);
+  }
+  if (feature.properties.member_count > 1) {
+    wrapper.append(
+      document.createElement("br"),
+      `${String(feature.properties.member_count)} джерела`
+    );
+  }
+  return wrapper;
+}
+
+function placeTooltip(place: ImportantPlace): HTMLDivElement {
+  const wrapper = document.createElement("div");
+  const title = document.createElement("strong");
+  title.textContent = `◆ ${place.name}`;
+  wrapper.append(title, document.createElement("br"), place.address);
+  return wrapper;
+}
+
 export function LeafletMap({ features, places, selectedId, onSelect, onMapClick }: LeafletMapProps) {
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMapInstance | null>(null);
@@ -93,10 +127,7 @@ export function LeafletMap({ features, places, selectedId, onSelect, onMapClick 
           fillColor: score !== undefined && score >= 80 ? "#3bb273" : "#f4f7f3",
           fillOpacity: 0.96
         });
-        marker.bindTooltip(
-          `<strong>${feature.properties.title}</strong><br>${new Intl.NumberFormat("uk-UA").format(feature.properties.price_uah)} грн${score === undefined ? "" : `<br>Match ${String(score)}%`}`,
-          { direction: "top", opacity: 0.96 }
-        );
+        marker.bindTooltip(listingTooltip(feature), { direction: "top", opacity: 0.96 });
         marker.on("click", () => {
           selectRef.current(feature.id);
         });
@@ -114,7 +145,7 @@ export function LeafletMap({ features, places, selectedId, onSelect, onMapClick 
           fillColor: "#d9d0ff",
           fillOpacity: 1
         })
-          .bindTooltip(`<strong>◆ ${place.name}</strong><br>${place.address}`, {
+          .bindTooltip(placeTooltip(place), {
             direction: "top",
             opacity: 0.96
           })

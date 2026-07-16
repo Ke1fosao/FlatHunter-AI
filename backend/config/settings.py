@@ -12,6 +12,7 @@ env = environ.Env(
     GEOCODING_EXTERNAL_ENABLED=(bool, False),
     GEOCODING_TIMEOUT_SECONDS=(int, 8),
     GEOCODING_CACHE_SECONDS=(int, 2592000),
+    DUPLICATE_AUTO_QUEUE_ENABLED=(bool, False),
 )
 env_file = BASE_DIR.parent / ".env"
 if env_file.exists():
@@ -36,6 +37,7 @@ INSTALLED_APPS = [
     "apps.accounts",
     "apps.searches",
     "apps.listings",
+    "apps.duplicates",
     "apps.geodata",
     "apps.telegram_bot",
 ]
@@ -158,6 +160,13 @@ GEOCODING_USER_AGENT = env(
 )
 MAP_TILES_URL = env("MAP_TILES_URL", default="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png")
 MAP_ATTRIBUTION = env("MAP_ATTRIBUTION", default="© OpenStreetMap contributors")
+
+DUPLICATE_AUTO_MERGE_THRESHOLD = env.float("DUPLICATE_AUTO_MERGE_THRESHOLD", default=92.0)
+DUPLICATE_REVIEW_THRESHOLD = env.float("DUPLICATE_REVIEW_THRESHOLD", default=78.0)
+DUPLICATE_SIMHASH_BLOCK_DISTANCE = env.int("DUPLICATE_SIMHASH_BLOCK_DISTANCE", default=12)
+DUPLICATE_BLOCK_LIMIT = env.int("DUPLICATE_BLOCK_LIMIT", default=500)
+DUPLICATE_AUTO_QUEUE_ENABLED = env.bool("DUPLICATE_AUTO_QUEUE_ENABLED", default=False)
+DUPLICATE_TASK_QUEUE = env("DUPLICATE_TASK_QUEUE", default="duplicates")
 
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=REDIS_URL or "redis://redis:6379/1")
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=REDIS_URL or "redis://redis:6379/2")

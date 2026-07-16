@@ -6,7 +6,7 @@ from uuid import UUID
 
 from asgiref.sync import async_to_sync
 from django.conf import settings
-from django.db.models import Prefetch, QuerySet
+from django.db.models import QuerySet
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.request import Request
@@ -14,6 +14,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import User
+from apps.duplicates.presentation import cluster_aware_listing_queryset, filter_listing_state
 from apps.geodata.contracts import (
     GeocodingDisabled,
     GeocodingError,
@@ -33,7 +34,7 @@ from apps.geodata.spatial import (
     filter_listings_in_bbox,
     serialize_listing_feature,
 )
-from apps.listings.models import Listing, UserListingState
+from apps.listings.models import Listing
 from apps.matching.engine import evaluate_match
 from apps.searches.models import ImportantPlace, SearchProfile
 
@@ -63,34 +64,25 @@ class MapListingView(APIView):
         if params.get("profile_id") is not None:
             profile = _owned_profile(request, params["profile_id"])
 
-        state_queryset = UserListingState.objects.filter(user=user)
-        queryset: QuerySet[Listing] = (
-            Listing.objects.filter(
-                is_active=True,
-                location__isnull=False,
-                source__enabled=True,
-                source__legal_status__in=("approved_demo", "approved"),
-            )
-            .select_related("source")
-            .prefetch_related(
-                Prefetch("user_states", queryset=state_queryset, to_attr="current_user_states")
-            )
-            .order_by("-published_at")
+        queryset: QuerySet[Listing] = Listing.objects.filter(
+            is_active=True,
+            location__isnull=False,
+            source__enabled=True,
+            source__legal_status__in=("approved_demo", "approved"),
         )
-        hidden_ids = UserListingState.objects.filter(user=user, is_hidden=True).values("listing_id")
-        queryset = queryset.exclude(id__in=hidden_ids)
+        queryset = cluster_aware_listing_queryset(queryset, user=user)
         favorites = params.get("favorites")
         if favorites is not None:
-            favorite_ids = UserListingState.objects.filter(user=user, is_favorite=True).values(
-                "listing_id"
+            queryset = filter_listing_state(
+                queryset,
+                user=user,
+                field="is_favorite",
+                value=bool(favorites),
             )
-            if favorites:
-                queryset = queryset.filter(id__in=favorite_ids)
-            else:
-                queryset = queryset.exclude(id__in=favorite_ids)
         bounding_box = params.get("bbox")
         if isinstance(bounding_box, BoundingBox):
             queryset = filter_listings_in_bbox(queryset, bounding_box)
+        queryset = queryset.order_by("-published_at")
 
         features: list[dict[str, Any]] = []
         inspected = 0
@@ -102,7 +94,7 @@ class MapListingView(APIView):
                 if evaluation.score < params["min_score"]:
                     continue
                 match_data = evaluation.to_dict()
-            features.append(serialize_listing_feature(listing, match_data))
+            features.append(serialize_listing_feature(listing, match_data, user=user))
             if len(features) >= params["limit"]:
                 break
 
@@ -116,6 +108,7 @@ class MapListingView(APIView):
                     "profile_id": str(profile.id) if profile is not None else None,
                     "tiles_url": settings.MAP_TILES_URL,
                     "attribution": settings.MAP_ATTRIBUTION,
+                    "clusters_collapsed": True,
                 },
             }
         )

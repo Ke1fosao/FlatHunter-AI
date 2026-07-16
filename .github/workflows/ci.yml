@@ -15,63 +15,42 @@ concurrency:
 jobs:
   backend:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgis/postgis:17-3.5
-        env:
-          POSTGRES_DB: flathunter_test
-          POSTGRES_USER: flathunter
-          POSTGRES_PASSWORD: flathunter
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U flathunter -d flathunter_test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 12
-      redis:
-        image: redis:8-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 12
     env:
       DJANGO_SECRET_KEY: ci-only-secret-key-not-for-production
       DJANGO_DEBUG: "true"
-      DATABASE_URL: postgresql://flathunter:flathunter@127.0.0.1:5432/flathunter_test
-      REDIS_URL: redis://127.0.0.1:6379/0
+      DATABASE_URL: postgresql://flathunter:flathunter@flathunter-postgres:5432/flathunter_test
+      REDIS_URL: redis://flathunter-redis:6379/0
       TELEGRAM_WEBHOOK_SECRET: ci-webhook-secret
       GEOCODING_PROVIDER: demo
       GEOCODING_EXTERNAL_ENABLED: "false"
-    defaults:
-      run:
-        working-directory: backend
     steps:
       - uses: actions/checkout@v4
-      - name: Install GeoDjango libraries
-        run: >-
-          sudo apt-get update &&
-          sudo apt-get install --no-install-recommends -y
-          binutils gdal-bin libgdal-dev libgeos-dev libproj-dev
-        working-directory: .
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-      - uses: astral-sh/setup-uv@v6
-        with:
-          enable-cache: true
-      - run: uv venv
-      - run: uv pip install --python .venv/bin/python --requirement requirements-dev.lock
-      - run: uv run --no-sync ruff format --check apps config tests manage.py
-      - run: uv run --no-sync ruff check apps config tests manage.py
-      - run: uv run --no-sync mypy apps config
-      - run: uv run --no-sync python manage.py migrate --noinput
-      - run: uv run --no-sync python manage.py makemigrations --check --dry-run
-      - run: uv run --no-sync pytest --cov=apps --cov-report=term-missing
-      - run: uvx pip-audit --strict -r requirements.lock
+      - run: docker build --tag flathunter-backend:test ./backend
+      - name: Start backend services
+        run: |
+          docker network create flathunter-ci
+          docker run -d --network flathunter-ci --name flathunter-postgres -e POSTGRES_DB=flathunter_test -e POSTGRES_USER=flathunter -e POSTGRES_PASSWORD=flathunter postgis/postgis:17-3.5
+          docker run -d --network flathunter-ci --name flathunter-redis redis:8-alpine
+          for attempt in $(seq 1 30); do
+            docker exec flathunter-postgres pg_isready -U flathunter -d flathunter_test && exit 0
+            sleep 2
+          done
+          exit 1
+      - name: Run backend quality gates
+        run: |
+          docker run --rm --network flathunter-ci \
+            --env DJANGO_SECRET_KEY --env DJANGO_DEBUG --env DATABASE_URL --env REDIS_URL \
+            --env TELEGRAM_WEBHOOK_SECRET --env GEOCODING_PROVIDER --env GEOCODING_EXTERNAL_ENABLED \
+            --entrypoint sh flathunter-backend:test -ec '
+              uv pip install --system --requirement requirements-dev.lock
+              ruff format --check apps config tests manage.py
+              ruff check apps config tests manage.py
+              mypy apps config
+              python manage.py migrate --noinput
+              python manage.py makemigrations --check --dry-run
+              pytest --cov=apps --cov-report=term-missing
+              uvx pip-audit --strict -r requirements.lock
+            '
 
   frontend:
     runs-on: ubuntu-latest
@@ -104,8 +83,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Scan current source tree with Gitleaks
-        run: >-
-          docker run --rm
-          -v "$PWD:/repo:ro"
-          zricethezav/gitleaks:v8.27.2
-          detect --source=/repo --no-git --redact --exit-code=1
+        run: docker run --rm -v "$PWD:/repo:ro" zricethezav/gitleaks:v8.27.2 detect --source=/repo --no-git --redact --exit-code=1

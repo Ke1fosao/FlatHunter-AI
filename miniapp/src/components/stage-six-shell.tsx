@@ -3,14 +3,15 @@
 import { useState } from "react";
 
 import { AppShell } from "@/components/app-shell";
+import { ClusterBrowser } from "@/components/cluster-browser";
 import { ListingFeed } from "@/components/listing-feed";
 import { MapWorkspace } from "@/components/map-workspace";
 import { SearchWizard } from "@/components/search-wizard";
 
-type StageSixView = "workspace" | "map";
+type StageSevenView = "clusters" | "workspace" | "map";
 
 export function StageSixShell() {
-  const [view, setView] = useState<StageSixView>("workspace");
+  const [view, setView] = useState<StageSevenView>("clusters");
   const [open, setOpen] = useState(false);
   const [created, setCreated] = useState(false);
 
@@ -18,6 +19,13 @@ export function StageSixShell() {
     <>
       <AppShell />
       <nav className="stage-six-switch" aria-label="Режим перегляду">
+        <button
+          type="button"
+          className={view === "clusters" ? "is-active" : ""}
+          onClick={() => { setView("clusters"); }}
+        >
+          ≋ Оголошення
+        </button>
         <button
           type="button"
           className={view === "workspace" ? "is-active" : ""}
@@ -33,7 +41,7 @@ export function StageSixShell() {
           ◉ Карта
         </button>
       </nav>
-      {view === "workspace" ? <ListingFeed /> : <MapWorkspace />}
+      {view === "clusters" ? <ClusterBrowser /> : view === "workspace" ? <ListingFeed /> : <MapWorkspace />}
       <button className="stage-six-create" type="button" onClick={() => { setOpen(true); }}>
         ＋ Створити пошук
       </button>

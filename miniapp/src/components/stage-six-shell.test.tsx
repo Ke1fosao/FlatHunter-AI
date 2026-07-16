@@ -4,6 +4,9 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("@/components/app-shell", () => ({
   AppShell: () => <div>App shell</div>
 }));
+vi.mock("@/components/cluster-browser", () => ({
+  ClusterBrowser: () => <div>Cluster browser</div>
+}));
 vi.mock("@/components/listing-feed", () => ({
   ListingFeed: () => <div>Listing workspace</div>
 }));
@@ -22,14 +25,14 @@ vi.mock("@/components/search-wizard", () => ({
 import { StageSixShell } from "@/components/stage-six-shell";
 
 describe("StageSixShell", () => {
-  it("switches between the apartment workspace and the map", () => {
+  it("switches between the cluster workspace and the map", () => {
     render(<StageSixShell />);
 
-    expect(screen.getByText("Listing workspace")).toBeInTheDocument();
+    expect(screen.getByText("Cluster browser")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "◉ Карта" }));
 
     expect(screen.getByText("PostGIS map workspace")).toBeInTheDocument();
-    expect(screen.queryByText("Listing workspace")).not.toBeInTheDocument();
+    expect(screen.queryByText("Cluster browser")).not.toBeInTheDocument();
   });
 
   it("opens and closes the search wizard", () => {
