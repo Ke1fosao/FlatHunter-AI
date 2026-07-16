@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import cast
 
 from django.db import transaction
-from django.db.models import Count, Prefetch, QuerySet
+from django.db.models import Count, Prefetch, Q, QuerySet
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.request import Request
@@ -28,10 +28,9 @@ class ListingViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self) -> QuerySet[Listing]:
         user = cast(User, self.request.user)
-        filters_serializer = ListingFilterSerializer(data=self.request.query_params)
-        filters_serializer.is_valid(raise_exception=True)
-        params = filters_serializer.validated_data
-
+        serializer = ListingFilterSerializer(data=self.request.query_params)
+        serializer.is_valid(raise_exception=True)
+        params = serializer.validated_data
         state_queryset = UserListingState.objects.filter(user=user)
         queryset = (
             Listing.objects.filter(
@@ -44,52 +43,38 @@ class ListingViewSet(viewsets.ReadOnlyModelViewSet):
                 Prefetch("user_states", queryset=state_queryset, to_attr="current_user_states")
             )
         )
-
-        city = params.get("city")
-        district = params.get("district")
-        rooms = params.get("rooms")
-        price_min = params.get("price_min")
-        price_max = params.get("price_max")
-        favorites = params.get("favorites")
-        compared = params.get("compared")
-        include_hidden = params.get("include_hidden", False)
-
-        if city:
-            queryset = queryset.filter(city__iexact=city)
-        if district:
-            queryset = queryset.filter(district__iexact=district)
-        if rooms is not None:
-            queryset = queryset.filter(rooms=rooms)
-        if price_min is not None:
-            queryset = queryset.filter(price_uah__gte=price_min)
-        if price_max is not None:
-            queryset = queryset.filter(price_uah__lte=price_max)
-        if favorites is not None:
-            queryset = queryset.filter(user_states__user=user, user_states__is_favorite=favorites)
-        if compared is not None:
-            queryset = queryset.filter(user_states__user=user, user_states__is_compared=compared)
-        if not include_hidden:
+        if params.get("city"):
+            queryset = queryset.filter(city__iexact=params["city"])
+        if params.get("district"):
+            queryset = queryset.filter(district__iexact=params["district"])
+        if params.get("rooms") is not None:
+            queryset = queryset.filter(rooms=params["rooms"])
+        if params.get("price_min") is not None:
+            queryset = queryset.filter(price_uah__gte=params["price_min"])
+        if params.get("price_max") is not None:
+            queryset = queryset.filter(price_uah__lte=params["price_max"])
+        if params.get("favorites") is not None:
+            queryset = queryset.filter(
+                user_states__user=user,
+                user_states__is_favorite=params["favorites"],
+            )
+        if params.get("compared") is not None:
+            queryset = queryset.filter(
+                user_states__user=user,
+                user_states__is_compared=params["compared"],
+            )
+        if not params.get("include_hidden", False):
             queryset = queryset.exclude(user_states__user=user, user_states__is_hidden=True)
         return queryset.distinct()
-
-    def get_serializer(self, *args: Any, **kwargs: Any) -> ListingSerializer:
-        instances = args[0] if args else kwargs.get("instance")
-        values = instances if isinstance(instances, list) else [instances]
-        for instance in values:
-            if isinstance(instance, Listing):
-                states = getattr(instance, "current_user_states", [])
-                instance.current_user_state = states[0] if states else None
-        return super().get_serializer(*args, **kwargs)
 
     @action(detail=False, methods=["get"])
     def dashboard(self, request: Request) -> Response:
         user = cast(User, request.user)
-        state_counts = UserListingState.objects.filter(user=user).aggregate(
-            favorites=Count("id", filter=models.Q(is_favorite=True)),
-            hidden=Count("id", filter=models.Q(is_hidden=True)),
-            compared=Count("id", filter=models.Q(is_compared=True)),
+        counts = UserListingState.objects.filter(user=user).aggregate(
+            favorites=Count("id", filter=Q(is_favorite=True)),
+            hidden=Count("id", filter=Q(is_hidden=True)),
+            compared=Count("id", filter=Q(is_compared=True)),
         )
-        active_profiles = SearchProfile.objects.filter(user=user, is_active=True).count()
         available = Listing.objects.filter(
             is_active=True,
             source__enabled=True,
@@ -99,11 +84,13 @@ class ListingViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(
             {
                 "stats": {
-                    "active_profiles": active_profiles,
+                    "active_profiles": SearchProfile.objects.filter(
+                        user=user, is_active=True
+                    ).count(),
                     "available_listings": available,
-                    **state_counts,
+                    **counts,
                 },
-                "recent": ListingSerializer(recent, many=True, context={"request": request}).data,
+                "recent": self.get_serializer(recent, many=True).data,
             }
         )
 
@@ -114,12 +101,17 @@ class ListingViewSet(viewsets.ReadOnlyModelViewSet):
         user = cast(User, request.user)
         listing = self.get_object()
         if field == "is_compared" and value:
-            compared_count = UserListingState.objects.filter(user=user, is_compared=True).exclude(
+            count = UserListingState.objects.filter(user=user, is_compared=True).exclude(
                 listing=listing
             ).count()
-            if compared_count >= 4:
+            if count >= 4:
                 return Response(
-                    {"error": {"code": "comparison_limit", "message": "Можна порівнювати до 4 квартир."}},
+                    {
+                        "error": {
+                            "code": "comparison_limit",
+                            "message": "Можна порівнювати до 4 квартир.",
+                        }
+                    },
                     status=status.HTTP_409_CONFLICT,
                 )
         with transaction.atomic():
@@ -129,7 +121,8 @@ class ListingViewSet(viewsets.ReadOnlyModelViewSet):
             )
             setattr(state, field, value)
             state.save(update_fields=(field, "updated_at"))
-        return Response(ListingSerializer(listing, context={"request": request}).data)
+        listing.current_user_states = [state]
+        return Response(self.get_serializer(listing).data)
 
     @action(detail=True, methods=["post"])
     def favorite(self, request: Request, pk: str | None = None) -> Response:
