@@ -93,12 +93,16 @@ jobs:
           cache: npm
           cache-dependency-path: miniapp/package-lock.json
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Capture ESLint diagnostics
-        run: npm run lint > ../stage7-eslint.txt 2>&1 || true
+      - name: Capture frontend diagnostics
+        run: |
+          npm run lint > ../stage7-eslint.txt 2>&1 || true
+          npm run typecheck > ../stage7-typescript.txt 2>&1 || true
       - uses: actions/upload-artifact@v4
         with:
-          name: stage7-frontend-lint-diagnostics
-          path: stage7-eslint.txt
+          name: stage7-frontend-diagnostics
+          path: |
+            stage7-eslint.txt
+            stage7-typescript.txt
           retention-days: 1
       - run: npm run lint
       - run: npm run typecheck
