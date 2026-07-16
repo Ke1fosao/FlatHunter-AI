@@ -29,7 +29,7 @@ export function LeafletMap({ features, places, selectedId, onSelect, onMapClick 
 
   useEffect(() => {
     let cancelled = false;
-    const container = containerRef.current as HTMLDivElement;
+    const container = containerRef.current!;
     async function mountMap() {
       const L = await import("leaflet");
       if (cancelled) return;
