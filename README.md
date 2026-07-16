@@ -2,7 +2,7 @@
 
 **FlatHunter AI — розумний пошук житла**: Telegram-бот і Mini App для автоматизованого персоналізованого пошуку довгострокової оренди в Україні.
 
-> Поточний стан: **Етап 3 — Demo data pipeline**. Система вже має production-oriented основу, Telegram onboarding, пошукові профілі, synthetic demo source, окремі raw/normalized моделі оголошень, seed-команду та API-стрічку квартир.
+> Поточний стан: **Етап 4 — Deterministic Matching**. Система має production-oriented основу, Telegram onboarding, пошукові профілі, synthetic demo pipeline та прозору персональну оцінку кожного оголошення.
 
 ## Реалізовано
 
@@ -13,13 +13,14 @@
 - `SearchProfile`, важливі точки й правила сповіщень;
 - природномовний fallback parser без обов'язкового AI API;
 - `ListingSource`, `RawListing`, `Listing`;
-- adapter interface для джерел;
-- legal-first source policy;
+- legal-first adapter interface для джерел;
 - deterministic `DemoListingSourceAdapter`;
-- ідемпотентний ingestion pipeline;
+- стійкий ідемпотентний ingestion pipeline;
 - 150 synthetic demo listings;
 - read-only listing feed API з фільтрами, пошуком і сортуванням;
-- Mini App feed, loading, empty та authentication states;
+- deterministic Match Score із шістьма компонентами та поясненнями;
+- персональний matches endpoint з ownership-захистом;
+- Mini App feed із вибором профілю, мінімальним score та сортуванням;
 - PostgreSQL/PostGIS, Redis, Celery, Docker Compose, Nginx і CI;
 - Ruff, mypy, pytest, ESLint, TypeScript, audits, Docker builds і Gitleaks.
 
@@ -35,13 +36,15 @@ flowchart LR
     ADAPTER --> RAW[(RawListing)]
     RAW --> NORMALIZE[Normalization Service]
     NORMALIZE --> LISTING[(Listing)]
-    LISTING --> API
+    PROFILE[(SearchProfile)] --> MATCH[Deterministic Match Engine]
+    LISTING --> MATCH
+    MATCH --> API
     API --> DB[(PostgreSQL / PostGIS)]
     API --> REDIS[(Redis)]
     API --> CELERY[Celery Workers]
 ```
 
-Детальніше: [`docs/architecture.md`](docs/architecture.md) і [`docs/stage-3-demo-pipeline.md`](docs/stage-3-demo-pipeline.md).
+Детальніше: [`docs/architecture.md`](docs/architecture.md), [`docs/stage-3-demo-pipeline.md`](docs/stage-3-demo-pipeline.md) і [`docs/stage-4-matching.md`](docs/stage-4-matching.md).
 
 ## Запуск через Docker
 
@@ -83,14 +86,30 @@ npm run dev
 
 Браузерний preview не обходить Telegram-вхід. Реальна персональна стрічка доступна після серверної перевірки Telegram `initData`.
 
-## Listing API
+## API
 
 ```text
 GET /api/v1/listings/
 GET /api/v1/listings/{id}/
+GET /api/v1/search-profiles/{id}/matches/
 ```
 
-Фільтри: `city`, `rooms`, `price_min`, `price_max`, `district`, `search`, `ordering`.
+Listing-фільтри: `city`, `rooms`, `price_min`, `price_max`, `district`, `search`, `ordering`.
+
+Match-фільтри: `min_score`, `eligible_only`, `ordering`, `limit`.
+
+## Match Score
+
+Оцінка від 0 до 100 формується без AI з шести компонентів:
+
+- бюджет — 30%;
+- локація — 25%;
+- кімнати — 15%;
+- тип житла — 10%;
+- особливі умови — 10%;
+- повнота даних — 10%.
+
+Кожний компонент повертає score, вагу, статус і пояснення. Однакові вхідні дані завжди дають однаковий результат.
 
 ## Перевірки
 
@@ -124,11 +143,12 @@ npm run build
 - [`docs/security.md`](docs/security.md);
 - [`docs/deployment.md`](docs/deployment.md);
 - [`docs/demo.md`](docs/demo.md);
-- [`docs/stage-3-demo-pipeline.md`](docs/stage-3-demo-pipeline.md).
+- [`docs/stage-3-demo-pipeline.md`](docs/stage-3-demo-pipeline.md);
+- [`docs/stage-4-matching.md`](docs/stage-4-matching.md).
 
 ## Наступний етап
 
-Етап 4 додасть детермінований Match Score, складові оцінки, пояснення, персональну фільтрацію та сортування.
+Етап 5 додасть повний Mini App dashboard, детальну сторінку квартири, favorites і comparison.
 
 ## Legal notice
 
