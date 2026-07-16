@@ -10,9 +10,16 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import User
+from apps.listings.models import Listing
+from apps.listings.serializers import ListingSerializer
+from apps.matching.engine import evaluate_match
 from apps.searches.models import SearchProfile
 from apps.searches.parser import parse_search_text
-from apps.searches.serializers import NaturalLanguageSearchSerializer, SearchProfileSerializer
+from apps.searches.serializers import (
+    MatchQuerySerializer,
+    NaturalLanguageSearchSerializer,
+    SearchProfileSerializer,
+)
 
 
 class SearchProfileViewSet(viewsets.ModelViewSet):
@@ -37,6 +44,65 @@ class SearchProfileViewSet(viewsets.ModelViewSet):
         profile.is_active = False
         profile.save(update_fields=("is_active", "updated_at"))
         return Response(self.get_serializer(profile).data)
+
+    @action(detail=True, methods=["get"])
+    def matches(self, request: Request, pk: str | None = None) -> Response:
+        profile = self.get_object()
+        query = MatchQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        params = query.validated_data
+
+        listings = list(
+            Listing.objects.filter(
+                is_active=True,
+                source__enabled=True,
+                source__legal_status__in=("approved_demo", "approved"),
+            )
+            .select_related("source")
+            .order_by("-published_at")[:1000]
+        )
+        matched: list[dict[str, Any]] = []
+        for listing in listings:
+            evaluation = evaluate_match(profile, listing)
+            if params["eligible_only"] and not evaluation.eligible:
+                continue
+            if evaluation.score < params["min_score"]:
+                continue
+            matched.append(
+                {
+                    "listing": ListingSerializer(listing, context={"request": request}).data,
+                    "match": evaluation.to_dict(),
+                }
+            )
+
+        ordering = params["ordering"]
+        if ordering == "-match_score":
+            matched.sort(key=lambda item: item["match"]["score"], reverse=True)
+        elif ordering == "match_score":
+            matched.sort(key=lambda item: item["match"]["score"])
+        elif ordering == "price_uah":
+            matched.sort(key=lambda item: item["listing"]["price_uah"])
+        else:
+            matched.sort(key=lambda item: item["listing"]["published_at"], reverse=True)
+
+        limited = matched[: params["limit"]]
+        return Response(
+            {
+                "profile": {
+                    "id": str(profile.id),
+                    "name": profile.name,
+                    "city": profile.city,
+                },
+                "count": len(matched),
+                "results": limited,
+                "meta": {
+                    "algorithm": "deterministic-v1",
+                    "min_score": params["min_score"],
+                    "eligible_only": params["eligible_only"],
+                    "ordering": ordering,
+                },
+            }
+        )
 
 
 class ParseNaturalLanguageView(APIView):
