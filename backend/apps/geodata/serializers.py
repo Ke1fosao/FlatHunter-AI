@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
@@ -25,6 +26,31 @@ class MapListingQuerySerializer(serializers.Serializer):
 
 
 class ImportantPlaceSerializer(serializers.ModelSerializer):
+    latitude = serializers.DecimalField(
+        required=False,
+        allow_null=True,
+        max_digits=9,
+        decimal_places=6,
+        min_value=Decimal("-90"),
+        max_value=Decimal("90"),
+    )
+    longitude = serializers.DecimalField(
+        required=False,
+        allow_null=True,
+        max_digits=9,
+        decimal_places=6,
+        min_value=Decimal("-180"),
+        max_value=Decimal("180"),
+    )
+    max_distance_km = serializers.DecimalField(
+        required=False,
+        allow_null=True,
+        max_digits=5,
+        decimal_places=2,
+        min_value=Decimal("0.10"),
+        max_value=Decimal("100.00"),
+    )
+
     class Meta:
         model = ImportantPlace
         fields = (
