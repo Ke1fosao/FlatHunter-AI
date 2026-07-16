@@ -66,12 +66,16 @@ jobs:
       - run: uv venv
       - run: uv pip install --python .venv/bin/python --requirement requirements-dev.lock
       - run: uv run --no-sync ruff format --check apps config tests manage.py
-      - name: Capture Ruff output
-        run: uv run --no-sync ruff check apps config tests manage.py > ../stage6-ruff.txt 2>&1 || true
+      - name: Capture backend diagnostics
+        run: |
+          uv run --no-sync ruff check apps config tests manage.py > ../stage6-ruff.txt 2>&1 || true
+          uv run --no-sync mypy apps config > ../stage6-mypy.txt 2>&1 || true
       - uses: actions/upload-artifact@v4
         with:
-          name: stage6-ruff-diagnostics
-          path: stage6-ruff.txt
+          name: stage6-backend-diagnostics
+          path: |
+            stage6-ruff.txt
+            stage6-mypy.txt
           retention-days: 1
       - run: uv run --no-sync ruff check apps config tests manage.py
       - run: uv run --no-sync mypy apps config
