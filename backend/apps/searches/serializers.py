@@ -10,8 +10,27 @@ from apps.searches.models import ImportantPlace, NotificationPreference, SearchP
 class ImportantPlaceSerializer(serializers.ModelSerializer):
     class Meta:
         model = ImportantPlace
-        exclude = ("search_profile",)
-        read_only_fields = ("id", "created_at")
+        fields = (
+            "id",
+            "name",
+            "address",
+            "latitude",
+            "longitude",
+            "geocoding_provider",
+            "geocoding_confidence",
+            "max_distance_km",
+            "max_walk_minutes",
+            "max_drive_minutes",
+            "max_transit_minutes",
+            "importance",
+            "created_at",
+        )
+        read_only_fields = (
+            "id",
+            "geocoding_provider",
+            "geocoding_confidence",
+            "created_at",
+        )
 
 
 class NotificationPreferenceSerializer(serializers.ModelSerializer):
@@ -43,9 +62,8 @@ class SearchProfileSerializer(serializers.ModelSerializer):
         places = cast(list[dict[str, Any]], validated_data.pop("important_places", []))
         notification_data = cast(dict[str, Any], validated_data.pop("notification_preference", {}))
         profile = SearchProfile.objects.create(user=self.context["request"].user, **validated_data)
-        ImportantPlace.objects.bulk_create(
-            [ImportantPlace(search_profile=profile, **place) for place in places]
-        )
+        for place in places:
+            ImportantPlace.objects.create(search_profile=profile, **place)
         NotificationPreference.objects.create(search_profile=profile, **notification_data)
         return profile
 
@@ -59,9 +77,8 @@ class SearchProfileSerializer(serializers.ModelSerializer):
         instance.save()
         if places is not None:
             instance.important_places.all().delete()
-            ImportantPlace.objects.bulk_create(
-                [ImportantPlace(search_profile=instance, **place) for place in places]
-            )
+            for place in places:
+                ImportantPlace.objects.create(search_profile=instance, **place)
         if notification_data is not None:
             NotificationPreference.objects.update_or_create(
                 search_profile=instance, defaults=notification_data

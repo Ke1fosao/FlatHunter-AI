@@ -9,6 +9,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env(
     DJANGO_DEBUG=(bool, False),
     TELEGRAM_AUTH_MAX_AGE=(int, 300),
+    GEOCODING_EXTERNAL_ENABLED=(bool, False),
+    GEOCODING_TIMEOUT_SECONDS=(int, 8),
+    GEOCODING_CACHE_SECONDS=(int, 2592000),
 )
 env_file = BASE_DIR.parent / ".env"
 if env_file.exists():
@@ -25,6 +28,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.gis",
     "corsheaders",
     "rest_framework",
     "drf_spectacular",
@@ -32,6 +36,7 @@ INSTALLED_APPS = [
     "apps.accounts",
     "apps.searches",
     "apps.listings",
+    "apps.geodata",
     "apps.telegram_bot",
 ]
 
@@ -61,13 +66,15 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-            ],
+            ]
         },
     }
 ]
 
 DATABASE_URL = env("DATABASE_URL", default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}")
 DATABASES = {"default": env.db_url_config(DATABASE_URL)}
+if DATABASES["default"]["ENGINE"] == "django.db.backends.postgresql":
+    DATABASES["default"]["ENGINE"] = "django.contrib.gis.db.backends.postgis"
 DATABASES["default"]["CONN_MAX_AGE"] = 60
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
@@ -139,6 +146,18 @@ TELEGRAM_WEBHOOK_SECRET = env("TELEGRAM_WEBHOOK_SECRET", default="")
 TELEGRAM_MINI_APP_URL = env("TELEGRAM_MINI_APP_URL", default="")
 TELEGRAM_AUTH_MAX_AGE = env.int("TELEGRAM_AUTH_MAX_AGE", default=300)
 TELEGRAM_UPDATE_TTL = env.int("TELEGRAM_UPDATE_TTL", default=86400)
+
+GEOCODING_PROVIDER = env("GEOCODING_PROVIDER", default="demo")
+GEOCODING_API_KEY = env("GEOCODING_API_KEY", default="")
+GEOCODING_EXTERNAL_ENABLED = env.bool("GEOCODING_EXTERNAL_ENABLED", default=False)
+GEOCODING_TIMEOUT_SECONDS = env.int("GEOCODING_TIMEOUT_SECONDS", default=8)
+GEOCODING_CACHE_SECONDS = env.int("GEOCODING_CACHE_SECONDS", default=2592000)
+GEOCODING_USER_AGENT = env(
+    "GEOCODING_USER_AGENT",
+    default="FlatHunterAI/0.1 (demo; configure a real contact before production)",
+)
+MAP_TILES_URL = env("MAP_TILES_URL", default="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png")
+MAP_ATTRIBUTION = env("MAP_ATTRIBUTION", default="© OpenStreetMap contributors")
 
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=REDIS_URL or "redis://redis:6379/1")
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=REDIS_URL or "redis://redis:6379/2")

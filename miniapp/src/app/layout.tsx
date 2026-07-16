@@ -3,7 +3,9 @@ import Script from "next/script";
 
 import uk from "@/locales/uk.json";
 
+import "leaflet/dist/leaflet.css";
 import "./globals.css";
+import "./stage-six.css";
 
 export const metadata: Metadata = {
   title: uk.meta.title,

@@ -2,27 +2,29 @@
 
 **FlatHunter AI — розумний пошук житла**: Telegram-бот і Mini App для автоматизованого персоналізованого пошуку довгострокової оренди в Україні.
 
-> Поточний стан: **Етап 5 — Mini App UI**. Система має production-oriented основу, Telegram onboarding, synthetic demo pipeline, deterministic Match Score і повноцінний мобільний кабінет користувача.
+> Поточний стан: **Етап 6 — Карта та геодані**. Система має Telegram onboarding, synthetic pipeline, deterministic Match Score, мобільний кабінет, PostGIS-карту квартир і важливі точки користувача.
 
 ## Реалізовано
 
-- Django 6 + Django REST Framework;
-- Next.js Telegram Mini App з Telegram theme, safe-area та offline states;
+- Django 6, DRF і GeoDjango;
+- PostgreSQL 17 + PostGIS, Redis, Celery, Docker Compose та Nginx;
+- Next.js Telegram Mini App з Telegram theme, safe-area й offline/error states;
 - Telegram auth через перевірений `initData` і HttpOnly session;
 - aiogram bot із `/start`, Mini App та FSM onboarding;
 - `SearchProfile`, важливі точки й правила сповіщень;
 - природномовний fallback parser без обов'язкового AI API;
 - `ListingSource`, `RawListing`, `Listing` і `UserListingState`;
 - legal-first adapter interface та deterministic demo source;
-- стійкий ідемпотентний ingestion pipeline;
-- 150 synthetic demo listings;
-- deterministic Match Score із шістьма компонентами та поясненнями;
-- dashboard із персональними лічильниками;
-- персональна стрічка, деталі квартири, розширені фільтри;
-- обране, приховування та порівняння до чотирьох квартир;
-- user-scoped state API з ownership-захистом;
-- loading, empty, authentication, validation і error states;
-- PostgreSQL/PostGIS, Redis, Celery, Docker Compose, Nginx і CI;
+- 150 synthetic demo listings зі стабільними координатами;
+- deterministic Match Score із поясненнями;
+- dashboard, стрічка, деталі, фільтри, обране, приховування та порівняння;
+- PostGIS `PointField` для квартир і важливих місць;
+- GeoJSON API, bbox-фільтрація та straight-line distance через PostGIS;
+- deterministic demo geocoder;
+- опційний Nominatim provider із fixed host, timeout, cache, rate limit і UA-only scope;
+- інтерактивна Leaflet-карта з маркерами квартир і важливих точок;
+- додавання важливої точки за адресою або кліком на карту;
+- ownership-захист усіх персональних геоданих;
 - Ruff, mypy, pytest, ESLint, TypeScript, audits, Docker builds і Gitleaks.
 
 ## Архітектура
@@ -33,20 +35,22 @@ flowchart LR
     TG --> BOT[aiogram Bot]
     MINI --> API[Django REST API]
     BOT --> API
-    PROFILE[(SearchProfile)] --> MATCH[Deterministic Match Engine]
     SOURCE[Demo / approved source] --> RAW[(RawListing)]
     RAW --> NORMALIZE[Normalization]
-    NORMALIZE --> LISTING[(Listing)]
+    NORMALIZE --> LISTING[(Listing + PostGIS Point)]
+    PROFILE[(SearchProfile)] --> MATCH[Deterministic Match Engine]
     LISTING --> MATCH
-    MATCH --> API
-    MINI --> STATE[(UserListingState)]
-    STATE --> API
-    API --> DB[(PostgreSQL / PostGIS)]
-    API --> REDIS[(Redis)]
+    PROFILE --> PLACE[(ImportantPlace + PostGIS Point)]
+    LISTING --> GEO[Spatial / GeoJSON Service]
+    PLACE --> GEO
+    MATCH --> GEO
+    GEO --> MAP[Leaflet Map]
+    API --> DB[(PostgreSQL + PostGIS)]
+    API --> REDIS[(Redis Cache / Broker)]
     API --> CELERY[Celery Workers]
 ```
 
-Детальніше: [`docs/architecture.md`](docs/architecture.md), [`docs/stage-3-demo-pipeline.md`](docs/stage-3-demo-pipeline.md), [`docs/stage-4-matching.md`](docs/stage-4-matching.md) і [`docs/stage-5-miniapp-ui.md`](docs/stage-5-miniapp-ui.md).
+Детальніше: [`docs/architecture.md`](docs/architecture.md) і [`docs/stage-6-map-geodata.md`](docs/stage-6-map-geodata.md).
 
 ## Запуск через Docker
 
@@ -55,6 +59,7 @@ cp .env.example .env
 docker compose up --build -d
 docker compose exec backend python manage.py migrate
 docker compose exec backend python manage.py seed_demo_listings
+docker compose exec backend python manage.py geocode_demo_data
 ```
 
 Mini App: `http://localhost:8080`  
@@ -64,20 +69,20 @@ Readiness: `http://localhost:8080/health/ready/`
 
 ## Локальний backend
 
+Stage 6 потребує PostgreSQL із PostGIS. SQLite більше не підтримується для міграцій геометрії.
+
 ```bash
 cd backend
 uv venv
 uv pip install --python .venv/bin/python --requirement requirements-dev.lock
+export DATABASE_URL=postgresql://flathunter:flathunter@localhost:5432/flathunter
 uv run --no-sync python manage.py migrate
 uv run --no-sync python manage.py seed_demo_listings
+uv run --no-sync python manage.py geocode_demo_data
 uv run --no-sync python manage.py runserver
 ```
 
-Повторний запуск seed-команди безпечний:
-
-```bash
-uv run --no-sync python manage.py seed_demo_listings --count 150 --seed 20260716
-```
+Повторні запуски seed і geodata backfill ідемпотентні.
 
 ## Mini App
 
@@ -87,29 +92,37 @@ npm ci
 npm run dev
 ```
 
-Браузерний preview не обходить Telegram-вхід. Персональні стани, обране та порівняння доступні тільки після серверної перевірки Telegram `initData`.
+Браузерний preview не обходить Telegram-вхід. Карта, важливі точки та персональні стани доступні лише після серверної перевірки Telegram `initData`.
 
-## API етапу 5
+## Налаштування карти
+
+Безпечний demo-режим працює без API-ключа:
+
+```env
+GEOCODING_PROVIDER=demo
+GEOCODING_EXTERNAL_ENABLED=false
+MAP_TILES_URL=https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png
+MAP_ATTRIBUTION=© OpenStreetMap contributors
+NEXT_PUBLIC_MAP_TILES_URL=https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png
+NEXT_PUBLIC_MAP_ATTRIBUTION=© OpenStreetMap contributors
+```
+
+Nominatim є опційним і вимкнений за замовчуванням. Перед production-використанням потрібно вказати реальний контактний `GEOCODING_USER_AGENT`, перевірити usage policy провайдера та ввімкнути `GEOCODING_EXTERNAL_ENABLED=true`. URL провайдера не приймається від користувача й не може бути довільно змінений через API.
+
+## API етапу 6
 
 ```text
-GET  /api/v1/listings/
-GET  /api/v1/listings/{id}/
-GET  /api/v1/listings/dashboard/
-POST /api/v1/listings/{id}/favorite/
-POST /api/v1/listings/{id}/hide/
-POST /api/v1/listings/{id}/compare/
-GET  /api/v1/search-profiles/{id}/matches/
+GET    /api/v1/map/listings/
+GET    /api/v1/search-profiles/{id}/important-places/
+POST   /api/v1/search-profiles/{id}/important-places/
+POST   /api/v1/search-profiles/{id}/important-places/geocode/
+DELETE /api/v1/search-profiles/{id}/important-places/{place_id}/
+GET    /api/v1/search-profiles/{id}/map-context/
 ```
 
-Listing-фільтри: `city`, `district`, `rooms`, `price_min`, `price_max`, `favorites`, `compared`, `include_hidden`, `search`, `ordering`.
+Map-фільтри: `profile_id`, `bbox=west,south,east,north`, `min_score`, `favorites`, `limit`.
 
-Стан змінюється ідемпотентним payload:
-
-```json
-{"value": true}
-```
-
-Порівняння обмежене чотирма квартирами на користувача. При перевищенні API повертає `409 comparison_limit`.
+Map API повертає GeoJSON `FeatureCollection`. Координати завжди мають порядок `[longitude, latitude]` і SRID 4326.
 
 ## Перевірки
 
@@ -124,6 +137,7 @@ cd backend
 uv run --no-sync ruff format --check apps config tests manage.py
 uv run --no-sync ruff check apps config tests manage.py
 uv run --no-sync mypy apps config
+uv run --no-sync python manage.py migrate --noinput
 uv run --no-sync python manage.py makemigrations --check --dry-run
 uv run --no-sync pytest
 
@@ -142,12 +156,17 @@ npm run build
 - [`docs/deployment.md`](docs/deployment.md);
 - [`docs/stage-3-demo-pipeline.md`](docs/stage-3-demo-pipeline.md);
 - [`docs/stage-4-matching.md`](docs/stage-4-matching.md);
-- [`docs/stage-5-miniapp-ui.md`](docs/stage-5-miniapp-ui.md).
+- [`docs/stage-5-miniapp-ui.md`](docs/stage-5-miniapp-ui.md);
+- [`docs/stage-6-map-geodata.md`](docs/stage-6-map-geodata.md).
+
+## Відоме обмеження
+
+Етап 6 обчислює геодезичну відстань по прямій. Час пішки, автомобілем або громадським транспортом потребує routing provider і буде окремим розширенням.
 
 ## Наступний етап
 
-Етап 6 додасть PostGIS-геодані, geocoding provider, карту, маркери та важливі точки.
+Етап 7: exact/fuzzy duplicate matching, image hashing і `ListingCluster`.
 
 ## Legal notice
 
-FlatHunter AI не містить механізмів обходу CAPTCHA, авторизації, rate limits, fingerprinting або приватних API. Реальні джерела підключаються тільки після перевірки умов доступу. До цього система працює на synthetic demo data, ручному імпорті та офіційно дозволених інтеграціях.
+FlatHunter AI не містить механізмів обходу CAPTCHA, авторизації, rate limits, fingerprinting або приватних API. Реальні джерела й зовнішні geocoding/tiles providers підключаються лише після перевірки умов доступу. До цього система працює на synthetic demo data та явно дозволених інтеграціях.

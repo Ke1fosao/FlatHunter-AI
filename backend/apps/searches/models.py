@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
 from django.conf import settings
+from django.contrib.gis.db import models
 from django.core.validators import MaxValueValidator, MinValueValidator
-from django.db import models
+
+from apps.geodata.geometry import coordinates_from_point, point_from_coordinates
 
 
 class DealType(models.TextChoices):
@@ -69,6 +72,11 @@ class ImportantPlace(models.Model):
     address = models.CharField(max_length=255, blank=True)
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    location = models.PointField(srid=4326, geography=True, null=True, blank=True)
+    geocoding_provider = models.CharField(max_length=32, blank=True)
+    geocoding_confidence = models.DecimalField(
+        max_digits=4, decimal_places=3, null=True, blank=True
+    )
     max_distance_km = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     max_walk_minutes = models.PositiveSmallIntegerField(null=True, blank=True)
     max_drive_minutes = models.PositiveSmallIntegerField(null=True, blank=True)
@@ -77,6 +85,31 @@ class ImportantPlace(models.Model):
         default=3, validators=[MinValueValidator(1), MaxValueValidator(5)]
     )
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-importance", "name")
+        indexes = [
+            models.Index(
+                fields=("search_profile", "importance"), name="place_profile_importance_idx"
+            )
+        ]
+
+    def sync_location(self) -> None:
+        if self.latitude is not None and self.longitude is not None:
+            self.location = point_from_coordinates(self.latitude, self.longitude)
+        elif self.location is not None:
+            coordinates = coordinates_from_point(self.location)
+            if coordinates is not None:
+                self.latitude, self.longitude = coordinates
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        self.sync_location()
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None:
+            kwargs["update_fields"] = tuple(
+                set(update_fields) | {"latitude", "longitude", "location"}
+            )
+        super().save(*args, **kwargs)
 
     def __str__(self) -> str:
         return f"{self.name} · {self.search_profile.name}"

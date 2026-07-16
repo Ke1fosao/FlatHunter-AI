@@ -16,6 +16,14 @@ x-backend-environment: &backend-environment
   TELEGRAM_MINI_APP_URL: ${TELEGRAM_MINI_APP_URL:-http://localhost:8080}
   TELEGRAM_AUTH_MAX_AGE: ${TELEGRAM_AUTH_MAX_AGE:-300}
   TELEGRAM_UPDATE_TTL: ${TELEGRAM_UPDATE_TTL:-86400}
+  GEOCODING_PROVIDER: ${GEOCODING_PROVIDER:-demo}
+  GEOCODING_API_KEY: ${GEOCODING_API_KEY:-}
+  GEOCODING_EXTERNAL_ENABLED: ${GEOCODING_EXTERNAL_ENABLED:-false}
+  GEOCODING_TIMEOUT_SECONDS: ${GEOCODING_TIMEOUT_SECONDS:-8}
+  GEOCODING_CACHE_SECONDS: ${GEOCODING_CACHE_SECONDS:-2592000}
+  GEOCODING_USER_AGENT: ${GEOCODING_USER_AGENT:-FlatHunterAI/0.1-local}
+  MAP_TILES_URL: ${MAP_TILES_URL:-https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png}
+  MAP_ATTRIBUTION: ${MAP_ATTRIBUTION:-© OpenStreetMap contributors}
   CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/1}
   CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/2}
   LOG_LEVEL: ${LOG_LEVEL:-INFO}
@@ -93,8 +101,12 @@ services:
       context: ./miniapp
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api/v1}
+        NEXT_PUBLIC_MAP_TILES_URL: ${NEXT_PUBLIC_MAP_TILES_URL:-https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png}
+        NEXT_PUBLIC_MAP_ATTRIBUTION: ${NEXT_PUBLIC_MAP_ATTRIBUTION:-© OpenStreetMap contributors}
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api/v1}
+      NEXT_PUBLIC_MAP_TILES_URL: ${NEXT_PUBLIC_MAP_TILES_URL:-https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png}
+      NEXT_PUBLIC_MAP_ATTRIBUTION: ${NEXT_PUBLIC_MAP_ATTRIBUTION:-© OpenStreetMap contributors}
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
       interval: 10s

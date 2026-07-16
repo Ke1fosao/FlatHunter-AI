@@ -21,6 +21,11 @@ class DemoListingSourceAdapter(ListingSourceAdapter):
         "Рівне": ["Центр", "Північний", "Ювілейний", "Щасливе"],
         "Київ": ["Шевченківський", "Подільський", "Солом'янський", "Дарницький"],
     }
+    city_centres = {
+        "Львів": (49.839683, 24.029717),
+        "Рівне": (50.619900, 26.251617),
+        "Київ": (50.450100, 30.523400),
+    }
     streets = ["Зелена", "Городоцька", "Соборна", "Київська", "Наукова", "Бандери"]
 
     async def health_check(self) -> SourceHealth:
@@ -44,6 +49,10 @@ class DemoListingSourceAdapter(ListingSourceAdapter):
             floor = rng.randint(1, 14)
             floors_total = max(floor, rng.randint(5, 18))
             external_id = f"demo-{index + 1:04d}"
+            geo_rng = random.Random(f"{request.seed}:{external_id}:geo")
+            centre_lat, centre_lon = self.city_centres[city]
+            latitude = round(centre_lat + geo_rng.uniform(-0.045, 0.045), 6)
+            longitude = round(centre_lon + geo_rng.uniform(-0.065, 0.065), 6)
             results.append(
                 {
                     "external_id": external_id,
@@ -53,6 +62,9 @@ class DemoListingSourceAdapter(ListingSourceAdapter):
                     "city": city,
                     "district": district,
                     "street": rng.choice(self.streets),
+                    "latitude": latitude,
+                    "longitude": longitude,
+                    "location_accuracy": "building",
                     "price": price,
                     "rooms": rooms,
                     "total_area": area,
@@ -98,6 +110,9 @@ class DemoListingSourceAdapter(ListingSourceAdapter):
             "city": str(raw_listing["city"]),
             "district": str(raw_listing.get("district", "")),
             "street": str(raw_listing.get("street", "")),
+            "latitude": raw_listing.get("latitude"),
+            "longitude": raw_listing.get("longitude"),
+            "location_accuracy": str(raw_listing.get("location_accuracy", "district")),
             "price": int(raw_listing["price"]),
             "price_uah": int(raw_listing["price"]),
             "currency": "UAH",
@@ -116,6 +131,6 @@ class DemoListingSourceAdapter(ListingSourceAdapter):
             "attributes": dict(raw_listing.get("attributes", {})),
             "published_at": raw_listing["published_at"],
             "is_active": True,
-            "normalization_version": 1,
+            "normalization_version": 2,
         }
         return NormalizedListingData(external_id=external_id, values=values)
