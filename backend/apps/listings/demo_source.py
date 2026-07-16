@@ -32,36 +32,71 @@ class DemoListingSourceAdapter(ListingSourceAdapter):
         return SourceHealth(healthy=True, message="Synthetic source is available")
 
     async def search(self, request: SourceSearchRequest) -> list[dict[str, Any]]:
-        rng = random.Random(request.seed)
         reference_time = datetime(2026, 7, 16, 12, 0, tzinfo=UTC)
         results: list[dict[str, Any]] = []
         city_names = list(self.cities)
         for index in range(request.limit):
-            city = city_names[index % len(city_names)]
-            district = rng.choice(self.cities[city])
-            rooms = rng.randint(1, 4)
-            area = round(rng.uniform(28 + rooms * 7, 42 + rooms * 18), 1)
+            external_id = f"demo-{index + 1:04d}"
+            duplicate_slot = index % 12
+            duplicate_group = (
+                f"demo-duplicate-{index // 12:03d}" if duplicate_slot in {0, 1, 2} else ""
+            )
+            property_key = duplicate_group or external_id
+            property_rng = random.Random(f"{request.seed}:{property_key}:property")
+            variation_rng = random.Random(f"{request.seed}:{external_id}:variation")
+            city_index = index // 12 if duplicate_group else index
+            city = city_names[city_index % len(city_names)]
+            district = property_rng.choice(self.cities[city])
+            rooms = property_rng.randint(1, 4)
+            area = round(property_rng.uniform(28 + rooms * 7, 42 + rooms * 18), 1)
             base_price = {"Львів": 14500, "Рівне": 10500, "Київ": 18500}[city]
-            price = max(
-                base_price + rooms * rng.randint(1800, 3900) + rng.randint(-2500, 3500),
+            shared_price = max(
+                base_price
+                + rooms * property_rng.randint(1800, 3900)
+                + property_rng.randint(-2500, 3500),
                 6000,
             )
-            floor = rng.randint(1, 14)
-            floors_total = max(floor, rng.randint(5, 18))
-            external_id = f"demo-{index + 1:04d}"
-            geo_rng = random.Random(f"{request.seed}:{external_id}:geo")
+            price_variation = (-350, 0, 450)[duplicate_slot] if duplicate_group else 0
+            price = max(6000, shared_price + price_variation)
+            floor = property_rng.randint(1, 14)
+            floors_total = max(floor, property_rng.randint(5, 18))
             centre_lat, centre_lon = self.city_centres[city]
-            latitude = round(centre_lat + geo_rng.uniform(-0.045, 0.045), 6)
-            longitude = round(centre_lon + geo_rng.uniform(-0.065, 0.065), 6)
+            latitude = round(centre_lat + property_rng.uniform(-0.045, 0.045), 6)
+            longitude = round(centre_lon + property_rng.uniform(-0.065, 0.065), 6)
+            street = property_rng.choice(self.streets)
+            title_variants = (
+                f"{rooms}-кімнатна квартира · {district}",
+                f"Оренда {rooms}-кімнатної квартири, {district}",
+                f"Квартира на {rooms} кімнати · район {district}",
+            )
+            title = title_variants[duplicate_slot] if duplicate_group else title_variants[0]
+            description = (
+                "Синтетичне demo-оголошення, яке не описує реальну квартиру."
+                if not duplicate_group
+                else (
+                    "Синтетична копія demo-оголошення для безпечного тестування дублікатів. "
+                    f"Варіант публікації {duplicate_slot + 1}."
+                )
+            )
+            attributes: dict[str, Any] = {
+                "balcony": property_rng.choice([True, False]),
+                "elevator": floors_total > 5,
+                "furniture": property_rng.choice([True, False]),
+                "backup_power": property_rng.choice([True, False, None]),
+                "demo": True,
+            }
+            if duplicate_group:
+                attributes["demo_duplicate_group"] = duplicate_group
+                attributes["building_number"] = 10 + (index // 12)
             results.append(
                 {
                     "external_id": external_id,
                     "url": f"https://example.invalid/listings/{external_id}",
-                    "title": f"{rooms}-кімнатна квартира · {district}",
-                    "description": "Синтетичне demo-оголошення, яке не описує реальну квартиру.",
+                    "title": title,
+                    "description": description,
                     "city": city,
                     "district": district,
-                    "street": rng.choice(self.streets),
+                    "street": street,
                     "latitude": latitude,
                     "longitude": longitude,
                     "location_accuracy": "building",
@@ -70,23 +105,21 @@ class DemoListingSourceAdapter(ListingSourceAdapter):
                     "total_area": area,
                     "floor": floor,
                     "floors_total": floors_total,
-                    "building_type": rng.choice(["new_building", "brick", "panel", "historical"]),
-                    "renovation_level": rng.choice(["modern", "good", "cosmetic", "needs_repair"]),
-                    "heating_type": rng.choice(["individual", "central", "electric"]),
-                    "pets_allowed": rng.choice([True, False, None]),
-                    "children_allowed": rng.choice([True, True, False, None]),
-                    "commission_percent": rng.choice([0, 50, 100, None]),
-                    "is_owner": rng.choice([True, False, None]),
+                    "building_type": property_rng.choice(
+                        ["new_building", "brick", "panel", "historical"]
+                    ),
+                    "renovation_level": property_rng.choice(
+                        ["modern", "good", "cosmetic", "needs_repair"]
+                    ),
+                    "heating_type": property_rng.choice(["individual", "central", "electric"]),
+                    "pets_allowed": property_rng.choice([True, False, None]),
+                    "children_allowed": property_rng.choice([True, True, False, None]),
+                    "commission_percent": property_rng.choice([0, 50, 100, None]),
+                    "is_owner": property_rng.choice([True, False, None]),
                     "published_at": (
-                        reference_time - timedelta(minutes=rng.randint(5, 14400))
+                        reference_time - timedelta(minutes=variation_rng.randint(5, 14400))
                     ).isoformat(),
-                    "attributes": {
-                        "balcony": rng.choice([True, False]),
-                        "elevator": floors_total > 5,
-                        "furniture": rng.choice([True, False]),
-                        "backup_power": rng.choice([True, False, None]),
-                        "demo": True,
-                    },
+                    "attributes": attributes,
                 }
             )
         return results
@@ -131,6 +164,6 @@ class DemoListingSourceAdapter(ListingSourceAdapter):
             "attributes": dict(raw_listing.get("attributes", {})),
             "published_at": raw_listing["published_at"],
             "is_active": True,
-            "normalization_version": 2,
+            "normalization_version": 3,
         }
         return NormalizedListingData(external_id=external_id, values=values)
