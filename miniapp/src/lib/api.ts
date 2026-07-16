@@ -56,21 +56,44 @@ export type ParsedSearchResponse = {
   missing_fields: string[];
 };
 
+export type ListingUserState = {
+  is_favorite: boolean;
+  is_hidden: boolean;
+  is_compared: boolean;
+  note: string;
+  updated_at: string | null;
+};
+
 export type ListingFeedItem = {
   id: string;
   source_name: string;
+  source_url: string;
+  canonical_url: string;
   title: string;
+  description: string;
+  deal_type: string;
+  property_type: string;
   city: string;
   district: string;
+  street: string;
   price_uah: number;
+  currency: string;
   rooms: number;
   total_area: string | null;
   floor: number | null;
   floors_total: number | null;
+  building_type: string;
   renovation_level: string;
+  heating_type: string;
   pets_allowed: boolean | null;
+  children_allowed: boolean | null;
   commission_percent: string | null;
+  is_owner: boolean | null;
+  images: string[];
+  attributes: Record<string, unknown>;
+  published_at: string;
   is_demo: boolean;
+  user_state: ListingUserState;
 };
 
 export type ListingFeedResponse = {
@@ -78,6 +101,17 @@ export type ListingFeedResponse = {
   next: string | null;
   previous: string | null;
   results: ListingFeedItem[];
+};
+
+export type DashboardResponse = {
+  stats: {
+    active_profiles: number;
+    available_listings: number;
+    favorites: number;
+    hidden: number;
+    compared: number;
+  };
+  recent: ListingFeedItem[];
 };
 
 export type MatchComponent = {
@@ -106,12 +140,7 @@ export type MatchFeedResponse = {
   profile: { id: string; name: string; city: string };
   count: number;
   results: PersonalizedMatch[];
-  meta: {
-    algorithm: string;
-    min_score: number;
-    eligible_only: boolean;
-    ordering: string;
-  };
+  meta: { algorithm: string; min_score: number; eligible_only: boolean; ordering: string };
 };
 
 type PaginatedProfiles = { count: number; results: SearchProfileSummary[] };
@@ -143,7 +172,11 @@ export function buildApiUrl(baseUrl: string | undefined, endpoint: string): stri
 async function parseResponse<T>(response: Response): Promise<T> {
   const payload = (await response.json().catch(() => ({}))) as T & ApiErrorPayload;
   if (!response.ok) {
-    throw new ApiError(payload.error?.message ?? `API request failed with status ${String(response.status)}`, response.status, payload.error?.code);
+    throw new ApiError(
+      payload.error?.message ?? `API request failed with status ${String(response.status)}`,
+      response.status,
+      payload.error?.code
+    );
   }
   return payload;
 }
@@ -155,9 +188,17 @@ function csrfToken(): string {
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
 
+function getJson<T>(endpoint: string, signal?: AbortSignal): Promise<T> {
+  return fetch(buildApiUrl(apiBaseUrl, endpoint), {
+    credentials: "include",
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+    signal
+  }).then(parseResponse<T>);
+}
+
 export async function fetchBackendHealth(signal?: AbortSignal): Promise<HealthResponse> {
-  const response = await fetch(buildApiUrl(apiBaseUrl, "/health/"), { credentials: "include", headers: { Accept: "application/json" }, cache: "no-store", signal });
-  return parseResponse<HealthResponse>(response);
+  return getJson<HealthResponse>("/health/", signal);
 }
 
 export async function authenticateTelegram(initData: string, signal?: AbortSignal): Promise<TelegramAuthResponse> {
@@ -194,13 +235,7 @@ export async function createSearchProfile(payload: SearchProfileInput): Promise<
 }
 
 export async function fetchSearchProfiles(signal?: AbortSignal): Promise<SearchProfileSummary[]> {
-  const response = await fetch(buildApiUrl(apiBaseUrl, "/search-profiles/"), {
-    credentials: "include",
-    headers: { Accept: "application/json" },
-    cache: "no-store",
-    signal
-  });
-  const payload = await parseResponse<PaginatedProfiles | SearchProfileSummary[]>(response);
+  const payload = await getJson<PaginatedProfiles | SearchProfileSummary[]>("/search-profiles/", signal);
   return Array.isArray(payload) ? payload : payload.results;
 }
 
@@ -209,31 +244,43 @@ export async function fetchMatches(
   options: { minScore?: number; ordering?: string } = {},
   signal?: AbortSignal
 ): Promise<MatchFeedResponse> {
-  const params = new URLSearchParams();
-  params.set("min_score", String(options.minScore ?? 0));
-  params.set("ordering", options.ordering ?? "-match_score");
-  const response = await fetch(buildApiUrl(apiBaseUrl, `/search-profiles/${profileId}/matches/?${params.toString()}`), {
-    credentials: "include",
-    headers: { Accept: "application/json" },
-    cache: "no-store",
-    signal
+  const params = new URLSearchParams({
+    min_score: String(options.minScore ?? 0),
+    ordering: options.ordering ?? "-match_score"
   });
-  return parseResponse<MatchFeedResponse>(response);
+  return getJson<MatchFeedResponse>(`/search-profiles/${profileId}/matches/?${params.toString()}`, signal);
 }
 
 export async function fetchListings(
-  filters: { city?: string; rooms?: string } = {},
+  filters: Record<string, string | number | boolean | undefined> = {},
   signal?: AbortSignal
 ): Promise<ListingFeedResponse> {
   const params = new URLSearchParams();
-  if (filters.city) params.set("city", filters.city);
-  if (filters.rooms) params.set("rooms", filters.rooms);
-  const query = params.size > 0 ? `?${params.toString()}` : "";
-  const response = await fetch(buildApiUrl(apiBaseUrl, `/listings/${query}`), {
-    credentials: "include",
-    headers: { Accept: "application/json" },
-    cache: "no-store",
-    signal
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== "") params.set(key, String(value));
   });
-  return parseResponse<ListingFeedResponse>(response);
+  const query = params.size > 0 ? `?${params.toString()}` : "";
+  return getJson<ListingFeedResponse>(`/listings/${query}`, signal);
+}
+
+export async function fetchListing(id: string, signal?: AbortSignal): Promise<ListingFeedItem> {
+  return getJson<ListingFeedItem>(`/listings/${id}/`, signal);
+}
+
+export async function fetchDashboard(signal?: AbortSignal): Promise<DashboardResponse> {
+  return getJson<DashboardResponse>("/listings/dashboard/", signal);
+}
+
+export async function setListingState(
+  id: string,
+  action: "favorite" | "hide" | "compare",
+  value: boolean
+): Promise<ListingFeedItem> {
+  const response = await fetch(buildApiUrl(apiBaseUrl, `/listings/${id}/${action}/`), {
+    method: "POST",
+    credentials: "include",
+    headers: { Accept: "application/json", "Content-Type": "application/json", "X-CSRFToken": csrfToken() },
+    body: JSON.stringify({ value })
+  });
+  return parseResponse<ListingFeedItem>(response);
 }

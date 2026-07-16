@@ -1,10 +1,22 @@
 from __future__ import annotations
 
-from django.db.models import QuerySet
-from rest_framework import filters, viewsets
+from typing import cast
 
-from apps.listings.models import Listing
-from apps.listings.serializers import ListingFilterSerializer, ListingSerializer
+from django.db import transaction
+from django.db.models import Count, Prefetch, Q, QuerySet
+from rest_framework import filters, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+from apps.accounts.models import User
+from apps.listings.models import Listing, UserListingState
+from apps.listings.serializers import (
+    ListingFilterSerializer,
+    ListingSerializer,
+    ListingStateMutationSerializer,
+)
+from apps.searches.models import SearchProfile
 
 
 class ListingViewSet(viewsets.ReadOnlyModelViewSet):
@@ -15,30 +27,112 @@ class ListingViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ("-published_at",)
 
     def get_queryset(self) -> QuerySet[Listing]:
-        filters_serializer = ListingFilterSerializer(data=self.request.query_params)
-        filters_serializer.is_valid(raise_exception=True)
-        params = filters_serializer.validated_data
+        user = cast(User, self.request.user)
+        serializer = ListingFilterSerializer(data=self.request.query_params)
+        serializer.is_valid(raise_exception=True)
+        params = serializer.validated_data
+        state_queryset = UserListingState.objects.filter(user=user)
+        queryset = (
+            Listing.objects.filter(
+                is_active=True,
+                source__enabled=True,
+                source__legal_status__in=("approved_demo", "approved"),
+            )
+            .select_related("source")
+            .prefetch_related(
+                Prefetch("user_states", queryset=state_queryset, to_attr="current_user_states")
+            )
+        )
+        if params.get("city"):
+            queryset = queryset.filter(city__iexact=params["city"])
+        if params.get("district"):
+            queryset = queryset.filter(district__iexact=params["district"])
+        if params.get("rooms") is not None:
+            queryset = queryset.filter(rooms=params["rooms"])
+        if params.get("price_min") is not None:
+            queryset = queryset.filter(price_uah__gte=params["price_min"])
+        if params.get("price_max") is not None:
+            queryset = queryset.filter(price_uah__lte=params["price_max"])
+        if params.get("favorites") is not None:
+            queryset = queryset.filter(
+                user_states__user=user,
+                user_states__is_favorite=params["favorites"],
+            )
+        if params.get("compared") is not None:
+            queryset = queryset.filter(
+                user_states__user=user,
+                user_states__is_compared=params["compared"],
+            )
+        detail_actions = {"retrieve", "favorite", "hide", "compare"}
+        if not params.get("include_hidden", False) and self.action not in detail_actions:
+            hidden_listing_ids = UserListingState.objects.filter(
+                user=user,
+                is_hidden=True,
+            ).values("listing_id")
+            queryset = queryset.exclude(id__in=hidden_listing_ids)
+        return queryset.distinct()
 
-        queryset = Listing.objects.filter(
+    @action(detail=False, methods=["get"])
+    def dashboard(self, request: Request) -> Response:
+        user = cast(User, request.user)
+        counts = UserListingState.objects.filter(user=user).aggregate(
+            favorites=Count("id", filter=Q(is_favorite=True)),
+            hidden=Count("id", filter=Q(is_hidden=True)),
+            compared=Count("id", filter=Q(is_compared=True)),
+        )
+        available = Listing.objects.filter(
             is_active=True,
             source__enabled=True,
             source__legal_status__in=("approved_demo", "approved"),
-        ).select_related("source")
+        ).count()
+        recent = list(self.get_queryset()[:4])
+        return Response(
+            {
+                "stats": {
+                    "active_profiles": SearchProfile.objects.filter(
+                        user=user, is_active=True
+                    ).count(),
+                    "available_listings": available,
+                    **counts,
+                },
+                "recent": self.get_serializer(recent, many=True).data,
+            }
+        )
 
-        city = params.get("city")
-        district = params.get("district")
-        rooms = params.get("rooms")
-        price_min = params.get("price_min")
-        price_max = params.get("price_max")
+    def _set_state(self, request: Request, field: str) -> Response:
+        serializer = ListingStateMutationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        value = serializer.validated_data["value"]
+        user = cast(User, request.user)
+        listing = self.get_object()
+        with transaction.atomic():
+            existing = UserListingState.objects.select_for_update().filter(user=user)
+            if field == "is_compared" and value:
+                compared_count = existing.filter(is_compared=True).exclude(listing=listing).count()
+                if compared_count >= 4:
+                    return Response(
+                        {
+                            "error": {
+                                "code": "comparison_limit",
+                                "message": "Можна порівнювати до 4 квартир.",
+                            }
+                        },
+                        status=status.HTTP_409_CONFLICT,
+                    )
+            state, _ = UserListingState.objects.get_or_create(user=user, listing=listing)
+            setattr(state, field, value)
+            state.save(update_fields=(field, "updated_at"))
+        listing.current_user_states = [state]
+        return Response(self.get_serializer(listing).data)
 
-        if city:
-            queryset = queryset.filter(city__iexact=city)
-        if district:
-            queryset = queryset.filter(district__iexact=district)
-        if rooms is not None:
-            queryset = queryset.filter(rooms=rooms)
-        if price_min is not None:
-            queryset = queryset.filter(price_uah__gte=price_min)
-        if price_max is not None:
-            queryset = queryset.filter(price_uah__lte=price_max)
-        return queryset
+    @action(detail=True, methods=["post"])
+    def favorite(self, request: Request, pk: str | None = None) -> Response:
+        return self._set_state(request, "is_favorite")
+
+    @action(detail=True, methods=["post"])
+    def hide(self, request: Request, pk: str | None = None) -> Response:
+        return self._set_state(request, "is_hidden")
+
+    @action(detail=True, methods=["post"])
+    def compare(self, request: Request, pk: str | None = None) -> Response:
+        return self._set_state(request, "is_compared")

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 
+from django.conf import settings
 from django.db import models
 
 
@@ -39,11 +40,7 @@ class ListingSource(models.Model):
 
 class RawListing(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    source = models.ForeignKey(
-        ListingSource,
-        on_delete=models.PROTECT,
-        related_name="raw_listings",
-    )
+    source = models.ForeignKey(ListingSource, on_delete=models.PROTECT, related_name="raw_listings")
     external_id = models.CharField(max_length=128)
     payload = models.JSONField()
     payload_hash = models.CharField(max_length=64, db_index=True)
@@ -59,12 +56,7 @@ class RawListing(models.Model):
                 name="raw_listing_payload_unique",
             )
         ]
-        indexes = [
-            models.Index(
-                fields=("source", "external_id"),
-                name="raw_source_external_idx",
-            )
-        ]
+        indexes = [models.Index(fields=("source", "external_id"), name="raw_source_external_idx")]
 
     def __str__(self) -> str:
         return f"{self.source_id}:{self.external_id}"
@@ -72,11 +64,7 @@ class RawListing(models.Model):
 
 class Listing(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    source = models.ForeignKey(
-        ListingSource,
-        on_delete=models.PROTECT,
-        related_name="listings",
-    )
+    source = models.ForeignKey(ListingSource, on_delete=models.PROTECT, related_name="listings")
     raw_listing = models.OneToOneField(
         RawListing,
         on_delete=models.SET_NULL,
@@ -103,12 +91,7 @@ class Listing(models.Model):
     currency = models.CharField(max_length=3, default="UAH")
     price_uah = models.PositiveIntegerField(db_index=True)
     rooms = models.PositiveSmallIntegerField(db_index=True)
-    total_area = models.DecimalField(
-        max_digits=7,
-        decimal_places=2,
-        null=True,
-        blank=True,
-    )
+    total_area = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
     floor = models.PositiveSmallIntegerField(null=True, blank=True)
     floors_total = models.PositiveSmallIntegerField(null=True, blank=True)
     building_type = models.CharField(max_length=48, blank=True)
@@ -116,12 +99,7 @@ class Listing(models.Model):
     heating_type = models.CharField(max_length=48, blank=True)
     pets_allowed = models.BooleanField(null=True, blank=True)
     children_allowed = models.BooleanField(null=True, blank=True)
-    commission_percent = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        null=True,
-        blank=True,
-    )
+    commission_percent = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     is_owner = models.BooleanField(null=True, blank=True)
     images = models.JSONField(default=list, blank=True)
     attributes = models.JSONField(default=dict, blank=True)
@@ -145,10 +123,37 @@ class Listing(models.Model):
                 name="listing_active_city_pub_idx",
             ),
             models.Index(
-                fields=("city", "rooms", "price_uah"),
-                name="listing_city_rooms_price_idx",
+                fields=("city", "rooms", "price_uah"), name="listing_city_rooms_price_idx"
             ),
         ]
 
     def __str__(self) -> str:
         return f"{self.title} · {self.price_uah} грн"
+
+
+class UserListingState(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="listing_states",
+    )
+    listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name="user_states")
+    is_favorite = models.BooleanField(default=False, db_index=True)
+    is_hidden = models.BooleanField(default=False, db_index=True)
+    is_compared = models.BooleanField(default=False, db_index=True)
+    note = models.CharField(max_length=500, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=("user", "listing"), name="listing_state_user_unique")
+        ]
+        indexes = [
+            models.Index(fields=("user", "is_favorite"), name="listing_state_favorite_idx"),
+            models.Index(fields=("user", "is_compared"), name="listing_state_compare_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user_id}:{self.listing_id}"
