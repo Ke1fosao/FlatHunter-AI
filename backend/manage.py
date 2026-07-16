@@ -7,6 +7,9 @@ import sys
 
 def main() -> None:
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+    if os.environ.get("GDAL_LIBRARY_PATH"):
+        import django.contrib.gis.gdal  # noqa: F401
+
     from django.core.management import execute_from_command_line
 
     execute_from_command_line(sys.argv)

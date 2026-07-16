@@ -1,0 +1,64 @@
+services:
+  - type: web
+    name: flathunter-ai-backend
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health/live/
+    initialDeployHook: python manage.py seed_demo_listings && python manage.py geocode_demo_data && python manage.py build_listing_fingerprints && python manage.py detect_listing_duplicates && python manage.py rebuild_listing_clusters
+    autoDeployTrigger: commit
+    envVars:
+      - key: DJANGO_DEBUG
+        value: "false"
+      - key: DJANGO_SECRET_KEY
+        sync: false
+      - key: DJANGO_ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: DATABASE_URL
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: CSRF_TRUSTED_ORIGINS
+        sync: false
+      - key: SECURE_SSL_REDIRECT
+        value: "true"
+      - key: SECURE_HSTS_SECONDS
+        value: "31536000"
+      - key: RUN_MIGRATIONS
+        value: "true"
+      - key: COLLECT_STATIC
+        value: "true"
+      - key: TELEGRAM_MODE
+        value: "webhook"
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_BOT_USERNAME
+        sync: false
+      - key: TELEGRAM_WEBHOOK_SECRET
+        sync: false
+      - key: TELEGRAM_WEBHOOK_URL
+        sync: false
+      - key: TELEGRAM_MINI_APP_URL
+        sync: false
+      - key: GEOCODING_PROVIDER
+        value: "demo"
+      - key: GEOCODING_EXTERNAL_ENABLED
+        value: "false"
+      - key: MAP_TILES_URL
+        value: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      - key: MAP_ATTRIBUTION
+        value: "© OpenStreetMap contributors"
+      - key: DUPLICATE_AUTO_MERGE_THRESHOLD
+        value: "92"
+      - key: DUPLICATE_REVIEW_THRESHOLD
+        value: "78"
+      - key: DUPLICATE_SIMHASH_BLOCK_DISTANCE
+        value: "12"
+      - key: DUPLICATE_BLOCK_LIMIT
+        value: "500"
+      - key: DUPLICATE_AUTO_QUEUE_ENABLED
+        value: "false"
+      - key: LOG_LEVEL
+        value: "INFO"

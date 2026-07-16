@@ -183,6 +183,7 @@ npm audit --audit-level=high
 - [`docs/api.md`](docs/api.md);
 - [`docs/security.md`](docs/security.md);
 - [`docs/deployment.md`](docs/deployment.md);
+- [`docs/cloud-hosting.md`](docs/cloud-hosting.md);
 - [`docs/stage-3-demo-pipeline.md`](docs/stage-3-demo-pipeline.md);
 - [`docs/stage-4-matching.md`](docs/stage-4-matching.md);
 - [`docs/stage-5-miniapp-ui.md`](docs/stage-5-miniapp-ui.md);
