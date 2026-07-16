@@ -1,0 +1,45 @@
+name: Stage 7 Formatter
+
+on:
+  push:
+    branches: [stage-7-duplicate-clustering]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: stage7-formatter
+  cancel-in-progress: true
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: stage-7-duplicate-clustering
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: astral-sh/setup-uv@v6
+      - name: Apply Ruff formatting
+        run: |
+          cd backend
+          uv venv
+          uv pip install --python .venv/bin/python --requirement requirements-dev.lock
+          uv run --no-sync ruff format \
+            apps/listings/views.py \
+            apps/duplicates/clustering.py \
+            apps/duplicates/views.py
+      - name: Commit formatter output
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "No formatting changes"
+            exit 0
+          fi
+          git add backend
+          git commit -m "style: format final Stage 7 Python changes"
+          git push origin HEAD:stage-7-duplicate-clustering
