@@ -30,7 +30,9 @@ def test_favorite_state_is_persistent_and_user_scoped(db):
     first, first_user = _client("stage5-first")
     second, _ = _client("stage5-second")
 
-    response = first.post(f"/api/v1/listings/{listing.id}/favorite/", {"value": True}, format="json")
+    response = first.post(
+        f"/api/v1/listings/{listing.id}/favorite/", {"value": True}, format="json"
+    )
 
     assert response.status_code == 200
     assert response.data["user_state"]["is_favorite"] is True

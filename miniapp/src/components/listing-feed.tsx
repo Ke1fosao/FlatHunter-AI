@@ -106,7 +106,7 @@ function DetailPanel({
   const facts = [
     ["Кімнати", String(listing.rooms)],
     ["Площа", listing.total_area ? `${listing.total_area} м²` : "Не вказано"],
-    ["Поверх", listing.floor ? `${listing.floor}/${listing.floors_total ?? "?"}` : "Не вказано"],
+    ["Поверх", listing.floor ? `${String(listing.floor)}/${listing.floors_total === null ? "?" : String(listing.floors_total)}` : "Не вказано"],
     ["Будинок", listing.building_type || "Не вказано"],
     ["Опалення", listing.heating_type || "Не вказано"],
     ["Комісія", listing.commission_percent ? `${listing.commission_percent}%` : "Не вказано"]
@@ -156,11 +156,11 @@ function Dashboard({ data, onNavigate }: { data: DashboardResponse; onNavigate: 
 
 function ComparisonTable({ items, onOpen, onRemove }: { items: ListingFeedItem[]; onOpen: (id: string) => void; onRemove: (item: ListingFeedItem) => void }) {
   if (items.length < 2) return <div className="workspace-state">Додайте щонайменше дві квартири. Максимум — чотири.</div>;
-  const rows: Array<[string, (item: ListingFeedItem) => string]> = [
+  const rows: [string, (item: ListingFeedItem) => string][] = [
     ["Ціна", (item) => formatPrice(item.price_uah)],
     ["Кімнати", (item) => String(item.rooms)],
     ["Площа", (item) => item.total_area ? `${item.total_area} м²` : "—"],
-    ["Поверх", (item) => item.floor ? `${item.floor}/${item.floors_total ?? "?"}` : "—"],
+    ["Поверх", (item) => item.floor ? `${String(item.floor)}/${item.floors_total === null ? "?" : String(item.floors_total)}` : "—"],
     ["Район", (item) => item.district || "—"],
     ["Тварини", (item) => item.pets_allowed === null ? "Не вказано" : item.pets_allowed ? "Так" : "Ні"]
   ];
