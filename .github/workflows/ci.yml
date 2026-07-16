@@ -70,6 +70,10 @@ jobs:
           uv run --no-sync ruff format --check apps config tests manage.py > ../stage7-ruff-format.txt 2>&1 || true
           uv run --no-sync ruff check apps config tests manage.py > ../stage7-ruff-check.txt 2>&1 || true
           uv run --no-sync mypy apps config > ../stage7-mypy.txt 2>&1 || true
+          uv run --no-sync python manage.py migrate --noinput > ../stage7-migrate.txt 2>&1 || true
+          uv run --no-sync python manage.py makemigrations --check --dry-run > ../stage7-migration-drift.txt 2>&1 || true
+          uv run --no-sync pytest --cov=apps --cov-report=term-missing > ../stage7-pytest.txt 2>&1 || true
+          uvx pip-audit --strict -r requirements.lock > ../stage7-pip-audit.txt 2>&1 || true
       - uses: actions/upload-artifact@v4
         with:
           name: stage7-backend-diagnostics
@@ -77,6 +81,10 @@ jobs:
             stage7-ruff-format.txt
             stage7-ruff-check.txt
             stage7-mypy.txt
+            stage7-migrate.txt
+            stage7-migration-drift.txt
+            stage7-pytest.txt
+            stage7-pip-audit.txt
           retention-days: 1
       - run: uv run --no-sync ruff format --check apps config tests manage.py
       - run: uv run --no-sync ruff check apps config tests manage.py
@@ -103,12 +111,18 @@ jobs:
         run: |
           npm run lint > ../stage7-eslint.txt 2>&1 || true
           npm run typecheck > ../stage7-typescript.txt 2>&1 || true
+          npm test > ../stage7-vitest.txt 2>&1 || true
+          npm run build > ../stage7-build.txt 2>&1 || true
+          npm audit --audit-level=high > ../stage7-npm-audit.txt 2>&1 || true
       - uses: actions/upload-artifact@v4
         with:
           name: stage7-frontend-diagnostics
           path: |
             stage7-eslint.txt
             stage7-typescript.txt
+            stage7-vitest.txt
+            stage7-build.txt
+            stage7-npm-audit.txt
           retention-days: 1
       - run: npm run lint
       - run: npm run typecheck
