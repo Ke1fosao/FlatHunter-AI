@@ -4,7 +4,7 @@ from django.db.models import QuerySet
 from rest_framework import filters, viewsets
 
 from apps.listings.models import Listing
-from apps.listings.serializers import ListingSerializer
+from apps.listings.serializers import ListingFilterSerializer, ListingSerializer
 
 
 class ListingViewSet(viewsets.ReadOnlyModelViewSet):
@@ -15,20 +15,30 @@ class ListingViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ("-published_at",)
 
     def get_queryset(self) -> QuerySet[Listing]:
-        queryset = Listing.objects.filter(is_active=True).select_related("source")
-        city = self.request.query_params.get("city")
-        rooms = self.request.query_params.get("rooms")
-        price_min = self.request.query_params.get("price_min")
-        price_max = self.request.query_params.get("price_max")
-        district = self.request.query_params.get("district")
+        filters_serializer = ListingFilterSerializer(data=self.request.query_params)
+        filters_serializer.is_valid(raise_exception=True)
+        params = filters_serializer.validated_data
+
+        queryset = Listing.objects.filter(
+            is_active=True,
+            source__enabled=True,
+            source__legal_status__in=("approved_demo", "approved"),
+        ).select_related("source")
+
+        city = params.get("city")
+        district = params.get("district")
+        rooms = params.get("rooms")
+        price_min = params.get("price_min")
+        price_max = params.get("price_max")
+
         if city:
             queryset = queryset.filter(city__iexact=city)
-        if rooms and rooms.isdigit():
-            queryset = queryset.filter(rooms=int(rooms))
-        if price_min and price_min.isdigit():
-            queryset = queryset.filter(price_uah__gte=int(price_min))
-        if price_max and price_max.isdigit():
-            queryset = queryset.filter(price_uah__lte=int(price_max))
         if district:
             queryset = queryset.filter(district__iexact=district)
+        if rooms is not None:
+            queryset = queryset.filter(rooms=rooms)
+        if price_min is not None:
+            queryset = queryset.filter(price_uah__gte=price_min)
+        if price_max is not None:
+            queryset = queryset.filter(price_uah__lte=price_max)
         return queryset
