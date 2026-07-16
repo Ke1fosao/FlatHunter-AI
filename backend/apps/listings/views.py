@@ -65,7 +65,11 @@ class ListingViewSet(viewsets.ReadOnlyModelViewSet):
             )
         detail_actions = {"retrieve", "favorite", "hide", "compare"}
         if not params.get("include_hidden", False) and self.action not in detail_actions:
-            queryset = queryset.exclude(user_states__user=user, user_states__is_hidden=True)
+            hidden_listing_ids = UserListingState.objects.filter(
+                user=user,
+                is_hidden=True,
+            ).values("listing_id")
+            queryset = queryset.exclude(id__in=hidden_listing_ids)
         return queryset.distinct()
 
     @action(detail=False, methods=["get"])
