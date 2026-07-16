@@ -107,7 +107,7 @@ function Detail({ cluster, onClose, onPatch }: { cluster: ListingClusterDetail; 
         <div className="cluster-detail__facts">
           <div><span>Кімнати</span><strong>{listing.rooms}</strong></div>
           <div><span>Площа</span><strong>{listing.total_area ? `${listing.total_area} м²` : "—"}</strong></div>
-          <div><span>Поверх</span><strong>{listing.floor ? `${String(listing.floor)}/${listing.floors_total ?? "?"}` : "—"}</strong></div>
+          <div><span>Поверх</span><strong>{listing.floor ? `${String(listing.floor)}/${String(listing.floors_total ?? "?")}` : "—"}</strong></div>
           <div><span>Match</span><strong>{cluster.match ? `${String(cluster.match.score)}%` : "—"}</strong></div>
         </div>
         <div className="cluster-detail__actions">
