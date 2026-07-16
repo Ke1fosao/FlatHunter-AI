@@ -63,7 +63,8 @@ class ListingViewSet(viewsets.ReadOnlyModelViewSet):
                 user_states__user=user,
                 user_states__is_compared=params["compared"],
             )
-        if not params.get("include_hidden", False):
+        detail_actions = {"retrieve", "favorite", "hide", "compare"}
+        if not params.get("include_hidden", False) and self.action not in detail_actions:
             queryset = queryset.exclude(user_states__user=user, user_states__is_hidden=True)
         return queryset.distinct()
 
@@ -100,25 +101,21 @@ class ListingViewSet(viewsets.ReadOnlyModelViewSet):
         value = serializer.validated_data["value"]
         user = cast(User, request.user)
         listing = self.get_object()
-        if field == "is_compared" and value:
-            count = UserListingState.objects.filter(user=user, is_compared=True).exclude(
-                listing=listing
-            ).count()
-            if count >= 4:
-                return Response(
-                    {
-                        "error": {
-                            "code": "comparison_limit",
-                            "message": "Можна порівнювати до 4 квартир.",
-                        }
-                    },
-                    status=status.HTTP_409_CONFLICT,
-                )
         with transaction.atomic():
-            state, _ = UserListingState.objects.select_for_update().get_or_create(
-                user=user,
-                listing=listing,
-            )
+            existing = UserListingState.objects.select_for_update().filter(user=user)
+            if field == "is_compared" and value:
+                compared_count = existing.filter(is_compared=True).exclude(listing=listing).count()
+                if compared_count >= 4:
+                    return Response(
+                        {
+                            "error": {
+                                "code": "comparison_limit",
+                                "message": "Можна порівнювати до 4 квартир.",
+                            }
+                        },
+                        status=status.HTTP_409_CONFLICT,
+                    )
+            state, _ = UserListingState.objects.get_or_create(user=user, listing=listing)
             setattr(state, field, value)
             state.save(update_fields=(field, "updated_at"))
         listing.current_user_states = [state]
