@@ -281,7 +281,9 @@ def rebuild_clusters(*, city: str | None = None, dry_run: bool = False) -> Clust
     for component in components:
         component_listings = [listing_map[item] for item in component]
         primary = select_primary(component_listings)
-        cluster = _cluster_for_component(component, existing_memberships, used_clusters)
+        cluster: ListingCluster | None = _cluster_for_component(
+            component, existing_memberships, used_clusters
+        )
         old_cluster_id: str | None = None
         if cluster is None:
             cluster = ListingCluster.objects.create(algorithm_version=1)
@@ -290,6 +292,7 @@ def rebuild_clusters(*, city: str | None = None, dry_run: bool = False) -> Clust
             old_cluster_id = str(cluster.id)
             used_clusters.add(old_cluster_id)
             reused += 1
+        assert cluster is not None
         confidences: list[Decimal] = []
         for listing in component_listings:
             candidate = (

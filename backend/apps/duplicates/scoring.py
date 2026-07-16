@@ -279,9 +279,13 @@ def _weighted_score(components: dict[str, float | None]) -> float:
     if not available:
         return 0.0
     weighted = sum(
-        Decimal(str(value)) * _COMPONENT_WEIGHTS[key] for key, value in available.items()
+        (Decimal(str(value)) * _COMPONENT_WEIGHTS[key] for key, value in available.items()),
+        start=Decimal("0"),
     )
-    total_weight = sum(_COMPONENT_WEIGHTS[key] for key in available)
+    total_weight = sum(
+        (_COMPONENT_WEIGHTS[key] for key in available),
+        start=Decimal("0"),
+    )
     return float((weighted / total_weight).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
 
@@ -330,9 +334,7 @@ def evaluate_duplicate(
     if conflicts:
         decision = CandidateDecision.REJECTED
         final = 0.0
-    elif compatible_exact_rule:
-        decision = CandidateDecision.AUTO_MERGE
-    elif final >= auto_threshold:
+    elif compatible_exact_rule or final >= auto_threshold:
         decision = CandidateDecision.AUTO_MERGE
     elif final >= review_threshold:
         decision = CandidateDecision.NEEDS_REVIEW

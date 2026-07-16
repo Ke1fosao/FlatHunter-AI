@@ -148,14 +148,17 @@ class DuplicateCandidate(models.Model):
             models.Index(fields=("right_listing", "decision"), name="dup_candidate_right_idx"),
         ]
 
-    def clean(self) -> None:
-        super().clean()
-        if self.left_listing_id and self.right_listing_id:
-            if str(self.left_listing_id) >= str(self.right_listing_id):
-                raise ValidationError("Duplicate candidate listing IDs must use canonical order.")
-
     def __str__(self) -> str:
         return f"{self.left_listing_id} ↔ {self.right_listing_id}: {self.final_score}"
+
+    def clean(self) -> None:
+        super().clean()
+        if (
+            self.left_listing_id
+            and self.right_listing_id
+            and str(self.left_listing_id) >= str(self.right_listing_id)
+        ):
+            raise ValidationError("Duplicate candidate listing IDs must use canonical order.")
 
 
 class ListingCluster(models.Model):
@@ -270,13 +273,13 @@ class DuplicateDecision(models.Model):
             )
         ]
 
+    def __str__(self) -> str:
+        return f"{self.action}: {self.left_listing_id} ↔ {self.right_listing_id}"
+
     def save(self, *args: Any, **kwargs: Any) -> None:
         if self.pk and type(self).objects.filter(pk=self.pk).exists():
             raise ValidationError("DuplicateDecision records are immutable.")
         super().save(*args, **kwargs)
-
-    def __str__(self) -> str:
-        return f"{self.action}: {self.left_listing_id} ↔ {self.right_listing_id}"
 
 
 class UserClusterState(models.Model):

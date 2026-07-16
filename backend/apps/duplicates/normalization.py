@@ -268,12 +268,20 @@ def price_bucket(price_uah: int) -> int:
 
 
 def haversine_metres(left: Listing, right: Listing) -> float | None:
-    if None in (left.latitude, left.longitude, right.latitude, right.longitude):
+    left_latitude = left.latitude
+    left_longitude = left.longitude
+    right_latitude = right.latitude
+    right_longitude = right.longitude
+    if None in (left_latitude, left_longitude, right_latitude, right_longitude):
         return None
-    left_lat = math.radians(float(left.latitude))
-    right_lat = math.radians(float(right.latitude))
+    assert left_latitude is not None
+    assert left_longitude is not None
+    assert right_latitude is not None
+    assert right_longitude is not None
+    left_lat = math.radians(float(left_latitude))
+    right_lat = math.radians(float(right_latitude))
     delta_lat = right_lat - left_lat
-    delta_lon = math.radians(float(right.longitude) - float(left.longitude))
+    delta_lon = math.radians(float(right_longitude) - float(left_longitude))
     value = (
         math.sin(delta_lat / 2) ** 2
         + math.cos(left_lat) * math.cos(right_lat) * math.sin(delta_lon / 2) ** 2

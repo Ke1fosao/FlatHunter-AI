@@ -135,7 +135,7 @@ class ListingViewSet(viewsets.ReadOnlyModelViewSet):
                     {"error": {"code": "comparison_limit", "message": str(error)}},
                     status=status.HTTP_409_CONFLICT,
                 )
-            cluster.current_user_cluster_states = [state]
+            cast(Any, cluster).current_user_cluster_states = [state]
             primary_id = cluster.primary_listing_id or listing.id
             updated = presentation_queryset(
                 Listing.objects.filter(pk=primary_id),
@@ -169,10 +169,10 @@ class ListingViewSet(viewsets.ReadOnlyModelViewSet):
                     },
                     status=status.HTTP_409_CONFLICT,
                 )
-            state, _ = UserListingState.objects.get_or_create(user=user, listing=listing)
-            setattr(state, field, value)
-            state.save(update_fields=(field, "updated_at"))
-        listing.current_user_states = [state]
+            listing_state, _ = UserListingState.objects.get_or_create(user=user, listing=listing)
+            setattr(listing_state, field, value)
+            listing_state.save(update_fields=(field, "updated_at"))
+        listing.current_user_states = [listing_state]
         return Response(self.get_serializer(listing).data)
 
     @action(detail=True, methods=["post"])
