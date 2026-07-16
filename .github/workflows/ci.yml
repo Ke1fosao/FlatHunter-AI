@@ -15,29 +15,6 @@ concurrency:
 jobs:
   backend-diagnostic:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgis/postgis:17-3.5
-        env:
-          POSTGRES_DB: flathunter_test
-          POSTGRES_USER: flathunter
-          POSTGRES_PASSWORD: flathunter
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U flathunter -d flathunter_test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 12
-      redis:
-        image: redis:8-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 12
     env:
       DJANGO_SECRET_KEY: ci-only-secret-key-not-for-production
       DJANGO_DEBUG: "true"
@@ -51,22 +28,61 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
+      - name: Capture container setup
+        run: |
+          docker run -d --name stage7-postgres \
+            -e POSTGRES_DB=flathunter_test \
+            -e POSTGRES_USER=flathunter \
+            -e POSTGRES_PASSWORD=flathunter \
+            -p 5432:5432 \
+            postgis/postgis:17-3.5 > stage7-postgres-start.txt 2>&1
+          echo $? > stage7-postgres-start.code
+          docker run -d --name stage7-redis -p 6379:6379 redis:8-alpine > stage7-redis-start.txt 2>&1
+          echo $? > stage7-redis-start.code
+          for attempt in $(seq 1 30); do
+            if docker exec stage7-postgres pg_isready -U flathunter -d flathunter_test; then
+              echo "PostGIS ready on attempt ${attempt}" > stage7-postgres-ready.txt
+              echo 0 > stage7-postgres-ready.code
+              break
+            fi
+            sleep 2
+          done
+          test -f stage7-postgres-ready.code || echo 1 > stage7-postgres-ready.code
+          for attempt in $(seq 1 30); do
+            if docker exec stage7-redis redis-cli ping | grep -q PONG; then
+              echo "Redis ready on attempt ${attempt}" > stage7-redis-ready.txt
+              echo 0 > stage7-redis-ready.code
+              break
+            fi
+            sleep 1
+          done
+          test -f stage7-redis-ready.code || echo 1 > stage7-redis-ready.code
       - name: Capture environment setup
         run: |
           cd backend
-          uv python install 3.13 > ../stage7-python-install.txt 2>&1; echo $? > ../stage7-python-install.code
-          uv venv --python 3.13 > ../stage7-venv.txt 2>&1; echo $? > ../stage7-venv.code
-          uv pip install --python .venv/bin/python --requirement requirements-dev.lock > ../stage7-install.txt 2>&1; echo $? > ../stage7-install.code
+          uv python install 3.13 > ../stage7-python-install.txt 2>&1
+          echo $? > ../stage7-python-install.code
+          uv venv --python 3.13 > ../stage7-venv.txt 2>&1
+          echo $? > ../stage7-venv.code
+          uv pip install --python .venv/bin/python --requirement requirements-dev.lock > ../stage7-install.txt 2>&1
+          echo $? > ../stage7-install.code
       - name: Run and capture all backend gates
         run: |
           cd backend
-          uv run --no-sync ruff format --check apps config tests manage.py > ../stage7-ruff-format.txt 2>&1; echo $? > ../stage7-ruff-format.code
-          uv run --no-sync ruff check apps config tests manage.py > ../stage7-ruff-check.txt 2>&1; echo $? > ../stage7-ruff-check.code
-          uv run --no-sync mypy apps config > ../stage7-mypy.txt 2>&1; echo $? > ../stage7-mypy.code
-          uv run --no-sync python manage.py migrate --noinput > ../stage7-migrate.txt 2>&1; echo $? > ../stage7-migrate.code
-          uv run --no-sync python manage.py makemigrations --check --dry-run > ../stage7-migration-drift.txt 2>&1; echo $? > ../stage7-migration-drift.code
-          uv run --no-sync pytest --cov=apps --cov-report=term-missing > ../stage7-pytest.txt 2>&1; echo $? > ../stage7-pytest.code
-          uvx pip-audit --strict -r requirements.lock > ../stage7-pip-audit.txt 2>&1; echo $? > ../stage7-pip-audit.code
+          uv run --no-sync ruff format --check apps config tests manage.py > ../stage7-ruff-format.txt 2>&1
+          echo $? > ../stage7-ruff-format.code
+          uv run --no-sync ruff check apps config tests manage.py > ../stage7-ruff-check.txt 2>&1
+          echo $? > ../stage7-ruff-check.code
+          uv run --no-sync mypy apps config > ../stage7-mypy.txt 2>&1
+          echo $? > ../stage7-mypy.code
+          uv run --no-sync python manage.py migrate --noinput > ../stage7-migrate.txt 2>&1
+          echo $? > ../stage7-migrate.code
+          uv run --no-sync python manage.py makemigrations --check --dry-run > ../stage7-migration-drift.txt 2>&1
+          echo $? > ../stage7-migration-drift.code
+          uv run --no-sync pytest --cov=apps --cov-report=term-missing > ../stage7-pytest.txt 2>&1
+          echo $? > ../stage7-pytest.code
+          uvx pip-audit --strict -r requirements.lock > ../stage7-pip-audit.txt 2>&1
+          echo $? > ../stage7-pip-audit.code
       - uses: actions/upload-artifact@v4
         with:
           name: stage7-authoritative-backend-report
