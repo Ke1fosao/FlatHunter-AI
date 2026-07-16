@@ -44,7 +44,7 @@ def _owned_profile(request: Request, profile_id: UUID) -> SearchProfile:
 
 
 def _geocoding_error_response(error: GeocodingError) -> Response:
-    response_status = status.HTTP_422_UNPROCESSABLE_ENTITY
+    response_status: int = status.HTTP_422_UNPROCESSABLE_ENTITY
     if isinstance(error, GeocodingDisabled) or not isinstance(error, GeocodingNotFound):
         response_status = status.HTTP_503_SERVICE_UNAVAILABLE
     return Response(
