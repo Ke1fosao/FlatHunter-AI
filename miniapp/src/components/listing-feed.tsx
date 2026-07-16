@@ -69,7 +69,9 @@ export function ListingFeed() {
           }
         })
         .finally(() => {
-          if (!controller.signal.aborted) setLoading(false);
+          if (!controller.signal.aborted) {
+            setLoading(false);
+          }
         });
     };
     loadProfiles();
@@ -81,7 +83,9 @@ export function ListingFeed() {
   }, []);
 
   useEffect(() => {
-    if (!profileId) return;
+    if (!profileId) {
+      return;
+    }
     const controller = new AbortController();
     setLoading(true);
     fetchMatches(profileId, { minScore: Number(minScore), ordering }, controller.signal)
@@ -96,9 +100,13 @@ export function ListingFeed() {
         }
       })
       .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       });
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+    };
   }, [profileId, minScore, ordering]);
 
   return (
@@ -110,17 +118,35 @@ export function ListingFeed() {
           <p>Детермінований Match Score із прозорим поясненням кожної оцінки.</p>
         </div>
         <div className="match-feed__filters">
-          <select value={profileId} onChange={(event) => setProfileId(event.target.value)} aria-label="Пошуковий профіль">
+          <select
+            value={profileId}
+            onChange={(event) => {
+              setProfileId(event.target.value);
+            }}
+            aria-label="Пошуковий профіль"
+          >
             {profiles.length === 0 && <option value="">Немає активних профілів</option>}
             {profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}
           </select>
-          <select value={minScore} onChange={(event) => setMinScore(event.target.value)} aria-label="Мінімальний Match Score">
+          <select
+            value={minScore}
+            onChange={(event) => {
+              setMinScore(event.target.value);
+            }}
+            aria-label="Мінімальний Match Score"
+          >
             <option value="0">Усі оцінки</option>
             <option value="50">Від 50</option>
             <option value="70">Від 70</option>
             <option value="85">Від 85</option>
           </select>
-          <select value={ordering} onChange={(event) => setOrdering(event.target.value)} aria-label="Сортування">
+          <select
+            value={ordering}
+            onChange={(event) => {
+              setOrdering(event.target.value);
+            }}
+            aria-label="Сортування"
+          >
             <option value="-match_score">Найкращі збіги</option>
             <option value="price_uah">Найнижча ціна</option>
             <option value="-published_at">Найновіші</option>
