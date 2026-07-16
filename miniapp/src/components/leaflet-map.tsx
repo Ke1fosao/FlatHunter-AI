@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { LayerGroup, Map as LeafletMapInstance } from "leaflet";
 
 import type { ImportantPlace, MapPointFeature } from "@/lib/map-types";
@@ -16,7 +16,7 @@ type LeafletMapProps = {
 };
 
 export function LeafletMap({ features, places, selectedId, onSelect, onMapClick }: LeafletMapProps) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMapInstance | null>(null);
   const listingLayerRef = useRef<LayerGroup | null>(null);
   const placeLayerRef = useRef<LayerGroup | null>(null);
@@ -28,8 +28,8 @@ export function LeafletMap({ features, places, selectedId, onSelect, onMapClick 
   mapClickRef.current = onMapClick;
 
   useEffect(() => {
+    if (container === null) return;
     let cancelled = false;
-    const container = containerRef.current!;
     async function mountMap() {
       const L = await import("leaflet");
       if (cancelled) return;
@@ -63,7 +63,7 @@ export function LeafletMap({ features, places, selectedId, onSelect, onMapClick 
       placeLayerRef.current = null;
       fittedRef.current = false;
     };
-  }, []);
+  }, [container]);
 
   useEffect(() => {
     let cancelled = false;
@@ -131,5 +131,5 @@ export function LeafletMap({ features, places, selectedId, onSelect, onMapClick 
     };
   }, [features, places, selectedId]);
 
-  return <div ref={containerRef} className="leaflet-map" aria-label="Карта квартир і важливих місць" />;
+  return <div ref={setContainer} className="leaflet-map" aria-label="Карта квартир і важливих місць" />;
 }
