@@ -196,12 +196,12 @@ export function MapWorkspace() {
           </label>
           <label>
             Match від
-            <select value={minScore} onChange={(event) => setMinScore(event.target.value)}>
+            <select value={minScore} onChange={(event) => { setMinScore(event.target.value); }}>
               <option value="0">0%</option><option value="50">50%</option><option value="70">70%</option><option value="80">80%</option><option value="90">90%</option>
             </select>
           </label>
           <label className="map-workspace__check">
-            <input type="checkbox" checked={favoritesOnly} onChange={(event) => setFavoritesOnly(event.target.checked)} />
+            <input type="checkbox" checked={favoritesOnly} onChange={(event) => { setFavoritesOnly(event.target.checked); }} />
             Лише обране
           </label>
           <button type="button" onClick={() => { void reload(); }}>Оновити</button>
@@ -242,9 +242,9 @@ export function MapWorkspace() {
             profileId={profileId}
             places={places}
             draftPoint={draftPoint}
-            onCreated={(place) => setPlaces((current) => [...current.filter((item) => item.id !== place.id), place])}
-            onDeleted={(placeId) => setPlaces((current) => current.filter((item) => item.id !== placeId))}
-            onClearDraft={() => setDraftPoint(null)}
+            onCreated={(place) => { setPlaces((current) => [...current.filter((item) => item.id !== place.id), place]); }}
+            onDeleted={(placeId) => { setPlaces((current) => current.filter((item) => item.id !== placeId)); }}
+            onClearDraft={() => { setDraftPoint(null); }}
           />
         )}
       </div>

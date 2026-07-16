@@ -120,7 +120,7 @@ export function ImportantPlacePanel({
       <div className="important-panel__form">
         <label>
           Назва
-          <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Наприклад, Офіс" />
+          <input value={name} onChange={(event) => { setName(event.target.value); }} placeholder="Наприклад, Офіс" />
         </label>
         <label>
           Адреса
@@ -129,11 +129,11 @@ export function ImportantPlacePanel({
         <div className="important-panel__row">
           <label>
             Радіус, км
-            <input type="number" min="0.1" max="100" step="0.1" value={distance} onChange={(event) => setDistance(event.target.value)} />
+            <input type="number" min="0.1" max="100" step="0.1" value={distance} onChange={(event) => { setDistance(event.target.value); }} />
           </label>
           <label>
             Важливість
-            <select value={importance} onChange={(event) => setImportance(event.target.value)}>
+            <select value={importance} onChange={(event) => { setImportance(event.target.value); }}>
               <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
             </select>
           </label>

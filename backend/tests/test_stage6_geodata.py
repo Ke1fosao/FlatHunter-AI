@@ -123,12 +123,8 @@ def test_important_place_crud_geocodes_address_and_is_user_scoped():
     place = ImportantPlace.objects.get(pk=created.data["id"])
     assert place.location is not None
 
-    forbidden = second_client.get(
-        f"/api/v1/search-profiles/{profile.id}/important-places/"
-    )
-    own_empty = second_client.get(
-        f"/api/v1/search-profiles/{other_profile.id}/important-places/"
-    )
+    forbidden = second_client.get(f"/api/v1/search-profiles/{profile.id}/important-places/")
+    own_empty = second_client.get(f"/api/v1/search-profiles/{other_profile.id}/important-places/")
 
     assert forbidden.status_code == 404
     assert own_empty.status_code == 200

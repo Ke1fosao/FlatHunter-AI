@@ -156,12 +156,8 @@ GEOCODING_USER_AGENT = env(
     "GEOCODING_USER_AGENT",
     default="FlatHunterAI/0.1 (demo; configure a real contact before production)",
 )
-MAP_TILES_URL = env(
-    "MAP_TILES_URL", default="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-)
-MAP_ATTRIBUTION = env(
-    "MAP_ATTRIBUTION", default="© OpenStreetMap contributors"
-)
+MAP_TILES_URL = env("MAP_TILES_URL", default="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png")
+MAP_ATTRIBUTION = env("MAP_ATTRIBUTION", default="© OpenStreetMap contributors")
 
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=REDIS_URL or "redis://redis:6379/1")
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=REDIS_URL or "redis://redis:6379/2")

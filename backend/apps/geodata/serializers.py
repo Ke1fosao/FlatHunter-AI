@@ -83,9 +83,7 @@ class ImportantPlaceSerializer(serializers.ModelSerializer):
                 {"latitude": "Latitude and longitude must be provided together."}
             )
         if latitude is None and not str(attrs.get("address", "")).strip():
-            raise serializers.ValidationError(
-                {"address": "Provide an address or map coordinates."}
-            )
+            raise serializers.ValidationError({"address": "Provide an address or map coordinates."})
         return attrs
 
 

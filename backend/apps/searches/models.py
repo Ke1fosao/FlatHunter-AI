@@ -89,7 +89,9 @@ class ImportantPlace(models.Model):
     class Meta:
         ordering = ("-importance", "name")
         indexes = [
-            models.Index(fields=("search_profile", "importance"), name="place_profile_importance_idx")
+            models.Index(
+                fields=("search_profile", "importance"), name="place_profile_importance_idx"
+            )
         ]
 
     def sync_location(self) -> None:

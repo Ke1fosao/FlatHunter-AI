@@ -27,9 +27,7 @@ class BoundingBox:
         try:
             west, south, east, north = (float(part.strip()) for part in value.split(","))
         except (TypeError, ValueError) as error:
-            raise BoundingBoxValidationError(
-                "bbox must contain west,south,east,north"
-            ) from error
+            raise BoundingBoxValidationError("bbox must contain west,south,east,north") from error
         if not (-180 <= west <= 180 and -180 <= east <= 180):
             raise BoundingBoxValidationError("bbox longitude is outside valid range")
         if not (-90 <= south <= 90 and -90 <= north <= 90):

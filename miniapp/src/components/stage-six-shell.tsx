@@ -21,31 +21,31 @@ export function StageSixShell() {
         <button
           type="button"
           className={view === "workspace" ? "is-active" : ""}
-          onClick={() => setView("workspace")}
+          onClick={() => { setView("workspace"); }}
         >
           ▦ Кабінет
         </button>
         <button
           type="button"
           className={view === "map" ? "is-active" : ""}
-          onClick={() => setView("map")}
+          onClick={() => { setView("map"); }}
         >
           ◉ Карта
         </button>
       </nav>
       {view === "workspace" ? <ListingFeed /> : <MapWorkspace />}
-      <button className="stage-six-create" type="button" onClick={() => setOpen(true)}>
+      <button className="stage-six-create" type="button" onClick={() => { setOpen(true); }}>
         ＋ Створити пошук
       </button>
       {created && <div className="stage-six-toast">✅ Пошуковий профіль створено</div>}
       {open && (
         <SearchWizard
-          onClose={() => setOpen(false)}
+          onClose={() => { setOpen(false); }}
           onCreated={() => {
             setOpen(false);
             setCreated(true);
             window.dispatchEvent(new Event("flathunter:authenticated"));
-            window.setTimeout(() => setCreated(false), 3000);
+            window.setTimeout(() => { setCreated(false); }, 3000);
           }}
         />
       )}

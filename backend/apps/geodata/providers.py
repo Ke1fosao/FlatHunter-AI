@@ -63,9 +63,7 @@ class NominatimGeocodingProvider:
             async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
                 async with session.get(self.endpoint, params=params) as response:
                     if response.status != 200:
-                        raise GeocodingUnavailable(
-                            f"Nominatim returned HTTP {response.status}"
-                        )
+                        raise GeocodingUnavailable(f"Nominatim returned HTTP {response.status}")
                     payload = await response.json()
         except (aiohttp.ClientError, TimeoutError) as error:
             raise GeocodingUnavailable("Geocoding provider is unavailable") from error

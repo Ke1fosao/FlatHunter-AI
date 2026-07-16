@@ -81,9 +81,9 @@ class MapListingView(APIView):
         queryset = queryset.exclude(id__in=hidden_ids)
         favorites = params.get("favorites")
         if favorites is not None:
-            favorite_ids = UserListingState.objects.filter(
-                user=user, is_favorite=True
-            ).values("listing_id")
+            favorite_ids = UserListingState.objects.filter(user=user, is_favorite=True).values(
+                "listing_id"
+            )
             if favorites:
                 queryset = queryset.filter(id__in=favorite_ids)
             else:

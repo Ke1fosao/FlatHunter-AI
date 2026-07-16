@@ -35,7 +35,7 @@ describe("isMapFeatureCollection", () => {
 
   it("rejects coordinates that are not a numeric longitude-latitude pair", () => {
     const invalid = structuredClone(validCollection);
-    invalid.features[0].geometry.coordinates = [49.8397] as unknown as [number, number];
+    invalid.features[0].geometry.coordinates = [49.8397];
 
     expect(isMapFeatureCollection(invalid)).toBe(false);
   });
