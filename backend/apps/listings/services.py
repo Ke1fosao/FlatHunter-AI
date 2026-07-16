@@ -63,7 +63,7 @@ def _persist_normalized_listing(
     prepared: PreparedRawListing,
     values: dict[str, Any],
 ) -> str:
-    _listing, created = Listing.objects.update_or_create(
+    listing, created = Listing.objects.update_or_create(
         source=source,
         external_id=prepared.external_id,
         defaults={**values, "raw_listing": prepared.raw},
@@ -72,6 +72,9 @@ def _persist_normalized_listing(
         prepared.raw.normalized_at = timezone.now()
         prepared.raw.normalization_error = ""
         prepared.raw.save(update_fields=("normalized_at", "normalization_error"))
+    from apps.duplicates.services import schedule_listing_duplicate_refresh
+
+    transaction.on_commit(lambda: schedule_listing_duplicate_refresh(listing.id))
     return "created" if created else "updated"
 
 
@@ -161,9 +164,9 @@ async def ingest_source(
                 unchanged += 1
                 continue
 
-            status = await _persist_normalized_listing(source, prepared, normalized.values)
-            created += int(status == "created")
-            updated += int(status == "updated")
+            result_status = await _persist_normalized_listing(source, prepared, normalized.values)
+            created += int(result_status == "created")
+            updated += int(result_status == "updated")
         except Exception as error:
             failed += 1
             if prepared is not None:
