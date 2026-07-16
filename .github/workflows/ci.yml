@@ -54,8 +54,11 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
-      - run: cd backend && uv venv
-      - run: cd backend && uv pip install --python .venv/bin/python --requirement requirements-dev.lock
+      - name: Capture environment setup
+        run: |
+          cd backend
+          uv venv > ../stage7-venv.txt 2>&1; echo $? > ../stage7-venv.code
+          uv pip install --python .venv/bin/python --requirement requirements-dev.lock > ../stage7-install.txt 2>&1; echo $? > ../stage7-install.code
       - name: Run and capture all backend gates
         run: |
           cd backend
