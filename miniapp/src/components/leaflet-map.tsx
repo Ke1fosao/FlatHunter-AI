@@ -30,7 +30,7 @@ export function LeafletMap({ features, places, selectedId, onSelect, onMapClick 
   useEffect(() => {
     let cancelled = false;
     async function mountMap() {
-      if (!containerRef.current || mapRef.current) return;
+      if (!containerRef.current) return;
       const L = await import("leaflet");
       if (cancelled || !containerRef.current) return;
       const map = L.map(containerRef.current, {
