@@ -97,7 +97,8 @@ class SearchProfileViewSet(viewsets.ModelViewSet):
                 "count": len(matched),
                 "results": limited,
                 "meta": {
-                    "algorithm": "deterministic-v1-cluster-aware",
+                    "algorithm": "deterministic-v1",
+                    "presentation": "cluster-aware",
                     "min_score": params["min_score"],
                     "eligible_only": params["eligible_only"],
                     "ordering": ordering,
