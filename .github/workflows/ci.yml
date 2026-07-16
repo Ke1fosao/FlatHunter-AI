@@ -48,16 +48,14 @@ jobs:
       GEOCODING_EXTERNAL_ENABLED: "false"
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
       - name: Capture environment setup
         run: |
           cd backend
-          uv venv > ../stage7-venv.txt 2>&1; echo $? > ../stage7-venv.code
+          uv python install 3.13 > ../stage7-python-install.txt 2>&1; echo $? > ../stage7-python-install.code
+          uv venv --python 3.13 > ../stage7-venv.txt 2>&1; echo $? > ../stage7-venv.code
           uv pip install --python .venv/bin/python --requirement requirements-dev.lock > ../stage7-install.txt 2>&1; echo $? > ../stage7-install.code
       - name: Run and capture all backend gates
         run: |
