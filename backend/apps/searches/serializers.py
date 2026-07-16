@@ -69,5 +69,16 @@ class SearchProfileSerializer(serializers.ModelSerializer):
         return instance
 
 
+class MatchQuerySerializer(serializers.Serializer):
+    min_score = serializers.IntegerField(required=False, default=0, min_value=0, max_value=100)
+    eligible_only = serializers.BooleanField(required=False, default=True)
+    ordering = serializers.ChoiceField(
+        required=False,
+        default="-match_score",
+        choices=("-match_score", "match_score", "-published_at", "price_uah"),
+    )
+    limit = serializers.IntegerField(required=False, default=100, min_value=1, max_value=500)
+
+
 class NaturalLanguageSearchSerializer(serializers.Serializer):
     text = serializers.CharField(max_length=4000, trim_whitespace=True)
