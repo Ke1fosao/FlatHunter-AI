@@ -15,104 +15,66 @@ concurrency:
 jobs:
   backend-diagnostic:
     runs-on: ubuntu-latest
-    env:
-      DJANGO_SECRET_KEY: ci-only-secret-key-not-for-production
-      DJANGO_DEBUG: "true"
-      DATABASE_URL: postgresql://flathunter:flathunter@127.0.0.1:5432/flathunter_test
-      REDIS_URL: redis://127.0.0.1:6379/0
-      TELEGRAM_WEBHOOK_SECRET: ci-webhook-secret
-      GEOCODING_PROVIDER: demo
-      GEOCODING_EXTERNAL_ENABLED: "false"
     steps:
       - uses: actions/checkout@v4
-      - name: Capture tool and container setup
+      - name: Build production backend image
+        run: docker build --tag flathunter-backend:stage7 ./backend
+      - name: Start isolated PostGIS and Redis
         run: |
-          set +e
-          command -v uv > stage7-uv-path.txt 2>&1
-          uv_code=$?
-          if [ "$uv_code" -ne 0 ]; then
-            curl -LsSf https://astral.sh/uv/install.sh > stage7-uv-installer.sh 2> stage7-uv-install.txt
-            curl_code=$?
-            if [ "$curl_code" -eq 0 ]; then
-              sh stage7-uv-installer.sh >> stage7-uv-install.txt 2>&1
-              uv_code=$?
-            else
-              uv_code=$curl_code
-            fi
-          fi
-          echo "$uv_code" > stage7-uv-install.code
-          export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
-          command -v uv >> stage7-uv-path.txt 2>&1
-
-          docker run -d --name stage7-postgres \
+          docker network create stage7-ci
+          docker run -d --network stage7-ci --name stage7-postgres \
             -e POSTGRES_DB=flathunter_test \
             -e POSTGRES_USER=flathunter \
             -e POSTGRES_PASSWORD=flathunter \
-            -p 5432:5432 \
-            postgis/postgis:17-3.5 > stage7-postgres-start.txt 2>&1
-          echo $? > stage7-postgres-start.code
-          docker run -d --name stage7-redis -p 6379:6379 redis:8-alpine > stage7-redis-start.txt 2>&1
-          echo $? > stage7-redis-start.code
-
+            postgis/postgis:17-3.5
+          docker run -d --network stage7-ci --name stage7-redis redis:8-alpine
           for attempt in $(seq 1 30); do
-            if docker exec stage7-postgres pg_isready -U flathunter -d flathunter_test > stage7-postgres-ready.txt 2>&1; then
-              echo "ready on attempt ${attempt}" >> stage7-postgres-ready.txt
-              echo 0 > stage7-postgres-ready.code
-              break
+            if docker exec stage7-postgres pg_isready -U flathunter -d flathunter_test; then
+              exit 0
             fi
             sleep 2
           done
-          test -f stage7-postgres-ready.code || echo 1 > stage7-postgres-ready.code
-
-          for attempt in $(seq 1 30); do
-            if docker exec stage7-redis redis-cli ping > stage7-redis-ready.txt 2>&1; then
-              echo "ready on attempt ${attempt}" >> stage7-redis-ready.txt
-              echo 0 > stage7-redis-ready.code
-              break
-            fi
-            sleep 1
-          done
-          test -f stage7-redis-ready.code || echo 1 > stage7-redis-ready.code
-          exit 0
-      - name: Capture Python environment setup
+          docker logs stage7-postgres
+          exit 1
+      - name: Capture backend gates inside production image
         run: |
-          set +e
-          export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
-          cd backend
-          uv python install 3.13 > ../stage7-python-install.txt 2>&1
-          echo $? > ../stage7-python-install.code
-          uv venv --python 3.13 > ../stage7-venv.txt 2>&1
-          echo $? > ../stage7-venv.code
-          uv pip install --python .venv/bin/python --requirement requirements-dev.lock > ../stage7-install.txt 2>&1
-          echo $? > ../stage7-install.code
-          exit 0
-      - name: Capture every backend gate
-        run: |
-          set +e
-          export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
-          cd backend
-          uv run --no-sync ruff format --check apps config tests manage.py > ../stage7-ruff-format.txt 2>&1
-          echo $? > ../stage7-ruff-format.code
-          uv run --no-sync ruff check apps config tests manage.py > ../stage7-ruff-check.txt 2>&1
-          echo $? > ../stage7-ruff-check.code
-          uv run --no-sync mypy apps config > ../stage7-mypy.txt 2>&1
-          echo $? > ../stage7-mypy.code
-          uv run --no-sync python manage.py migrate --noinput > ../stage7-migrate.txt 2>&1
-          echo $? > ../stage7-migrate.code
-          uv run --no-sync python manage.py makemigrations --check --dry-run > ../stage7-migration-drift.txt 2>&1
-          echo $? > ../stage7-migration-drift.code
-          uv run --no-sync pytest --cov=apps --cov-report=term-missing > ../stage7-pytest.txt 2>&1
-          echo $? > ../stage7-pytest.code
-          uvx pip-audit --strict -r requirements.lock > ../stage7-pip-audit.txt 2>&1
-          echo $? > ../stage7-pip-audit.code
-          exit 0
+          docker run --rm --network stage7-ci \
+            -e DJANGO_SECRET_KEY=ci-only-secret-key-not-for-production \
+            -e DJANGO_DEBUG=true \
+            -e DATABASE_URL=postgresql://flathunter:flathunter@stage7-postgres:5432/flathunter_test \
+            -e REDIS_URL=redis://stage7-redis:6379/0 \
+            -e TELEGRAM_WEBHOOK_SECRET=ci-webhook-secret \
+            -e GEOCODING_PROVIDER=demo \
+            -e GEOCODING_EXTERNAL_ENABLED=false \
+            -v "$PWD:/report" \
+            --entrypoint sh \
+            flathunter-backend:stage7 \
+            -c '
+              set +e
+              uv pip install --system --requirement requirements-dev.lock > /report/stage7-install.txt 2>&1
+              echo $? > /report/stage7-install.code
+              ruff format --check apps config tests manage.py > /report/stage7-ruff-format.txt 2>&1
+              echo $? > /report/stage7-ruff-format.code
+              ruff check apps config tests manage.py > /report/stage7-ruff-check.txt 2>&1
+              echo $? > /report/stage7-ruff-check.code
+              mypy apps config > /report/stage7-mypy.txt 2>&1
+              echo $? > /report/stage7-mypy.code
+              python manage.py migrate --noinput > /report/stage7-migrate.txt 2>&1
+              echo $? > /report/stage7-migrate.code
+              python manage.py makemigrations --check --dry-run > /report/stage7-migration-drift.txt 2>&1
+              echo $? > /report/stage7-migration-drift.code
+              pytest --cov=apps --cov-report=term-missing > /report/stage7-pytest.txt 2>&1
+              echo $? > /report/stage7-pytest.code
+              uvx pip-audit --strict -r requirements.lock > /report/stage7-pip-audit.txt 2>&1
+              echo $? > /report/stage7-pip-audit.code
+              exit 0
+            '
       - uses: actions/upload-artifact@v4
         with:
-          name: stage7-authoritative-backend-report
+          name: stage7-production-backend-report
           path: |
             stage7-*.txt
             stage7-*.code
-            stage7-*.sh
           retention-days: 1
       - name: End diagnostic run after artifact upload
         run: exit 1
