@@ -89,7 +89,8 @@ jobs:
           cache: npm
           cache-dependency-path: miniapp/package-lock.json
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - run: npx eslint . --fix
+      - name: Apply safe ESLint fixes and capture remaining diagnostics
+        run: npx eslint . --fix > ../eslint-report.txt 2>&1 || true
       - uses: actions/upload-artifact@v4
         with:
           name: stage5-frontend-formatted
@@ -98,6 +99,7 @@ jobs:
             miniapp/src/components/listing-feed.tsx
             miniapp/src/components/stage-five-shell.tsx
             miniapp/src/app/page.tsx
+            eslint-report.txt
           retention-days: 1
       - run: npm run lint
       - run: npm run typecheck
