@@ -83,7 +83,8 @@ class NominatimGeocodingProvider:
             longitude = float(item["lon"])
         except (KeyError, TypeError, ValueError) as error:
             raise GeocodingUnavailable("Geocoding result has invalid coordinates") from error
-        address = item.get("address") if isinstance(item.get("address"), dict) else {}
+        raw_address = item.get("address")
+        address: dict[str, Any] = raw_address if isinstance(raw_address, dict) else {}
         country_code = str(address.get("country_code", "UA")).upper()
         if country_code != "UA":
             raise GeocodingNotFound("Address is outside Ukraine")
