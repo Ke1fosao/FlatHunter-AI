@@ -5,6 +5,7 @@ from typing import Any, cast
 from uuid import UUID
 
 from asgiref.sync import async_to_sync
+from django.conf import settings
 from django.db.models import Prefetch, QuerySet
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -78,11 +79,15 @@ class MapListingView(APIView):
         )
         hidden_ids = UserListingState.objects.filter(user=user, is_hidden=True).values("listing_id")
         queryset = queryset.exclude(id__in=hidden_ids)
-        if params.get("favorites") is True:
+        favorites = params.get("favorites")
+        if favorites is not None:
             favorite_ids = UserListingState.objects.filter(
                 user=user, is_favorite=True
             ).values("listing_id")
-            queryset = queryset.filter(id__in=favorite_ids)
+            if favorites:
+                queryset = queryset.filter(id__in=favorite_ids)
+            else:
+                queryset = queryset.exclude(id__in=favorite_ids)
         bounding_box = params.get("bbox")
         if isinstance(bounding_box, BoundingBox):
             queryset = filter_listings_in_bbox(queryset, bounding_box)
@@ -109,7 +114,8 @@ class MapListingView(APIView):
                     "returned": len(features),
                     "inspected": inspected,
                     "profile_id": str(profile.id) if profile is not None else None,
-                    "tiles_url": getattr(request, "map_tiles_url", None),
+                    "tiles_url": settings.MAP_TILES_URL,
+                    "attribution": settings.MAP_ATTRIBUTION,
                 },
             }
         )
@@ -201,6 +207,7 @@ class MapContextView(APIView):
             is_active=True,
             location__isnull=False,
             source__enabled=True,
+            source__legal_status__in=("approved_demo", "approved"),
         )
         distances: dict[str, list[dict[str, Any]]] = {str(item): [] for item in listing_ids}
         for place in places:
