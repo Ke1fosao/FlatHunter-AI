@@ -66,6 +66,13 @@ jobs:
       - run: uv venv
       - run: uv pip install --python .venv/bin/python --requirement requirements-dev.lock
       - run: uv run --no-sync ruff format --check apps config tests manage.py
+      - name: Capture Ruff output
+        run: uv run --no-sync ruff check apps config tests manage.py > ../stage6-ruff.txt 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stage6-ruff-diagnostics
+          path: stage6-ruff.txt
+          retention-days: 1
       - run: uv run --no-sync ruff check apps config tests manage.py
       - run: uv run --no-sync mypy apps config
       - run: uv run --no-sync python manage.py migrate --noinput
@@ -86,6 +93,13 @@ jobs:
           cache: npm
           cache-dependency-path: miniapp/package-lock.json
       - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Capture ESLint output
+        run: npm run lint > ../stage6-eslint.txt 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stage6-eslint-diagnostics
+          path: stage6-eslint.txt
+          retention-days: 1
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
