@@ -99,23 +99,29 @@ def _component_can_merge(
     listings: dict[str, Listing],
     candidates: dict[tuple[str, str], DuplicateCandidate],
 ) -> bool:
-    for left_id, right_id in combinations(sorted(member_ids), 2):
-        blocked = candidates.get(_pair_key(left_id, right_id))
-        if blocked is not None and blocked.decision == CandidateDecision.SPLIT:
+    pairs = list(combinations(sorted(member_ids), 2))
+    compatible_pairs = 0
+    for left_id, right_id in pairs:
+        candidate = candidates.get(_pair_key(left_id, right_id))
+        if candidate is not None and candidate.decision == CandidateDecision.SPLIT:
             return False
+        compatible_pairs += int(_candidate_is_compatible(candidate))
     if len(member_ids) <= 2:
-        return True
+        return compatible_pairs == 1
+    # Small apartment clusters must form a complete compatibility graph. This
+    # prevents A≈B and B≈C from silently poisoning a cluster where A conflicts
+    # with C. Larger clusters still require every member to match the primary
+    # plus a strong global pair ratio.
+    if len(member_ids) <= 5:
+        return compatible_pairs == len(pairs)
     primary = select_primary([listings[item] for item in member_ids])
-    compatible = 0
-    compared = 0
-    for member_id in member_ids:
-        if member_id == str(primary.id):
-            continue
-        compared += 1
-        if _candidate_is_compatible(candidates.get(_pair_key(primary.id, member_id))):
-            compatible += 1
-    required_ratio = 1.0 if len(member_ids) <= 5 else 0.7
-    return compared > 0 and compatible >= math.ceil(compared * required_ratio)
+    primary_compatible = all(
+        _candidate_is_compatible(candidates.get(_pair_key(primary.id, member_id)))
+        for member_id in member_ids
+        if member_id != str(primary.id)
+    )
+    required_pairs = math.ceil(len(pairs) * 0.7)
+    return primary_compatible and compatible_pairs >= required_pairs
 
 
 def build_guarded_components(
