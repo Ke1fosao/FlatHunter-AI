@@ -95,10 +95,14 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Capture ESLint output
         run: npm run lint > ../stage6-eslint.txt 2>&1 || true
+      - name: Capture TypeScript output
+        run: npm run typecheck > ../stage6-typescript.txt 2>&1 || true
       - uses: actions/upload-artifact@v4
         with:
-          name: stage6-eslint-diagnostics
-          path: stage6-eslint.txt
+          name: stage6-frontend-diagnostics
+          path: |
+            stage6-eslint.txt
+            stage6-typescript.txt
           retention-days: 1
       - run: npm run lint
       - run: npm run typecheck
