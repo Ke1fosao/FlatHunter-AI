@@ -16,15 +16,16 @@ function confidenceText(member: ClusterMember): string {
 export function ClusterSources({ cluster }: { cluster: ListingClusterDetail }) {
   const minimum = cluster.price_min_uah ?? cluster.primary.price_uah;
   const maximum = cluster.price_max_uah ?? cluster.primary.price_uah;
+  const description = cluster.member_count > 1
+    ? `FlatHunter об’єднав ${sourceLabel(cluster.member_count)}. Перевірте ціну, свіжість і умови кожної публікації.`
+    : "Це окреме оголошення. Нижче доступне його першоджерело.";
   return (
     <section className="cluster-sources" aria-labelledby="cluster-sources-title">
       <header>
         <div>
           <span>ОДНА КВАРТИРА · КІЛЬКА ПУБЛІКАЦІЙ</span>
           <h3 id="cluster-sources-title">Джерела оголошення</h3>
-          <p>
-            FlatHunter об’єднав {sourceLabel(cluster.member_count)}. Перевірте ціну, свіжість і умови кожної публікації.
-          </p>
+          <p>{description}</p>
         </div>
         <strong>{formatClusterPriceRange(minimum, maximum)}</strong>
       </header>
