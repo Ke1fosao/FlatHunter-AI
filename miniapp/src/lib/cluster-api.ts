@@ -105,7 +105,7 @@ export async function fetchClusterFeed(
     const response = await fetchMatches(profile.id, { minScore, ordering: "-match_score" }, signal);
     return response.results.map((item) => ({
       listing: item.listing as ClusterListing,
-      match: item.match as ClusterMatch
+      match: item.match
     }));
   }
   const response = await fetchListings({}, signal);
