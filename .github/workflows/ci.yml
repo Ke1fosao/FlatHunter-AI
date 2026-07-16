@@ -44,11 +44,6 @@ jobs:
       GEOCODING_EXTERNAL_ENABLED: "false"
     steps:
       - uses: actions/checkout@v4
-      - name: Install GeoDjango libraries
-        run: >-
-          sudo apt-get update &&
-          sudo apt-get install --no-install-recommends -y
-          binutils gdal-bin libgdal-dev libgeos-dev libproj-dev
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
@@ -101,11 +96,6 @@ jobs:
       GEOCODING_EXTERNAL_ENABLED: "false"
     steps:
       - uses: actions/checkout@v4
-      - name: Install GeoDjango libraries
-        run: >-
-          sudo apt-get update &&
-          sudo apt-get install --no-install-recommends -y
-          binutils gdal-bin libgdal-dev libgeos-dev libproj-dev
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
