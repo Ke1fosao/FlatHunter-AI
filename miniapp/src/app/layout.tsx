@@ -3,6 +3,7 @@ import Script from "next/script";
 
 import uk from "@/locales/uk.json";
 
+import "leaflet/dist/leaflet.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
