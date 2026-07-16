@@ -83,11 +83,7 @@ def update_cluster_state(
         .select_related("primary_listing")
         .get(pk=cluster.pk, status="active")
     )
-    state = (
-        UserClusterState.objects.select_for_update()
-        .filter(cluster=cluster, user=user)
-        .first()
-    )
+    state = UserClusterState.objects.select_for_update().filter(cluster=cluster, user=user).first()
     state_is_new = state is None
     if state is None:
         state = UserClusterState(user=user, cluster=cluster)

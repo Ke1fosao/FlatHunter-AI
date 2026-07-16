@@ -112,9 +112,7 @@ def test_demo_source_contains_deterministic_three_copy_groups():
     second = async_to_sync(adapter.search)(SourceSearchRequest(limit=3, seed=20260716))
 
     assert first == second
-    assert {item["attributes"]["demo_duplicate_group"] for item in first} == {
-        "demo-duplicate-000"
-    }
+    assert {item["attributes"]["demo_duplicate_group"] for item in first} == {"demo-duplicate-000"}
     assert len({(item["latitude"], item["longitude"], item["rooms"]) for item in first}) == 1
     assert len({item["price"] for item in first}) == 3
 
@@ -179,7 +177,9 @@ def test_demo_detection_and_cluster_rebuild_are_idempotent(db):
 
 def test_guarded_components_reject_transitive_poisoning(db):
     source = _source()
-    primary = _listing(source, "a", description="Повний якісний опис", images=["https://img.invalid/a"])
+    primary = _listing(
+        source, "a", description="Повний якісний опис", images=["https://img.invalid/a"]
+    )
     bridge = _listing(source, "b", price=18100, price_uah=18100)
     distant = _listing(
         source,
@@ -220,10 +220,14 @@ def test_manual_split_blocks_remerge_through_a_third_listing(db):
 
     rebuild_clusters()
 
-    assert not ListingClusterMember.objects.filter(
-        cluster__status="active",
-        listing_id=candidate.left_listing_id,
-    ).filter(cluster__members__listing_id=candidate.right_listing_id).exists()
+    assert (
+        not ListingClusterMember.objects.filter(
+            cluster__status="active",
+            listing_id=candidate.left_listing_id,
+        )
+        .filter(cluster__members__listing_id=candidate.right_listing_id)
+        .exists()
+    )
 
 
 def test_feed_cluster_detail_state_and_map_are_cluster_aware(db):

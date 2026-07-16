@@ -46,7 +46,9 @@ _CONTACT_KEYWORDS = ("phone", "телефон", "email", "telegram", "contact", 
 _PHONE_RE = re.compile(r"(?<!\d)(?:\+?38)?0?\d{9,10}(?!\d)")
 _EMAIL_RE = re.compile(r"[\w.+-]+@[\w.-]+\.[a-zа-яіїєґ]{2,}", re.IGNORECASE)
 _HANDLE_RE = re.compile(r"(?<!\w)@[a-z0-9_]{5,32}", re.IGNORECASE)
-_BUILDING_RE = re.compile(r"(?:^|\s)(\d{1,4}[а-яa-z]?(?:[/-]\d{1,4}[а-яa-z]?)?)(?:\s|$)", re.IGNORECASE)
+_BUILDING_RE = re.compile(
+    r"(?:^|\s)(\d{1,4}[а-яa-z]?(?:[/-]\d{1,4}[а-яa-z]?)?)(?:\s|$)", re.IGNORECASE
+)
 _TOKEN_RE = re.compile(r"[\wа-яіїєґ]+", re.IGNORECASE)
 
 
@@ -75,7 +77,9 @@ def canonicalize_url(value: str) -> str:
         return ""
     port = parsed.port
     netloc = host
-    if port is not None and not ((scheme == "http" and port == 80) or (scheme == "https" and port == 443)):
+    if port is not None and not (
+        (scheme == "http" and port == 80) or (scheme == "https" and port == 443)
+    ):
         netloc = f"{host}:{port}"
     path = re.sub(r"/{2,}", "/", parsed.path or "/")
     if path != "/":

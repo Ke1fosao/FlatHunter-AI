@@ -25,4 +25,6 @@ class Command(BaseCommand):
             dry_run=bool(options["dry_run"]),
         )
         summary = ", ".join(f"{field}={value}" for field, value in asdict(result).items())
-        self.stdout.write(self.style.WARNING(summary) if result.failed else self.style.SUCCESS(summary))
+        self.stdout.write(
+            self.style.WARNING(summary) if result.failed else self.style.SUCCESS(summary)
+        )

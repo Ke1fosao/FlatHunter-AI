@@ -52,10 +52,15 @@ def _completeness_score(listing: Listing) -> int:
 
 def primary_quality(listing: Listing) -> tuple[Any, ...]:
     source_approved = listing.source.legal_status in {"approved", "approved_demo"}
-    source_healthy = listing.source.enabled and listing.source.health_status in {"healthy", "unknown"}
+    source_healthy = listing.source.enabled and listing.source.health_status in {
+        "healthy",
+        "unknown",
+    }
     location_score = {"building": 3, "street": 2, "district": 1}.get(listing.location_accuracy, 0)
     image_count = sum(isinstance(value, str) and bool(value) for value in listing.images)
-    commission = float(listing.commission_percent) if listing.commission_percent is not None else 1000.0
+    commission = (
+        float(listing.commission_percent) if listing.commission_percent is not None else 1000.0
+    )
     return (
         int(listing.is_active),
         int(source_approved),
@@ -88,9 +93,8 @@ def _candidate_is_compatible(candidate: DuplicateCandidate | None) -> bool:
         return False
     if candidate.hard_conflicts:
         return False
-    return (
-        candidate.decision in ACCEPTED_DECISIONS
-        or float(candidate.final_score) >= float(settings.DUPLICATE_REVIEW_THRESHOLD)
+    return candidate.decision in ACCEPTED_DECISIONS or float(candidate.final_score) >= float(
+        settings.DUPLICATE_REVIEW_THRESHOLD
     )
 
 
@@ -144,7 +148,11 @@ def build_guarded_components(
 
     for candidate in sorted(
         (item for item in candidates if item.decision in ACCEPTED_DECISIONS),
-        key=lambda item: (-float(item.final_score), str(item.left_listing_id), str(item.right_listing_id)),
+        key=lambda item: (
+            -float(item.final_score),
+            str(item.left_listing_id),
+            str(item.right_listing_id),
+        ),
     ):
         left_id = str(candidate.left_listing_id)
         right_id = str(candidate.right_listing_id)
@@ -230,7 +238,9 @@ def rebuild_clusters(*, city: str | None = None, dry_run: bool = False) -> Clust
         str(membership.listing_id): membership for membership in existing_membership_rows
     }
     affected_clusters = {membership.cluster for membership in existing_membership_rows}
-    previous_primary = {str(cluster.id): cluster.primary_listing_id for cluster in affected_clusters}
+    previous_primary = {
+        str(cluster.id): cluster.primary_listing_id for cluster in affected_clusters
+    }
     previous_states: dict[str, list[UserClusterState]] = defaultdict(list)
     for state in UserClusterState.objects.select_for_update().filter(cluster__in=affected_clusters):
         previous_states[str(state.cluster_id)].append(state)
@@ -282,7 +292,11 @@ def rebuild_clusters(*, city: str | None = None, dry_run: bool = False) -> Clust
             reused += 1
         confidences: list[Decimal] = []
         for listing in component_listings:
-            candidate = None if listing.id == primary.id else _candidate_to_primary(primary, listing, candidate_map)
+            candidate = (
+                None
+                if listing.id == primary.id
+                else _candidate_to_primary(primary, listing, candidate_map)
+            )
             confidence = Decimal("100.00") if candidate is None else candidate.final_score
             joined_by = ClusterJoinMethod.AUTO
             reasons: list[dict[str, Any]] = []
@@ -295,7 +309,11 @@ def rebuild_clusters(*, city: str | None = None, dry_run: bool = False) -> Clust
             ListingClusterMember.objects.create(
                 cluster=cluster,
                 listing=listing,
-                role=(ClusterMemberRole.PRIMARY if listing.id == primary.id else ClusterMemberRole.DUPLICATE),
+                role=(
+                    ClusterMemberRole.PRIMARY
+                    if listing.id == primary.id
+                    else ClusterMemberRole.DUPLICATE
+                ),
                 confidence=confidence,
                 joined_by=joined_by,
                 reasons=reasons,
@@ -332,14 +350,18 @@ def rebuild_clusters(*, city: str | None = None, dry_run: bool = False) -> Clust
             old_to_new[old_cluster_id].append(cluster)
 
     for old_cluster_id, states in previous_states.items():
-        target_clusters = list({cluster.id: cluster for cluster in old_to_new.get(old_cluster_id, [])}.values())
+        target_clusters = list(
+            {cluster.id: cluster for cluster in old_to_new.get(old_cluster_id, [])}.values()
+        )
         for state in states:
             for target in target_clusters:
                 if target.id == state.cluster_id:
                     state.cluster = target
                     state.save(update_fields=("cluster", "updated_at"))
                     continue
-                preserve_compared = previous_primary.get(old_cluster_id) == target.primary_listing_id
+                preserve_compared = (
+                    previous_primary.get(old_cluster_id) == target.primary_listing_id
+                )
                 UserClusterState.objects.update_or_create(
                     user=state.user,
                     cluster=target,

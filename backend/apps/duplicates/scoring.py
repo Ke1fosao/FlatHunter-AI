@@ -53,7 +53,9 @@ class DuplicateEvaluation:
         }
 
 
-def _reason(component: str, score: float | None, message: str, *, evidence: str = "") -> dict[str, Any]:
+def _reason(
+    component: str, score: float | None, message: str, *, evidence: str = ""
+) -> dict[str, Any]:
     payload: dict[str, Any] = {"component": component, "score": score, "message": message}
     if evidence:
         payload["evidence"] = evidence
@@ -77,8 +79,12 @@ def _exact_component(
     if shared_contacts:
         scores.append(100.0)
         reasons.append(_reason("exact", 100.0, "Збіг захешованого контакту."))
-    left_exact = {item.get("exact") for item in left_fp.image_hashes if isinstance(item, dict)} - {None}
-    right_exact = {item.get("exact") for item in right_fp.image_hashes if isinstance(item, dict)} - {None}
+    left_exact = {item.get("exact") for item in left_fp.image_hashes if isinstance(item, dict)} - {
+        None
+    }
+    right_exact = {
+        item.get("exact") for item in right_fp.image_hashes if isinstance(item, dict)
+    } - {None}
     shared_images = left_exact & right_exact
     if len(shared_images) >= 2:
         scores.append(100.0)
@@ -107,10 +113,16 @@ def _location_components(
         reasons.append(_reason("address", address, "Однаковий нормалізований адресний ключ."))
     elif left_fp.normalized_street and left_fp.normalized_street == right_fp.normalized_street:
         address = 82.0
-        reasons.append(_reason("address", address, "Однакова вулиця; номер будинку неповний або різниться."))
-    elif left_fp.normalized_district and left_fp.normalized_district == right_fp.normalized_district:
+        reasons.append(
+            _reason("address", address, "Однакова вулиця; номер будинку неповний або різниться.")
+        )
+    elif (
+        left_fp.normalized_district and left_fp.normalized_district == right_fp.normalized_district
+    ):
         address = 55.0
-        reasons.append(_reason("address", address, "Однаковий район, але точна адреса не підтверджена."))
+        reasons.append(
+            _reason("address", address, "Однаковий район, але точна адреса не підтверджена.")
+        )
 
     distance = haversine_metres(left, right)
     geo: float | None = None
@@ -129,7 +141,9 @@ def _location_components(
     return address, geo, reasons
 
 
-def _attributes_component(left: Listing, right: Listing) -> tuple[float | None, list[dict[str, Any]]]:
+def _attributes_component(
+    left: Listing, right: Listing
+) -> tuple[float | None, list[dict[str, Any]]]:
     values: list[float] = []
     messages: list[str] = []
     if left.rooms == right.rooms:
@@ -176,8 +190,12 @@ def _image_component(
 ) -> tuple[float | None, list[dict[str, Any]]]:
     if not left_fp.image_hashes or not right_fp.image_hashes:
         return None, []
-    left_exact = {item.get("exact") for item in left_fp.image_hashes if isinstance(item, dict)} - {None}
-    right_exact = {item.get("exact") for item in right_fp.image_hashes if isinstance(item, dict)} - {None}
+    left_exact = {item.get("exact") for item in left_fp.image_hashes if isinstance(item, dict)} - {
+        None
+    }
+    right_exact = {
+        item.get("exact") for item in right_fp.image_hashes if isinstance(item, dict)
+    } - {None}
     exact_matches = left_exact & right_exact
     if exact_matches:
         score = 100.0 if len(exact_matches) >= 2 else 92.0
@@ -208,7 +226,9 @@ def _image_component(
         score = 52.0
     else:
         score = 8.0
-    return score, [_reason("image", score, f"Мінімальна Hamming-відстань perceptual hash: {minimum}.")]
+    return score, [
+        _reason("image", score, f"Мінімальна Hamming-відстань perceptual hash: {minimum}.")
+    ]
 
 
 def _price_component(left: Listing, right: Listing) -> tuple[float | None, list[dict[str, Any]]]:
@@ -241,7 +261,9 @@ def _hard_conflicts(left: Listing, right: Listing, distance: float | None) -> li
         maximum = max(float(left.total_area), float(right.total_area), 1.0)
         if abs(float(left.total_area) - float(right.total_area)) / maximum > 0.45:
             conflicts.append("incompatible_area")
-    building_accurate = left.location_accuracy == "building" and right.location_accuracy == "building"
+    building_accurate = (
+        left.location_accuracy == "building" and right.location_accuracy == "building"
+    )
     if building_accurate and distance is not None and distance > 750:
         conflicts.append("incompatible_building_coordinates")
     return conflicts
@@ -256,7 +278,9 @@ def _weighted_score(components: dict[str, float | None]) -> float:
     available = {key: value for key, value in components.items() if value is not None}
     if not available:
         return 0.0
-    weighted = sum(Decimal(str(value)) * _COMPONENT_WEIGHTS[key] for key, value in available.items())
+    weighted = sum(
+        Decimal(str(value)) * _COMPONENT_WEIGHTS[key] for key, value in available.items()
+    )
     total_weight = sum(_COMPONENT_WEIGHTS[key] for key in available)
     return float((weighted / total_weight).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
@@ -300,7 +324,9 @@ def evaluate_duplicate(
 
     auto_threshold = float(settings.DUPLICATE_AUTO_MERGE_THRESHOLD)
     review_threshold = float(settings.DUPLICATE_REVIEW_THRESHOLD)
-    compatible_exact_rule = exact_rule and not conflicts and (attributes is None or attributes >= 60)
+    compatible_exact_rule = (
+        exact_rule and not conflicts and (attributes is None or attributes >= 60)
+    )
     if conflicts:
         decision = CandidateDecision.REJECTED
         final = 0.0
