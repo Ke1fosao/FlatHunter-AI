@@ -60,11 +60,13 @@ class NominatimGeocodingProvider:
         }
         headers = {"User-Agent": settings.GEOCODING_USER_AGENT}
         try:
-            async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
-                async with session.get(self.endpoint, params=params) as response:
-                    if response.status != 200:
-                        raise GeocodingUnavailable(f"Nominatim returned HTTP {response.status}")
-                    payload = await response.json()
+            async with (
+                aiohttp.ClientSession(timeout=timeout, headers=headers) as session,
+                session.get(self.endpoint, params=params) as response,
+            ):
+                if response.status != 200:
+                    raise GeocodingUnavailable(f"Nominatim returned HTTP {response.status}")
+                payload = await response.json()
         except (aiohttp.ClientError, TimeoutError) as error:
             raise GeocodingUnavailable("Geocoding provider is unavailable") from error
 
@@ -85,8 +87,11 @@ class NominatimGeocodingProvider:
         country_code = str(address.get("country_code", "UA")).upper()
         if country_code != "UA":
             raise GeocodingNotFound("Address is outside Ukraine")
-        importance = item.get("importance", 0.7)
-        confidence = max(0.0, min(float(importance), 1.0))
+        try:
+            importance = float(item.get("importance", 0.7))
+        except (TypeError, ValueError) as error:
+            raise GeocodingUnavailable("Geocoding result has invalid confidence") from error
+        confidence = max(0.0, min(importance, 1.0))
         return GeocodingResult(
             latitude=latitude,
             longitude=longitude,
