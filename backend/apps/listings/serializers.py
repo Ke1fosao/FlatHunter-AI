@@ -3,8 +3,15 @@ from __future__ import annotations
 from typing import Any
 
 from rest_framework import serializers
+from rest_framework.fields import empty
 
 from apps.listings.models import Listing, UserListingState
+
+
+class OptionalQueryBooleanField(serializers.BooleanField):
+    """Keep an omitted query parameter absent instead of coercing it to false."""
+
+    default_empty_html = empty
 
 
 class ListingFilterSerializer(serializers.Serializer):
@@ -13,8 +20,8 @@ class ListingFilterSerializer(serializers.Serializer):
     rooms = serializers.IntegerField(required=False, min_value=1, max_value=20)
     price_min = serializers.IntegerField(required=False, min_value=0)
     price_max = serializers.IntegerField(required=False, min_value=0)
-    favorites = serializers.BooleanField(required=False)
-    compared = serializers.BooleanField(required=False)
+    favorites = OptionalQueryBooleanField(required=False)
+    compared = OptionalQueryBooleanField(required=False)
     include_hidden = serializers.BooleanField(required=False, default=False)
 
     def validate(self, attrs: dict[str, object]) -> dict[str, object]:
