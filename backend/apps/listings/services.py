@@ -91,7 +91,7 @@ def _touch_unchanged_listing(source: ListingSource, external_id: str) -> None:
 
 
 @sync_to_async
-def _mark_source_error(source: ListingSource, message: str) -> None:
+def _mark_source_error(source: ListingSource) -> None:
     source.last_error_at = timezone.now()
     source.health_status = "degraded"
     source.save(update_fields=("last_error_at", "health_status"))
@@ -133,8 +133,8 @@ async def ingest_source(
 
     try:
         raw_items = await adapter.search(request)
-    except Exception as error:
-        await _mark_source_error(source, str(error))
+    except Exception:
+        await _mark_source_error(source)
         raise
 
     created = 0
@@ -143,6 +143,7 @@ async def ingest_source(
     failed = 0
 
     for raw_item in raw_items:
+        prepared: PreparedRawListing | None = None
         try:
             external_id = adapter.external_id_from_raw(raw_item)
             prepared = await _prepare_raw_listing(source, raw_item, external_id)
@@ -165,9 +166,8 @@ async def ingest_source(
             updated += int(status == "updated")
         except Exception as error:
             failed += 1
-            if "prepared" in locals() and prepared.external_id == raw_item.get("external_id"):
+            if prepared is not None:
                 await _mark_raw_failure(prepared.raw, error)
-            continue
 
     source.last_success_at = timezone.now()
     source.health_status = "healthy" if failed == 0 else "degraded"
