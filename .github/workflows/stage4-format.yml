@@ -1,0 +1,38 @@
+name: Stage 4 Formatter
+
+on:
+  push:
+    branches: [stage-4-deterministic-matching]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stage4-formatter
+  cancel-in-progress: true
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: astral-sh/setup-uv@v6
+      - run: uv venv
+      - run: uv pip install --python .venv/bin/python --requirement requirements-dev.lock
+      - name: Format Stage 4 Python files
+        run: uv run --no-sync ruff format apps/matching apps/searches/views.py apps/searches/serializers.py tests/test_matching.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stage4-formatted-source
+          path: |
+            backend/apps/matching/engine.py
+            backend/apps/searches/views.py
+            backend/apps/searches/serializers.py
+            backend/tests/test_matching.py
+          retention-days: 1
