@@ -78,10 +78,9 @@ def update_cluster_state(
     user: User,
     values: dict[str, Any],
 ) -> UserClusterState:
-    cluster = (
-        ListingCluster.objects.select_for_update()
-        .select_related("primary_listing")
-        .get(pk=cluster.pk, status="active")
+    cluster = ListingCluster.objects.select_for_update().get(
+        pk=cluster.pk,
+        status="active",
     )
     state = UserClusterState.objects.select_for_update().filter(cluster=cluster, user=user).first()
     state_is_new = state is None
