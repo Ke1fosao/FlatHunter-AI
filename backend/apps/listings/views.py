@@ -135,7 +135,7 @@ class ListingViewSet(viewsets.ReadOnlyModelViewSet):
                     {"error": {"code": "comparison_limit", "message": str(error)}},
                     status=status.HTTP_409_CONFLICT,
                 )
-            cast(Any, cluster).current_user_cluster_states = [state]
+            setattr(cluster, "current_user_cluster_states", [state])
             primary_id = cluster.primary_listing_id or listing.id
             updated = presentation_queryset(
                 Listing.objects.filter(pk=primary_id),
