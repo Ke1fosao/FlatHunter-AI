@@ -8,7 +8,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 RUN apt-get update \
-    && apt-get install --no-install-recommends -y curl libpq5 \
+    && apt-get install --no-install-recommends -y \
+        binutils \
+        curl \
+        gdal-bin \
+        libgdal-dev \
+        libgeos-dev \
+        libpq5 \
+        libproj-dev \
     && rm -rf /var/lib/apt/lists/* \
     && pip install --no-cache-dir uv==0.10.0
 
