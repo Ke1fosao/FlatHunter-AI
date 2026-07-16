@@ -29,11 +29,11 @@ export function LeafletMap({ features, places, selectedId, onSelect, onMapClick 
 
   useEffect(() => {
     let cancelled = false;
+    const container = containerRef.current as HTMLDivElement;
     async function mountMap() {
-      if (!containerRef.current) return;
       const L = await import("leaflet");
-      if (cancelled || !containerRef.current) return;
-      const map = L.map(containerRef.current, {
+      if (cancelled) return;
+      const map = L.map(container, {
         center: [49.0, 31.0],
         zoom: 6,
         zoomControl: true,
