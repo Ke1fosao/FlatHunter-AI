@@ -13,55 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  backend-ruff:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
-      - name: Capture Ruff diagnostics
-        run: |
-          cd backend
-          uvx ruff==0.15.21 format --check apps config tests manage.py > ../stage7-ruff-format.txt 2>&1 || true
-          uvx ruff==0.15.21 check apps config tests manage.py > ../stage7-ruff-check.txt 2>&1 || true
-      - uses: actions/upload-artifact@v4
-        with:
-          name: stage7-ruff-diagnostics
-          path: |
-            stage7-ruff-format.txt
-            stage7-ruff-check.txt
-          retention-days: 1
-      - run: cd backend && uvx ruff==0.15.21 format --check apps config tests manage.py
-      - run: cd backend && uvx ruff==0.15.21 check apps config tests manage.py
-
-  backend-mypy:
-    runs-on: ubuntu-latest
-    env:
-      DJANGO_SECRET_KEY: ci-only-secret-key-not-for-production
-      DJANGO_DEBUG: "true"
-      DATABASE_URL: sqlite:////tmp/flathunter-mypy.sqlite3
-      REDIS_URL: ""
-      GEOCODING_PROVIDER: demo
-      GEOCODING_EXTERNAL_ENABLED: "false"
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-      - uses: astral-sh/setup-uv@v6
-        with:
-          enable-cache: true
-      - run: cd backend && uv venv
-      - run: cd backend && uv pip install --python .venv/bin/python --requirement requirements-dev.lock
-      - name: Capture mypy diagnostics
-        run: cd backend && uv run --no-sync mypy apps config > ../stage7-mypy.txt 2>&1 || true
-      - uses: actions/upload-artifact@v4
-        with:
-          name: stage7-mypy-diagnostics
-          path: stage7-mypy.txt
-          retention-days: 1
-      - run: cd backend && uv run --no-sync mypy apps config
-
-  backend-tests:
+  backend-diagnostic:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -104,23 +56,22 @@ jobs:
           enable-cache: true
       - run: cd backend && uv venv
       - run: cd backend && uv pip install --python .venv/bin/python --requirement requirements-dev.lock
-      - name: Capture test diagnostics
+      - name: Run and capture all backend gates
         run: |
           cd backend
-          uv run --no-sync python manage.py migrate --noinput > ../stage7-migrate.txt 2>&1 || true
-          uv run --no-sync python manage.py makemigrations --check --dry-run > ../stage7-migration-drift.txt 2>&1 || true
-          uv run --no-sync pytest --cov=apps --cov-report=term-missing > ../stage7-pytest.txt 2>&1 || true
-          uvx pip-audit --strict -r requirements.lock > ../stage7-pip-audit.txt 2>&1 || true
+          uv run --no-sync ruff format --check apps config tests manage.py > ../stage7-ruff-format.txt 2>&1; echo $? > ../stage7-ruff-format.code
+          uv run --no-sync ruff check apps config tests manage.py > ../stage7-ruff-check.txt 2>&1; echo $? > ../stage7-ruff-check.code
+          uv run --no-sync mypy apps config > ../stage7-mypy.txt 2>&1; echo $? > ../stage7-mypy.code
+          uv run --no-sync python manage.py migrate --noinput > ../stage7-migrate.txt 2>&1; echo $? > ../stage7-migrate.code
+          uv run --no-sync python manage.py makemigrations --check --dry-run > ../stage7-migration-drift.txt 2>&1; echo $? > ../stage7-migration-drift.code
+          uv run --no-sync pytest --cov=apps --cov-report=term-missing > ../stage7-pytest.txt 2>&1; echo $? > ../stage7-pytest.code
+          uvx pip-audit --strict -r requirements.lock > ../stage7-pip-audit.txt 2>&1; echo $? > ../stage7-pip-audit.code
       - uses: actions/upload-artifact@v4
         with:
-          name: stage7-test-diagnostics
+          name: stage7-authoritative-backend-report
           path: |
-            stage7-migrate.txt
-            stage7-migration-drift.txt
-            stage7-pytest.txt
-            stage7-pip-audit.txt
+            stage7-*.txt
+            stage7-*.code
           retention-days: 1
-      - run: cd backend && uv run --no-sync python manage.py migrate --noinput
-      - run: cd backend && uv run --no-sync python manage.py makemigrations --check --dry-run
-      - run: cd backend && uv run --no-sync pytest --cov=apps --cov-report=term-missing
-      - run: cd backend && uvx pip-audit --strict -r requirements.lock
+      - name: End diagnostic run after artifact upload
+        run: exit 1
