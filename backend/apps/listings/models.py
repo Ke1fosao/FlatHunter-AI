@@ -122,7 +122,9 @@ class Listing(models.Model):
                 fields=("is_active", "city", "-published_at"),
                 name="listing_active_city_pub_idx",
             ),
-            models.Index(fields=("city", "rooms", "price_uah"), name="listing_city_rooms_price_idx"),
+            models.Index(
+                fields=("city", "rooms", "price_uah"), name="listing_city_rooms_price_idx"
+            ),
         ]
 
     def __str__(self) -> str:
