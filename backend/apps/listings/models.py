@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
 from django.conf import settings
-from django.db import models
+from django.contrib.gis.db import models
+
+from apps.geodata.geometry import coordinates_from_point, point_from_coordinates
 
 
 class SourceAccessMode(models.TextChoices):
@@ -86,6 +89,7 @@ class Listing(models.Model):
     street = models.CharField(max_length=160, blank=True)
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    location = models.PointField(srid=4326, geography=True, null=True, blank=True)
     location_accuracy = models.CharField(max_length=24, default="district")
     price = models.PositiveIntegerField(db_index=True)
     currency = models.CharField(max_length=3, default="UAH")
@@ -125,7 +129,25 @@ class Listing(models.Model):
             models.Index(
                 fields=("city", "rooms", "price_uah"), name="listing_city_rooms_price_idx"
             ),
+            models.Index(fields=("city", "location_accuracy"), name="listing_city_accuracy_idx"),
         ]
+
+    def sync_location(self) -> None:
+        if self.latitude is not None and self.longitude is not None:
+            self.location = point_from_coordinates(self.latitude, self.longitude)
+        elif self.location is not None:
+            coordinates = coordinates_from_point(self.location)
+            if coordinates is not None:
+                self.latitude, self.longitude = coordinates
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        self.sync_location()
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None:
+            kwargs["update_fields"] = tuple(
+                set(update_fields) | {"latitude", "longitude", "location"}
+            )
+        super().save(*args, **kwargs)
 
     def __str__(self) -> str:
         return f"{self.title} · {self.price_uah} грн"
