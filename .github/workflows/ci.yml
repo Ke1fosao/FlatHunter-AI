@@ -65,6 +65,25 @@ jobs:
           enable-cache: true
       - run: uv venv
       - run: uv pip install --python .venv/bin/python --requirement requirements-dev.lock
+      - name: Capture final backend diagnostics
+        run: |
+          uv run --no-sync ruff format --check apps config tests manage.py > ../stage7-ruff-format.txt 2>&1 || true
+          uv run --no-sync ruff check apps config tests manage.py > ../stage7-ruff-check.txt 2>&1 || true
+          uv run --no-sync mypy apps config > ../stage7-mypy.txt 2>&1 || true
+          uv run --no-sync python manage.py migrate --noinput > ../stage7-migrate.txt 2>&1 || true
+          uv run --no-sync python manage.py makemigrations --check --dry-run > ../stage7-migration-drift.txt 2>&1 || true
+          uv run --no-sync pytest --cov=apps --cov-report=term-missing > ../stage7-pytest.txt 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stage7-final-backend-diagnostics
+          path: |
+            stage7-ruff-format.txt
+            stage7-ruff-check.txt
+            stage7-mypy.txt
+            stage7-migrate.txt
+            stage7-migration-drift.txt
+            stage7-pytest.txt
+          retention-days: 1
       - run: uv run --no-sync ruff format --check apps config tests manage.py
       - run: uv run --no-sync ruff check apps config tests manage.py
       - run: uv run --no-sync mypy apps config
