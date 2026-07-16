@@ -91,9 +91,11 @@ export function sourceLabel(count: number): string {
 }
 
 export function formatClusterPriceRange(minimum: number, maximum: number): string {
-  const format = new Intl.NumberFormat("uk-UA");
-  if (minimum === maximum) return `${format.format(minimum)} грн`;
-  return `${format.format(minimum)}–${format.format(maximum)} грн`;
+  const numberFormat = new Intl.NumberFormat("uk-UA");
+  const format = (value: number) =>
+    numberFormat.format(value).replaceAll("\u00A0", " ").replaceAll("\u202F", " ");
+  if (minimum === maximum) return `${format(minimum)} грн`;
+  return `${format(minimum)}–${format(maximum)} грн`;
 }
 
 export async function fetchClusterFeed(
