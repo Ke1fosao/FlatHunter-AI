@@ -1,0 +1,50 @@
+name: Stage 5 Formatter
+
+on:
+  push:
+    branches: [stage-5-miniapp-ui]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: stage5-formatter
+  cancel-in-progress: true
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: stage-5-miniapp-ui
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: astral-sh/setup-uv@v6
+      - run: |
+          cd backend
+          uv venv
+          uv pip install --python .venv/bin/python --requirement requirements-dev.lock
+          uv run --no-sync ruff format apps config tests manage.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: miniapp/package-lock.json
+      - run: |
+          cd miniapp
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx eslint . --fix
+      - name: Commit formatter result
+        run: |
+          if git diff --quiet; then
+            echo 'No formatting changes'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add backend miniapp
+          git commit -m 'style: apply Stage 5 formatters'
+          git push origin HEAD:stage-5-miniapp-ui
