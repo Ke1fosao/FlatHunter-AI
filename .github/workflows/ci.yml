@@ -37,7 +37,10 @@ jobs:
           done
           exit 1
       - name: Run backend quality gates
+        id: backend_quality
+        continue-on-error: true
         run: |
+          set -o pipefail
           docker run --rm --network flathunter-ci \
             --env DJANGO_SECRET_KEY --env DJANGO_DEBUG --env DATABASE_URL --env REDIS_URL \
             --env TELEGRAM_WEBHOOK_SECRET --env GEOCODING_PROVIDER --env GEOCODING_EXTERNAL_ENABLED \
@@ -50,7 +53,15 @@ jobs:
               python manage.py makemigrations --check --dry-run
               pytest --cov=apps --cov-report=term-missing
               uvx pip-audit --strict -r requirements.lock
-            '
+            ' 2>&1 | tee backend-quality.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stage8-final-backend-diagnostic
+          path: backend-quality.log
+          if-no-files-found: error
+      - if: steps.backend_quality.outcome == 'failure'
+        run: exit 1
 
   frontend:
     runs-on: ubuntu-latest
