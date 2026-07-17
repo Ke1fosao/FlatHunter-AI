@@ -6,7 +6,8 @@ import json
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, time as datetime_time
+from datetime import datetime
+from datetime import time as datetime_time
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
@@ -529,7 +530,7 @@ def _result_cache_key(
         default=str,
     )
     digest = hashlib.sha256(
-        f"{feature}|{provider}|{model}|{prompt_version}|{canonical_context}".encode("utf-8")
+        f"{feature}|{provider}|{model}|{prompt_version}|{canonical_context}".encode()
     ).hexdigest()
     return digest[:64]
 
@@ -615,7 +616,7 @@ def _register_prompt_version(
     provider: str,
     model: str,
 ) -> None:
-    checksum = hashlib.sha256(f"{feature}:{prompt_version}".encode("utf-8")).hexdigest()
+    checksum = hashlib.sha256(f"{feature}:{prompt_version}".encode()).hexdigest()
     AIPromptVersion.objects.update_or_create(
         feature=feature,
         version=prompt_version,

@@ -38,9 +38,12 @@ class SearchCriteriaData(BaseModel):
 
     @model_validator(mode="after")
     def validate_price_range(self) -> SearchCriteriaData:
-        if self.price_min is not None and self.price_max is not None:
-            if self.price_min > self.price_max:
-                raise ValueError("price_min must not exceed price_max")
+        if (
+            self.price_min is not None
+            and self.price_max is not None
+            and self.price_min > self.price_max
+        ):
+            raise ValueError("price_min must not exceed price_max")
         return self
 
 
