@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
 from django.db import transaction
@@ -44,9 +44,7 @@ def _text_hash(value: str) -> str:
 def canonical_snapshot_payload(listing: Listing) -> dict[str, Any]:
     attributes = listing.attributes if isinstance(listing.attributes, dict) else {}
     attributes_summary = {
-        key: attributes[key]
-        for key in ALLOWED_ATTRIBUTE_KEYS
-        if key in attributes
+        key: attributes[key] for key in ALLOWED_ATTRIBUTE_KEYS if key in attributes
     }
     return {
         "price_uah": int(listing.price_uah),

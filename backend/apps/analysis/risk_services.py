@@ -59,9 +59,7 @@ def _disabled_result() -> RiskAssessmentResult:
         score=0,
         level=RiskLevel.INSUFFICIENT_DATA,
         summary="Допоміжний Risk Score вимкнено в налаштуваннях.",
-        safety_advice=(
-            "Перевірте особу, документи, право власності й договір перед оплатою."
-        ),
+        safety_advice=("Перевірте особу, документи, право власності й договір перед оплатою."),
     )
 
 

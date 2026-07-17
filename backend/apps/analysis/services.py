@@ -87,9 +87,7 @@ def latest_analysis_summary(listing: Listing) -> dict[str, Any]:
         else ListingMarketAssessment.objects.filter(listing=listing).first()
     )
     risk = (
-        risk_rows[0]
-        if risk_rows
-        else ListingRiskAssessment.objects.filter(listing=listing).first()
+        risk_rows[0] if risk_rows else ListingRiskAssessment.objects.filter(listing=listing).first()
     )
     price_event = price_rows[0] if price_rows else listing.price_history.first()
     return {

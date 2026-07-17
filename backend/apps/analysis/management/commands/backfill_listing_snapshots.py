@@ -26,7 +26,9 @@ class Command(BaseCommand):
             queryset = queryset[:limit]
         total = queryset.count() if not limit else min(queryset.count(), limit)
         if options["dry_run"]:
-            self.stdout.write(f"Snapshot backfill dry-run: eligible={total}, batch_size={batch_size}")
+            self.stdout.write(
+                f"Snapshot backfill dry-run: eligible={total}, batch_size={batch_size}"
+            )
             return
 
         created = 0

@@ -30,12 +30,8 @@ def test_demo_contains_safe_market_and_risk_scenarios():
     assert "передоплата" in listings[0]["description"].casefold()
     assert len(listings[1]["description"]) < 80
     assert listings[2]["price"] < listings[3]["price"]
-    assert listings[5]["attributes"]["demo_image_hashes"] == [
-        "synthetic-cross-city-image-001"
-    ]
-    assert listings[6]["attributes"]["demo_image_hashes"] == [
-        "synthetic-cross-city-image-001"
-    ]
+    assert listings[5]["attributes"]["demo_image_hashes"] == ["synthetic-cross-city-image-001"]
+    assert listings[6]["attributes"]["demo_image_hashes"] == ["synthetic-cross-city-image-001"]
     assert listings[5]["city"] != listings[6]["city"]
     assert listings[7]["attributes"]["hidden_commission"] is True
     assert "не описує реальну квартиру" in listings[3]["description"].casefold()

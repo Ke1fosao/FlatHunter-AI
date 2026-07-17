@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import statistics
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 
 from django.conf import settings
 from django.utils import timezone
@@ -75,15 +75,19 @@ def _confidence(
         label = ConfidenceLabel.MEDIUM
     else:
         label = ConfidenceLabel.LOW
-    return score_decimal, label, {
-        "sample_component": round(sample_component, 2),
-        "geography_component": round(geography_component, 2),
-        "area_component": round(area_component, 2),
-        "freshness_component": round(freshness_component, 2),
-        "dispersion_component": round(dispersion_component, 2),
-        "configured_minimum": minimum,
-        "configured_maximum": maximum,
-    }
+    return (
+        score_decimal,
+        label,
+        {
+            "sample_component": round(sample_component, 2),
+            "geography_component": round(geography_component, 2),
+            "area_component": round(area_component, 2),
+            "freshness_component": round(freshness_component, 2),
+            "dispersion_component": round(dispersion_component, 2),
+            "configured_minimum": minimum,
+            "configured_maximum": maximum,
+        },
+    )
 
 
 def calculate_market_assessment(
@@ -127,9 +131,7 @@ def calculate_market_assessment(
         for item in comparables.items
         if item.total_area is not None and item.total_area > 0
     )
-    median_per_sqm = (
-        _decimal(statistics.median(per_square_meter)) if per_square_meter else None
-    )
+    median_per_sqm = _decimal(statistics.median(per_square_meter)) if per_square_meter else None
     target_per_sqm = (
         _decimal(Decimal(listing.price_uah) / listing.total_area)
         if listing.total_area is not None and listing.total_area > 0

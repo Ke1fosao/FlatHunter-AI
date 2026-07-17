@@ -117,7 +117,7 @@ class Migration(migrations.Migration):
             index=models.Index(fields=["listing", "-captured_at"], name="analysis_snapshot_latest_idx"),
         ),
         migrations.AddConstraint(
-            model_name="listingmarketaassessment" if False else "listingmarketassessment",
+            model_name="listingmarketassessment",
             constraint=models.UniqueConstraint(fields=("listing", "input_hash"), name="analysis_market_listing_input_unique"),
         ),
         migrations.AddConstraint(

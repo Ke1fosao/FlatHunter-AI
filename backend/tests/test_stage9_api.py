@@ -13,7 +13,9 @@ from apps.listings.models import Listing, ListingSource
 
 @pytest.fixture
 def api_user(db):
-    return get_user_model().objects.create_user(username="stage9-api", password="safe-test-password")
+    return get_user_model().objects.create_user(
+        username="stage9-api", password="safe-test-password"
+    )
 
 
 @pytest.fixture

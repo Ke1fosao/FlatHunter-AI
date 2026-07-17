@@ -19,7 +19,6 @@ from django.utils import timezone
 from pydantic import BaseModel, ValidationError
 
 from apps.accounts.models import User
-from apps.analysis.context import validated_analysis_context
 from apps.ai_analysis.models import AIPromptVersion, AIRequest, AIRequestStatus
 from apps.ai_analysis.providers import AIProvider, AIProviderError, AIUsage, get_ai_provider
 from apps.ai_analysis.rules import (
@@ -34,6 +33,7 @@ from apps.ai_analysis.schemas import (
     OwnerQuestionsResult,
     SearchCriteriaExtraction,
 )
+from apps.analysis.context import validated_analysis_context
 from apps.listings.models import Listing
 from apps.matching.engine import evaluate_match
 from apps.searches.models import SearchProfile

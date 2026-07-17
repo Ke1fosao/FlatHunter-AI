@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from decimal import Decimal
-from typing import Iterable
 
 from django.db.models import Q
 
@@ -266,7 +266,9 @@ def _content_signals(listing: Listing) -> list[RiskSignal]:
                 link_detected=True,
             )
         )
-    other_cities = [city for city in KNOWN_CITIES if city != listing.city.casefold() and city in normalized]
+    other_cities = [
+        city for city in KNOWN_CITIES if city != listing.city.casefold() and city in normalized
+    ]
     if other_cities:
         signals.append(
             _signal(
