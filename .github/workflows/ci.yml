@@ -13,62 +13,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  format-stage8:
-    if: github.event_name == 'pull_request' && github.actor != 'github-actions[bot]'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: fix/stage-8-ai-hardening
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-      - run: pip install ruff==0.15.21
-      - name: Apply deterministic formatting fixes
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          component = Path("miniapp/src/components/ai-assistant-workspace.tsx")
-          component_text = component.read_text().replace(
-              "`${row.match_score}%`",
-              "`${String(row.match_score)}%`",
-          )
-          component.write_text(component_text)
-
-          api = Path("miniapp/src/lib/api.ts")
-          api_text = api.read_text().replace(
-              "payload as unknown as Record<string, unknown>",
-              "payload",
-          )
-          api.write_text(api_text)
-
-          services = Path("backend/apps/ai_analysis/services.py")
-          services_text = services.read_text().replace(
-              "usage: AIUsage = AIUsage(),\n) -> None:\n    AIRequest.objects.create(",
-              "usage: AIUsage | None = None,\n) -> None:\n    request_usage = usage or AIUsage()\n    AIRequest.objects.create(",
-          )
-          services_text = services_text.replace("usage.prompt_tokens", "request_usage.prompt_tokens")
-          services_text = services_text.replace(
-              "usage.completion_tokens", "request_usage.completion_tokens"
-          )
-          services_text = services_text.replace("usage.total_tokens", "request_usage.total_tokens")
-          services_text = services_text.replace(
-              "usage.estimated_cost_usd", "request_usage.estimated_cost_usd"
-          )
-          services.write_text(services_text)
-          PY
-          ruff format backend/apps/ai_analysis/services.py backend/config/settings.py
-      - name: Commit formatting fixes
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add backend/apps/ai_analysis/services.py backend/config/settings.py miniapp/src/components/ai-assistant-workspace.tsx miniapp/src/lib/api.ts
-          git commit -m "style: finalize Stage 8 lint fixes"
-          git push
-
   backend:
     runs-on: ubuntu-latest
     env:
@@ -93,10 +37,7 @@ jobs:
           done
           exit 1
       - name: Run backend quality gates
-        id: backend_quality
-        continue-on-error: true
         run: |
-          set -o pipefail
           docker run --rm --network flathunter-ci \
             --env DJANGO_SECRET_KEY --env DJANGO_DEBUG --env DATABASE_URL --env REDIS_URL \
             --env TELEGRAM_WEBHOOK_SECRET --env GEOCODING_PROVIDER --env GEOCODING_EXTERNAL_ENABLED \
@@ -109,15 +50,7 @@ jobs:
               python manage.py makemigrations --check --dry-run
               pytest --cov=apps --cov-report=term-missing
               uvx pip-audit --strict -r requirements.lock
-            ' 2>&1 | tee backend-quality.log
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: stage8-backend-quality
-          path: backend-quality.log
-          if-no-files-found: error
-      - if: steps.backend_quality.outcome == 'failure'
-        run: exit 1
+            '
 
   frontend:
     runs-on: ubuntu-latest
@@ -132,32 +65,11 @@ jobs:
           cache: npm
           cache-dependency-path: miniapp/package-lock.json
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Run frontend quality gates
-        id: frontend_quality
-        continue-on-error: true
-        run: |
-          set +e
-          failed=0
-          npm run lint 2>&1 | tee ../frontend-quality.log
-          test ${PIPESTATUS[0]} -eq 0 || failed=1
-          npm run typecheck 2>&1 | tee -a ../frontend-quality.log
-          test ${PIPESTATUS[0]} -eq 0 || failed=1
-          npm test 2>&1 | tee -a ../frontend-quality.log
-          test ${PIPESTATUS[0]} -eq 0 || failed=1
-          npm run build 2>&1 | tee -a ../frontend-quality.log
-          test ${PIPESTATUS[0]} -eq 0 || failed=1
-          npm audit --audit-level=high 2>&1 | tee -a ../frontend-quality.log
-          test ${PIPESTATUS[0]} -eq 0 || failed=1
-          exit $failed
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: stage8-frontend-quality
-          path: frontend-quality.log
-          if-no-files-found: error
-      - if: steps.frontend_quality.outcome == 'failure'
-        working-directory: .
-        run: exit 1
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm audit --audit-level=high
 
   containers:
     runs-on: ubuntu-latest
