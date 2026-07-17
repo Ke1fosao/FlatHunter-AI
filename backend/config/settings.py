@@ -181,8 +181,9 @@ GEOCODING_USER_AGENT = env(
 )
 GDAL_LIBRARY_PATH = env("GDAL_LIBRARY_PATH", default=None)
 _GDAL_DLL_DIRECTORY = None
-if GDAL_LIBRARY_PATH:
-    _GDAL_DLL_DIRECTORY = os.add_dll_directory(str(Path(GDAL_LIBRARY_PATH).parent))
+_add_dll_directory = getattr(os, "add_dll_directory", None)
+if GDAL_LIBRARY_PATH and _add_dll_directory is not None:
+    _GDAL_DLL_DIRECTORY = _add_dll_directory(str(Path(GDAL_LIBRARY_PATH).parent))
 MAP_TILES_URL = env("MAP_TILES_URL", default="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png")
 MAP_ATTRIBUTION = env("MAP_ATTRIBUTION", default="© OpenStreetMap contributors")
 

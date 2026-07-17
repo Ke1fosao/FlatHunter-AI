@@ -1,190 +1,2288 @@
-# FlatHunter AI Master Plan
+# ГОЛОВНИЙ ПРОМПТ ДЛЯ СТВОРЕННЯ FLATHUNTER AI
 
-## Product Vision
+Ти працюєш як команда senior-спеціалістів, до якої входять:
+- senior Python backend developer;
+- senior Django developer;
+- senior Telegram Bot developer;
+- senior Next.js frontend developer;
+- системний архітектор;
+- DevOps-інженер;
+- UI/UX-дизайнер;
+- спеціаліст із баз даних;
+- QA automation engineer;
+- спеціаліст із кібербезпеки;
+- AI/ML engineer;
+- product manager.
 
-FlatHunter AI is a production-oriented Telegram bot, Telegram Mini App, backend API, and data-processing system for long-term rental search in Ukraine.
+Твоє завдання — спроєктувати та реалізувати повноцінну production-ready систему FlatHunter AI, яка допомагає людям швидко знаходити квартири для довгострокової оренди в Україні.
 
-Positioning:
+Це не має бути звичайний Telegram-бот із кількома кнопками. Це має бути повноцінний цифровий продукт, який складається з:
+1. Telegram-бота.
+2. Telegram Mini App.
+3. Backend API.
+4. Системи збирання та нормалізації оголошень.
+5. Системи розумного пошуку.
+6. AI-оцінювання квартир.
+7. Карти оголошень.
+8. Системи миттєвих сповіщень.
+9. Особистого кабінету користувача.
+10. Адміністративної панелі.
+11. Аналітики.
+12. Системи підписок.
+13. Механізму спільного пошуку квартири.
+14. Механізму пошуку дублікатів.
+15. Системи визначення підозрілих оголошень.
 
-- Product name: FlatHunter AI.
-- Ukrainian interface name: FlatHunter AI - розумний пошук житла.
-- Main slogan: Ми знаходимо хороші квартири раніше, ніж їх встигають орендувати інші.
-- Secondary slogan: Один пошук замість десятків вкладок, сайтів і Telegram-каналів.
+## 1. НАЗВА ТА ПОЗИЦІОНУВАННЯ
 
-The product solves the problem of apartment seekers manually checking many sites and Telegram channels, comparing repeated listings, contacting owners, validating districts, and missing good options.
+Назва продукту:
 
-## Core System
+FlatHunter AI
 
-FlatHunter AI must include:
+Українська назва в інтерфейсі:
 
-- Telegram bot.
-- Telegram Mini App.
-- Backend API.
-- Listing ingestion and normalization.
-- Smart search profiles.
-- AI-assisted evaluation.
-- Map and geospatial filters.
-- Instant notifications.
-- Personal user cabinet.
-- Admin panel.
-- Analytics.
-- Subscriptions.
-- Shared apartment search.
-- Duplicate detection.
-- Risk detection for suspicious listings.
+FlatHunter AI — розумний пошук житла
 
-## Critical Source Rules
+Основний слоган:
 
-The system must not bypass third-party protections.
+> Ми знаходимо хороші квартири раніше, ніж їх встигають орендувати інші.
 
-Forbidden:
+Додатковий слоган:
 
-- CAPTCHA bypass.
-- Browser fingerprint spoofing.
-- Unauthorized API usage.
-- Stolen cookies or private APIs.
-- Proxy-based blocking bypass.
-- Ignoring robots.txt or rate limits.
-- Hidden personal data collection.
-- Unauthorized phone/contact extraction.
-- Excessive load on third-party resources.
+> Один пошук замість десятків вкладок, сайтів і Telegram-каналів.
 
-Supported source modes:
+Продукт повинен розв’язувати конкретну проблему:
 
-- Official API.
-- Partner API.
-- Official RSS/feed.
-- Allowed HTML adapter.
-- User-imported URL.
-- Telegram-forwarded listing.
-- Manual admin listing.
-- JSON import.
-- CSV import.
-- Synthetic demo source.
+Людина, яка шукає квартиру, змушена щодня відкривати декілька сайтів, переглядати сотні повторюваних оголошень, писати власникам, порівнювати ціни, перевіряти райони й постійно боятися, що хороший варіант уже забрали.
 
-Every source must expose legal, health, capability, and rate-limit metadata. If legal access is not confirmed, the source remains disabled and demo/manual adapters are used.
+FlatHunter AI повинен автоматизувати цей процес.
 
-## Architecture Principles
+Користувач один раз задає вимоги, після чого система:
+- перевіряє дозволені джерела;
+- знаходить нові квартири;
+- нормалізує інформацію;
+- прибирає дублікати;
+- оцінює відповідність;
+- визначає потенційні ризики;
+- розраховує відстань до важливих місць;
+- порівнює ціну з ринком;
+- надсилає тільки релевантні варіанти;
+- пояснює, чому конкретна квартира підходить;
+- дозволяє швидко відкрити оголошення та зв’язатися з автором.
 
-Use a monorepo with separated backend, miniapp, infrastructure, and docs. Keep domain logic behind clear service and adapter boundaries.
+## 2. ОСНОВНА МЕТА
 
-Required principles:
+Створи систему, після демонстрації якої потенційний клієнт повинен зрозуміти, що розробник уміє створювати:
+- складних Telegram-ботів;
+- Telegram Mini Apps;
+- парсингові й інтеграційні системи;
+- AI-функціонал;
+- карти;
+- CRM;
+- автоматичні сповіщення;
+- складну backend-архітектуру;
+- системи підписок;
+- красиві сучасні інтерфейси;
+- production-ready продукти.
 
-- Separation of concerns.
-- Dependency inversion.
-- Typed interfaces.
-- Domain services.
-- Adapter pattern for sources, AI, geocoding, routing, and notifications.
-- Idempotent background tasks.
-- Centralized error handling.
-- Structured logs and correlation IDs.
+Проєкт повинен бути придатним не тільки для портфоліо, а й для реального запуску після отримання законного доступу до джерел даних.
 
-## Roles
+## 3. КРИТИЧНІ ОБМЕЖЕННЯ ЩОДО ДЖЕРЕЛ
 
-Required roles:
+Не реалізовуй механізми обходу захисту сайтів.
 
-- User.
-- Premium user.
-- Moderator.
-- Administrator.
-- Developer.
+Заборонено:
+- обходити CAPTCHA;
+- маскувати автоматизовані запити;
+- підробляти fingerprint браузера;
+- обходити авторизацію;
+- використовувати викрадені cookie;
+- використовувати проксі для обходу блокування;
+- навмисно ігнорувати rate limit;
+- обходити robots.txt;
+- збирати приховані персональні дані;
+- використовувати приватні API без дозволу;
+- отримувати телефони або інші контакти способами, не передбаченими сайтом;
+- копіювати фотографії та повний текст оголошень без необхідності;
+- створювати надмірне навантаження на сторонні ресурси.
 
-Each role must have clear permission boundaries, object-level authorization, and audit logging for sensitive actions.
+Архітектура джерел повинна працювати через незалежні адаптери.
 
-## Implementation Stages
+Підтримай такі режими:
+1. Офіційний API.
+2. Partner API після отримання доступу.
+3. RSS або інший офіційний feed.
+4. Дозволений HTML-адаптер.
+5. Імпорт оголошення за URL користувачем.
+6. Пересилання оголошення в Telegram-бот.
+7. Ручне додавання оголошення адміністратором.
+8. Імпорт JSON.
+9. Імпорт CSV.
+10. Повністю синтетичне demo-джерело для портфоліо.
 
-1. Foundation: monorepo, Docker, Django, PostgreSQL/PostGIS, Redis, Next.js, Telegram bot, Mini App, health checks.
-2. Users and searches: onboarding, SearchProfile, filters, natural-language search input, notification preferences.
-3. Demo data pipeline: demo source, raw listings, normalization, listings, seed data, feed.
-4. Matching: deterministic Match Score, explanations, filtering, sorting.
-5. Mini App UI: dashboard, listing feed, listing detail, filters, favorites, comparison.
-6. Map: PostGIS, geocoding provider, map, markers, important places.
-7. Duplicates: exact/fuzzy matching, image hashing hooks, ListingCluster.
-8. AI: AIProvider abstraction, structured parser, summaries, comparison, owner questions, cost/error tracking, fallback.
-9. Risk and market analysis: price statistics, Risk Score, price history, warning UI.
-10. Notifications: Celery scheduling, Telegram notifications, quiet hours, duplicate protection.
-11. Shared search: invitations, deep links, reactions, comments, consensus.
-12. Admin panel: dashboard, users, sources, listings, jobs, AI center, logs.
-13. Security and tests: permissions, SSRF protection, rate limiting, unit/integration/E2E tests.
-14. Production: webhook, HTTPS, monitoring, backups, deployment documentation.
+Кожне джерело повинно мати параметр:
+- enabled;
+- access_mode;
+- legal_status;
+- terms_checked_at;
+- rate_limit;
+- request_interval;
+- supports_search;
+- supports_details;
+- supports_contacts;
+- supports_images;
+- requires_authentication;
+- last_success_at;
+- last_error_at;
+- health_status.
 
-## Stage 8 Scope For Current Work
+Зроби систему так, щоб нове джерело можна було додати окремим класом без переписування основної бізнес-логіки.
 
-The next implementation slice starts Stage 8 safely without requiring a paid AI key.
+Створи базовий інтерфейс:
 
-Deliverables:
+```python
+class ListingSourceAdapter(ABC):
+    source_code: str
+    display_name: str
 
-- `AIProvider` interface with structured completion contract.
-- Local deterministic provider for demo and tests.
-- Settings-driven provider selection.
-- AI disabled/fallback path that keeps search usable.
-- Structured natural-language search output with confidence.
-- AI request audit model for prompt version, provider, latency, status, token/cost placeholders, and sanitized output.
-- Tests for provider behavior, fallback, endpoint response, and audit logging.
-- Environment documentation for future real provider keys.
+    @abstractmethod
+    async def health_check(self) -> SourceHealth:
+        ...
 
-Out of scope for this first Stage 8 slice:
+    @abstractmethod
+    async def search(self, request: SourceSearchRequest) -> list[RawListing]:
+        ...
 
-- Real paid AI provider calls.
-- Automatic messaging to landlords.
-- Real source integrations without approved access.
-- Full AI comparison UI.
+    @abstractmethod
+    async def fetch_details(self, external_id: str) -> RawListingDetails:
+        ...
 
-## MVP Readiness Criteria
+    @abstractmethod
+    async def normalize(self, raw_listing: RawListing) -> NormalizedListing:
+        ...
+```
 
-The MVP is not complete unless:
+Перед кожною реальною інтеграцією перевір правила конкретного ресурсу.
 
-- The Telegram bot responds to `/start`.
-- The Mini App authenticates through Telegram initData.
-- Demo data is generated through a command.
-- Search profiles persist.
-- Filters change real backend results.
-- Match Score is explainable.
-- Listings support favorite, hide, compare, map, and detail flows.
-- Demo duplicates are detected.
-- Notifications are idempotent.
-- Admin can inspect sources and jobs.
-- Tests pass.
-- No secrets are committed.
-- README allows another developer to run the system.
+Якщо законний автоматичний доступ відсутній, джерело не повинно запускатися. Замість цього система повинна використовувати demo adapter або ручний імпорт.
 
-## Security And Privacy Baseline
+## 4. РЕКОМЕНДОВАНИЙ ТЕХНОЛОГІЧНИЙ СТЕК
 
-Required:
+Використовуй актуальні стабільні версії бібліотек на момент реалізації. Зафіксуй точні версії у lock-файлах.
 
-- Telegram initData validation.
-- Telegram webhook secret validation.
-- CORS allowlist.
-- CSRF where applicable.
-- Secure, HttpOnly cookies.
-- Rate limiting.
-- Object-level permissions.
-- Audit log.
-- Input validation.
-- URL importer SSRF protection.
-- Secret-free logs.
-- No full bot tokens, cookies, initData, phone numbers, or payment data in logs.
+### Backend
+- Python;
+- Django;
+- Django REST Framework;
+- PostgreSQL;
+- PostGIS;
+- Redis;
+- Celery;
+- Celery Beat;
+- aiogram;
+- Pydantic;
+- HTTPX;
+- Pillow;
+- pHash або інший алгоритм perceptual hashing;
+- Sentry SDK або сумісний механізм;
+- структуроване логування.
 
-## AI Rules
+### Telegram Mini App
+- Next.js;
+- TypeScript;
+- React;
+- Tailwind CSS;
+- shadcn/ui або власна компонентна система;
+- TanStack Query;
+- Zustand або інший мінімальний state manager;
+- React Hook Form;
+- Zod;
+- MapLibre GL або Leaflet;
+- Telegram Mini Apps JavaScript SDK;
+- i18n для української й англійської мов.
 
-AI may assist with:
+### Інфраструктура
+- Docker;
+- Docker Compose;
+- Nginx або Caddy;
+- HTTPS;
+- PostgreSQL із PostGIS;
+- Redis;
+- окремий Celery worker;
+- окремий Celery Beat;
+- backend;
+- Mini App frontend;
+- health checks;
+- автоматичні міграції;
+- CI через GitHub Actions;
+- lint;
+- type checking;
+- unit tests;
+- integration tests;
+- end-to-end tests.
 
-- Natural-language profile parsing.
-- Listing description normalization.
-- Feature extraction.
-- Match/Risk explanations.
-- Apartment comparison.
-- Owner question generation.
-- Daily reports.
-- Contradiction detection.
+### Локальна розробка
 
-AI must not:
+Для локальної розробки бот може працювати через long polling.
 
-- Invent exact addresses or amenities.
-- Call someone a fraudster.
-- Invent contacts.
-- Hide uncertainty.
-- Make legal decisions.
-- Send messages to landlords without explicit user action.
+Для production використовуй webhook.
 
-All business-impacting AI output must be structured, validated, logged safely, and have deterministic fallback.
+Long polling і webhook не повинні працювати одночасно.
+
+## 5. СТРУКТУРА РЕПОЗИТОРІЮ
+
+Створи monorepo приблизно з такою структурою:
+
+```text
+flathunter-ai/
+├── backend/
+│   ├── config/
+│   ├── apps/
+│   │   ├── accounts/
+│   │   ├── telegram_bot/
+│   │   ├── searches/
+│   │   ├── listings/
+│   │   ├── sources/
+│   │   ├── matching/
+│   │   ├── ai_analysis/
+│   │   ├── notifications/
+│   │   ├── favorites/
+│   │   ├── shared_search/
+│   │   ├── subscriptions/
+│   │   ├── analytics/
+│   │   ├── geolocation/
+│   │   ├── fraud_detection/
+│   │   ├── administration/
+│   │   └── audit/
+│   ├── tests/
+│   ├── manage.py
+│   └── pyproject.toml
+├── miniapp/
+│   ├── src/
+│   │   ├── app/
+│   │   ├── components/
+│   │   ├── features/
+│   │   ├── hooks/
+│   │   ├── lib/
+│   │   ├── services/
+│   │   ├── stores/
+│   │   ├── types/
+│   │   └── locales/
+│   ├── public/
+│   ├── tests/
+│   └── package.json
+├── infrastructure/
+│   ├── nginx/
+│   ├── docker/
+│   ├── scripts/
+│   └── monitoring/
+├── docs/
+│   ├── architecture.md
+│   ├── api.md
+│   ├── bot-flows.md
+│   ├── data-sources.md
+│   ├── security.md
+│   ├── deployment.md
+│   └── demo.md
+├── docker-compose.yml
+├── docker-compose.production.yml
+├── .env.example
+├── README.md
+└── Makefile
+```
+
+Не роби весь проєкт одним великим файлом.
+
+Дотримуйся принципів:
+- separation of concerns;
+- dependency inversion;
+- reusable services;
+- typed interfaces;
+- domain services;
+- adapter pattern;
+- repository pattern там, де це виправдано;
+- idempotent background tasks;
+- централізована обробка помилок.
+
+## 6. РОЛІ КОРИСТУВАЧІВ
+
+Реалізуй такі ролі:
+
+### 6.1. Звичайний користувач
+
+Може:
+- створювати пошуки;
+- змінювати фільтри;
+- переглядати результати;
+- отримувати сповіщення;
+- додавати квартири в обране;
+- приховувати квартири;
+- ставити реакції;
+- додавати нотатки;
+- ділитися пошуком;
+- запрошувати інших користувачів;
+- порівнювати квартири;
+- імпортувати оголошення;
+- видаляти свій профіль і дані.
+
+### 6.2. Premium-користувач
+
+Додатково може:
+- створювати більше активних пошуків;
+- отримувати швидші повідомлення;
+- використовувати розширену AI-оцінку;
+- переглядати історію зміни ціни;
+- отримувати розширену ринкову аналітику;
+- використовувати більше учасників у спільному пошуку;
+- отримувати щоденний AI-звіт;
+- експортувати результати;
+- використовувати складніші правила.
+
+На першому етапі Premium можна зробити demo-функцією без реального списання коштів.
+
+### 6.3. Модератор
+
+Може:
+- переглядати скарги;
+- перевіряти підозрілі оголошення;
+- позначати помилки AI;
+- об’єднувати дублікати;
+- блокувати некоректні джерела;
+- редагувати нормалізовані дані.
+
+### 6.4. Адміністратор
+
+Має доступ до:
+- користувачів;
+- джерел;
+- оголошень;
+- пошукових профілів;
+- фонових задач;
+- черг;
+- помилок;
+- AI-запитів;
+- витрат;
+- підписок;
+- аналітики;
+- конфігурації;
+- журналу дій;
+- feature flags.
+
+### 6.5. Розробник
+
+Окрема роль із повним доступом до системних інструментів, технічних журналів і діагностики.
+
+## 7. ПЕРШИЙ ЗАПУСК БОТА
+
+Команда:
+
+```text
+/start
+```
+
+Бот повинен привітати користувача:
+
+> 🏠 Привіт! Я FlatHunter AI.
+
+> Я шукаю нові квартири, порівнюю їх із твоїми вимогами, прибираю дублікати й повідомляю, коли з’являється справді хороший варіант.
+
+> Тобі більше не потрібно щогодини перевіряти різні сайти.
+
+Кнопки:
+- 🔎 Створити пошук
+- 📱 Відкрити застосунок
+- ✨ Подивитися демо
+- ❓ Як це працює
+
+Після натискання Створити пошук бот запускає короткий onboarding.
+
+Запитання повинні ставитися по одному.
+
+Користувач завжди повинен мати кнопки:
+- Назад;
+- Пропустити;
+- Скасувати;
+- Відкрити розширені налаштування.
+
+Не змушуй користувача вводити все вручну. Де можливо, використовуй кнопки, слайдери, мультивибір і Telegram Mini App.
+
+## 8. СТВОРЕННЯ ПОШУКОВОГО ПРОФІЛЮ
+
+Пошуковий профіль — це набір критеріїв, за якими система шукає квартири.
+
+Користувач може створити декілька профілів, наприклад:
+- Квартира біля університету;
+- Варіант із Вікою;
+- Дешева квартира у Львові;
+- Запасний варіант у Рівному.
+
+### 8.1. Обов’язкові параметри
+
+Запитай:
+1. Місто.
+2. Оренда чи купівля.
+3. Мінімальна ціна.
+4. Максимальна ціна.
+5. Валюта.
+6. Кількість кімнат.
+7. Бажані райони.
+8. Небажані райони.
+9. Дата заселення.
+10. Хто житиме.
+11. Чи є домашні тварини.
+
+### 8.2. Додаткові параметри
+
+Дозволь вибрати:
+- тип житла;
+- квартира;
+- кімната;
+- будинок;
+- частина будинку;
+- студія;
+- новобудова;
+- вторинний ринок;
+- мінімальна площа;
+- максимальна площа;
+- поверх;
+- не перший поверх;
+- не останній поверх;
+- кількість поверхів у будинку;
+- наявність ліфта;
+- балкон;
+- лоджія;
+- гардеробна;
+- паркомісце;
+- гараж;
+- кондиціонер;
+- пральна машина;
+- посудомийна машина;
+- холодильник;
+- телевізор;
+- меблі;
+- робоче місце;
+- швидкісний інтернет;
+- індивідуальне опалення;
+- центральне опалення;
+- тепла підлога;
+- газ;
+- електроплита;
+- генератор;
+- інвертор;
+- акумулятор;
+- автономне живлення;
+- автономне водопостачання;
+- укриття поруч;
+- підземний паркінг;
+- консьєрж;
+- закрита територія;
+- відеоспостереження;
+- можливість проживання з дітьми;
+- можливість проживання з котом;
+- можливість проживання із собакою;
+- без комісії;
+- тільки від власника;
+- можна від рієлтора;
+- короткострокова або довгострокова оренда;
+- мінімальний строк оренди;
+- можливість реєстрації місця проживання;
+- доступність для людей з інвалідністю.
+
+### 8.3. Важливі місця
+
+Користувач може додати точки:
+- університет;
+- робота;
+- школа;
+- дитячий садок;
+- спортзал;
+- родичі;
+- центр міста;
+- вокзал;
+- лікарня;
+- довільна адреса.
+
+Для кожної точки користувач задає:
+- максимальну відстань;
+- максимальний час пішки;
+- максимальний час автомобілем;
+- максимальний час громадським транспортом;
+- важливість точки.
+
+Наприклад:
+
+```text
+Львівська політехніка
+Максимум: 25 хвилин громадським транспортом
+Важливість: дуже висока
+```
+
+## 9. РОЗУМНИЙ РЕЖИМ СТВОРЕННЯ ПОШУКУ
+
+Додай можливість створення профілю природною мовою.
+
+Користувач пише або надсилає голосове:
+
+> Шукаю однокімнатну квартиру у Львові до 18 тисяч, бажано новобудова, з нормальним ремонтом, не перший поверх, до 25 хвилин від політехніки. У мене є кіт. Комісію платити не хочу.
+
+AI повинен перетворити це на структурований JSON.
+
+Приклад:
+
+```json
+{
+  "city": "Львів",
+  "deal_type": "rent",
+  "property_type": ["apartment"],
+  "rooms": [1],
+  "price_max": 18000,
+  "currency": "UAH",
+  "building_type": ["new_building"],
+  "renovation_level": ["good", "modern"],
+  "exclude_first_floor": true,
+  "pets": {
+    "cat": true
+  },
+  "commission": {
+    "allowed": false
+  },
+  "important_places": [
+    {
+      "name": "Львівська політехніка",
+      "max_travel_minutes": 25
+    }
+  ]
+}
+```
+
+Після розпізнавання покажи користувачу коротке підтвердження:
+
+> Я зрозумів так:
+
+> • Львів
+> • 1 кімната
+> • до 18 000 грн
+> • бажано новобудова
+> • не перший поверх
+> • можна з котом
+> • без комісії
+> • до 25 хвилин від Львівської політехніки
+
+Кнопки:
+- ✅ Все правильно
+- ✏️ Змінити
+- ➕ Додати умову
+
+AI не повинен мовчки вигадувати відсутні критерії.
+
+Усі невпевнені значення повинні мати поле confidence.
+
+## 10. TELEGRAM MINI APP
+
+Telegram Mini App є основним графічним інтерфейсом продукту.
+
+Він повинен:
+- відкриватися з меню бота;
+- відкриватися через inline-кнопки;
+- відкриватися через deep links;
+- адаптуватися до теми Telegram;
+- працювати на мобільному телефоні;
+- нормально працювати в Telegram Desktop;
+- мати loading skeleton;
+- мати обробку offline-стану;
+- мати зрозумілі empty states;
+- мати плавні, але не надмірні анімації;
+- використовувати safe-area відступи;
+- підтримувати системну кнопку назад;
+- використовувати haptic feedback там, де це доречно.
+
+### 10.1. Основна навігація
+
+Нижня навігація:
+1. Пошук
+2. Карта
+3. Обране
+4. Порівняння
+5. Профіль
+
+### 10.2. Головна сторінка
+
+Покажи:
+- привітання;
+- активні пошуки;
+- кількість нових збігів;
+- найкращий новий варіант;
+- коротку статистику;
+- кнопку створення нового пошуку;
+- останні сповіщення;
+- щоденний AI-висновок.
+
+Приклад:
+
+> За останні 24 години знайдено 42 нові оголошення.
+
+> 7 відповідають основним критеріям.
+
+> 2 мають оцінку понад 85%.
+
+> Найкращий варіант: 1-кімнатна квартира, 16 500 грн, 18 хвилин до університету.
+
+### 10.3. Стрічка квартир
+
+Картка повинна містити:
+- головне фото;
+- ціну;
+- валюту;
+- кількість кімнат;
+- площу;
+- район;
+- вулицю, якщо доступна;
+- поверх;
+- тип будинку;
+- джерело;
+- час публікації;
+- Match Score;
+- Risk Score;
+- відстань до важливої точки;
+- комісію;
+- власник або рієлтор;
+- короткі переваги;
+- короткі ризики;
+- позначку нового оголошення;
+- позначку зміни ціни;
+- позначку дубліката.
+
+Дії:
+- В обране;
+- Не цікаво;
+- Порівняти;
+- Поділитися;
+- Відкрити джерело;
+- Показати на карті;
+- Додати нотатку;
+- Поскаржитися;
+- Чому цей варіант?.
+
+### 10.4. Детальна сторінка квартири
+
+Покажи:
+- галерею;
+- основні характеристики;
+- опис;
+- нормалізовані параметри;
+- AI-резюме;
+- переваги;
+- недоліки;
+- невідомі параметри;
+- приблизну ринкову ціну;
+- відхилення від ринку;
+- історію зміни ціни;
+- знайдені дублікати;
+- карту;
+- важливі точки;
+- відстані;
+- інформацію про джерело;
+- дату першого виявлення;
+- дату останнього оновлення;
+- статус активності оголошення;
+- нотатки користувача;
+- оцінки учасників спільного пошуку.
+
+Не показуй неперевірені твердження як факти.
+
+Наприклад:
+- Підтверджено в оголошенні;
+- Ймовірно;
+- Не вказано;
+- Потребує уточнення у власника.
+
+## 11. КАРТА
+
+Реалізуй інтерактивну карту.
+
+Можливості:
+- маркери квартир;
+- кластеризація;
+- фільтрація;
+- колір або форма маркера залежно від Match Score;
+- окреме позначення обраних;
+- показ ціни на маркері;
+- вибір області на карті;
+- малювання полігону бажаної зони;
+- приховування небажаних районів;
+- показ важливих точок;
+- приблизні радіуси доступності;
+- перемикання список/карта;
+- відкриття картки квартири;
+- автоматичне вписування маркерів у viewport.
+
+Геокодування реалізуй через GeocodingProvider interface.
+
+```python
+class GeocodingProvider(ABC):
+    async def geocode(self, query: str) -> GeocodingResult:
+        ...
+
+    async def reverse_geocode(self, latitude: float, longitude: float) -> Address:
+        ...
+```
+
+Для production провайдер повинен легко змінюватися через конфігурацію.
+
+Усі результати геокодування кешуй.
+
+Не надсилай точні персональні або конфіденційні адреси стороннім сервісам без необхідності.
+
+## 12. НОРМАЛІЗАЦІЯ ОГОЛОШЕНЬ
+
+Різні джерела використовують різні назви полів.
+
+Створи єдину нормалізовану модель.
+
+Основні поля:
+
+```text
+id
+source_id
+source_code
+external_id
+source_url
+canonical_url
+title
+description
+deal_type
+property_type
+country
+region
+city
+district
+subdistrict
+street
+building_number
+latitude
+longitude
+location_accuracy
+price
+currency
+price_uah
+price_per_square_meter
+rooms
+bedrooms
+bathrooms
+total_area
+living_area
+kitchen_area
+floor
+floors_total
+building_type
+construction_year
+renovation_level
+furniture
+heating_type
+water_supply
+electricity_backup
+water_backup
+gas
+internet
+elevator
+balcony
+parking
+pets_allowed
+children_allowed
+commission_amount
+commission_percent
+is_owner
+is_agent
+contact_name
+contact_phone_hash
+published_at
+first_seen_at
+last_seen_at
+last_changed_at
+is_active
+inactive_reason
+images
+main_image
+image_hashes
+attributes
+raw_payload
+normalization_version
+```
+
+Контактний номер не повинен використовуватися як відкритий ідентифікатор.
+
+Для пошуку дублікатів дозволено зберігати нормалізований hash контакту, якщо це законно й необхідно.
+
+Сирі дані повинні мати обмежений термін зберігання.
+
+## 13. ПОШУК ДУБЛІКАТІВ
+
+Одна квартира може бути опублікована:
+- на декількох сайтах;
+- декількома рієлторами;
+- декілька разів на одному сайті;
+- з іншою ціною;
+- з іншим заголовком;
+- із частково іншими фотографіями.
+
+Створи багаторівневий алгоритм пошуку дублікатів.
+
+### 13.1. Точні сигнали
+- однаковий canonical URL;
+- однаковий source + external ID;
+- однаковий номер телефону hash;
+- однакова точна адреса;
+- однаковий набір image hash;
+- однакова площа, поверх і координати.
+
+### 13.2. Нечіткі сигнали
+- схожість заголовків;
+- схожість описів;
+- perceptual hash фотографій;
+- близькі координати;
+- однакова площа з допустимою похибкою;
+- однаковий поверх;
+- однакова кількість кімнат;
+- схожа ціна;
+- однакові рідкісні характеристики.
+
+### 13.3. Рівні впевненості
+- confirmed_duplicate;
+- probable_duplicate;
+- possible_duplicate;
+- not_duplicate.
+
+Не видаляй дублікати фізично.
+
+Створи ListingCluster, який об’єднує декілька публікацій однієї квартири.
+
+У кластері покажи:
+- усі джерела;
+- усі ціни;
+- найнижчу ціну;
+- найсвіжішу публікацію;
+- усі доступні фотографії;
+- розбіжності між описами;
+- можливу комісію різних авторів.
+
+Це одна з головних wow-функцій продукту.
+
+## 14. MATCH SCORE
+
+Для кожної квартири й кожного пошукового профілю розраховуй персональний Match Score від 0 до 100.
+
+Оцінка не повинна повністю залежати від LLM.
+
+Основний бал розраховуй детерміновано.
+
+Приклад ваг:
+- ціна — 25%;
+- район і географія — 20%;
+- час до важливих точок — 15%;
+- кількість кімнат і площа — 10%;
+- обов’язкові характеристики — 15%;
+- бажані характеристики — 5%;
+- відсутність комісії — 5%;
+- свіжість оголошення — 3%;
+- якість і повнота оголошення — 2%.
+
+Формула повинна бути конфігурованою.
+
+Обов’язкові умови можуть бути:
+- hard requirement;
+- strong preference;
+- soft preference;
+- neutral;
+- unwanted;
+- forbidden.
+
+Якщо порушена hard requirement, квартира:
+- або виключається;
+- або отримує сильний штраф;
+- залежно від налаштування користувача.
+
+Приклад відповіді:
+
+> Збіг: 92%
+
+> Чому підходить:
+
+> • ціна на 1 500 грн нижча за ваш максимум;
+> • 17 хвилин до університету;
+> • новобудова;
+> • дозволено проживання з котом;
+> • не перший і не останній поверх.
+
+> Що потрібно уточнити:
+
+> • в оголошенні не вказана комісія;
+> • немає інформації про резервне живлення.
+
+Зберігай складові оцінки:
+
+```json
+{
+  "total_score": 92,
+  "components": {
+    "price": 24,
+    "location": 19,
+    "travel_time": 14,
+    "property_parameters": 9,
+    "required_features": 14,
+    "preferred_features": 4,
+    "commission": 4,
+    "freshness": 2,
+    "listing_quality": 2
+  },
+  "penalties": [],
+  "missing_information": [
+    "commission",
+    "backup_power"
+  ]
+}
+```
+
+## 15. РИНКОВА ОЦІНКА ЦІНИ
+
+Система повинна порівнювати квартиру зі схожими оголошеннями.
+
+Враховуй:
+- місто;
+- район;
+- географічну близькість;
+- кількість кімнат;
+- площу;
+- тип будинку;
+- стан ремонту;
+- поверх;
+- наявність меблів;
+- дату;
+- активність оголошення.
+
+Показуй:
+- медіанну ціну;
+- нижній квартиль;
+- верхній квартиль;
+- середню ціну за квадратний метр;
+- кількість порівнюваних оголошень;
+- рівень упевненості.
+
+Приклад:
+
+> Орієнтовна ринкова ціна схожих квартир: 17 000–19 500 грн.
+
+> Ціна цього оголошення: 16 500 грн.
+
+> Приблизно на 8% нижче медіани.
+
+> Рівень упевненості: середній, використано 23 схожі оголошення.
+
+Якщо даних недостатньо, так і напиши.
+
+Не створюй фальшиву точність.
+
+## 16. RISK SCORE
+
+Створи Risk Score від 0 до 100, де більший бал означає більший потенційний ризик.
+
+Risk Score не повинен автоматично називати оголошення шахрайським.
+
+Використовуй формулювання:
+- низький ризик;
+- є моменти для перевірки;
+- підвищений ризик;
+- недостатньо даних.
+
+Сигнали:
+- ціна значно нижча за ринок;
+- повторне використання фотографій;
+- однакові фотографії в різних містах;
+- невідповідність міста й опису;
+- суперечливі характеристики;
+- дуже короткий опис;
+- прохання про передоплату;
+- підозрілі фрази;
+- зовнішні посилання;
+- різкі зміни ціни;
+- квартира неодноразово перевиставляється;
+- багато різних квартир з одним контактом;
+- розбіжності між джерелами;
+- фотографії мають ознаки стокових;
+- відсутність базових даних;
+- прихована комісія;
+- заявлена адреса не відповідає координатам.
+
+Приклад:
+
+> ⚠️ Є моменти для перевірки
+
+> • ціна приблизно на 24% нижча за схожі квартири;
+> • ті самі фотографії знайдені ще у двох оголошеннях;
+> • в описі не вказано точний район.
+
+> Не переказуйте передоплату до перегляду квартири й перевірки документів.
+
+Зроби сторінку з поясненням, що Risk Score — допоміжна оцінка, а не юридичний висновок.
+
+## 17. AI-ШАР
+
+AI використовуй тільки там, де він справді додає цінність.
+
+AI-функції:
+1. Розбір текстового запиту користувача.
+2. Розпізнавання голосового опису.
+3. Нормалізація неструктурованого опису квартири.
+4. Витяг характеристик.
+5. Коротке резюме оголошення.
+6. Пояснення Match Score.
+7. Пояснення Risk Score.
+8. Порівняння квартир.
+9. Генерація списку запитань власнику.
+10. Щоденний звіт.
+11. Визначення суперечностей.
+12. Класифікація настрою користувача щодо квартир.
+13. Виявлення прихованих вимог на основі реакцій користувача.
+
+Створи абстракцію AIProvider.
+
+```python
+class AIProvider(ABC):
+    async def structured_completion(
+        self,
+        task: str,
+        schema: type[BaseModel],
+        context: dict,
+    ) -> BaseModel:
+        ...
+```
+
+Усі AI-відповіді, що впливають на бізнес-логіку, повинні повертатися в структурованому форматі й проходити валідацію.
+
+Додай:
+- timeout;
+- retry;
+- circuit breaker;
+- fallback;
+- cache;
+- token usage tracking;
+- cost tracking;
+- prompt versioning;
+- model version tracking;
+- журнал помилок;
+- можливість повністю вимкнути AI.
+
+Якщо AI недоступний, основний пошук, фільтри, карта й сповіщення повинні продовжувати працювати.
+
+AI не повинен:
+- вигадувати точну адресу;
+- вигадувати наявність характеристик;
+- називати людину шахраєм;
+- вигадувати контакти;
+- приховувати невпевненість;
+- приймати остаточні юридичні рішення;
+- самостійно переказувати кошти;
+- надсилати повідомлення власникам без явної дії користувача.
+
+## 18. AI-ПОРІВНЯННЯ КВАРТИР
+
+Користувач може вибрати 2–5 квартир.
+
+Створи таблицю порівняння:
+- ціна;
+- комісія;
+- загальна вартість першого платежу;
+- кімнати;
+- площа;
+- район;
+- час до важливих точок;
+- ремонт;
+- поверх;
+- опалення;
+- автономність;
+- тварини;
+- паркування;
+- Match Score;
+- Risk Score;
+- переваги;
+- недоліки;
+- невідомі параметри.
+
+AI повинен підсумувати:
+
+> Для вашого запиту найкраще підходить квартира №2.
+
+> Вона на 1 200 грн дорожча за квартиру №1, але розташована на 18 хвилин ближче до університету, дозволяє проживання з котом і не має вказаної комісії.
+
+> Перед рішенням уточніть умови застави й наявність автономного живлення.
+
+Не називай квартиру однозначно найкращою, якщо різниця незначна.
+
+## 19. ГЕНЕРАТОР ЗАПИТАНЬ ВЛАСНИКУ
+
+На основі оголошення й критеріїв користувача сформуй список питань.
+
+Наприклад:
+- Чи актуальна квартира?
+- Ви власник чи представник?
+- Яка комісія?
+- Який розмір застави?
+- Чи можна проживати з котом?
+- Які приблизні комунальні платежі взимку?
+- Чи є резервне живлення?
+- Чи працює ліфт під час відключення?
+- Який мінімальний строк оренди?
+- Коли можна подивитися квартиру?
+- Чи укладається офіційний договір?
+- Чи повертається застава?
+- Чи є додаткові платежі?
+
+Зроби кнопку:
+
+📋 Скопіювати питання
+
+Також дозволь створити короткий готовий текст:
+
+> Добрий день! Підкажіть, будь ласка, чи актуальна квартира? Чи можна проживати з котом, яка комісія та який розмір застави? Також цікавить приблизна сума комунальних платежів узимку.
+
+Система не повинна автоматично писати власнику без підтвердження користувача.
+
+## 20. СПОВІЩЕННЯ
+
+Створи гнучку систему повідомлень.
+
+Режими:
+- миттєво;
+- кожні 15 хвилин;
+- щогодини;
+- дайджест двічі на день;
+- один щоденний звіт;
+- тільки для Match Score вище порогу;
+- тихий режим уночі.
+
+Користувач задає:
+- мінімальний Match Score;
+- максимальний Risk Score;
+- максимальну кількість повідомлень на день;
+- тихі години;
+- пріоритетний пошук;
+- чи надсилати зміни ціни;
+- чи надсилати повторно активовані оголошення.
+
+Приклад повідомлення:
+
+> 🔥 Новий сильний збіг — 93%
+
+> 🏠 1 кімната · 42 м²
+> 📍 Львів, Франківський район
+> 💰 16 500 грн
+> 🚋 18 хв до Львівської політехніки
+> 🐈 Можна з котом
+> 🏢 6 поверх із 10
+
+> Чому підходить • нижче вашого бюджету;
+> • бажаний район;
+> • сучасний ремонт;
+> • оголошення опубліковане 7 хвилин тому.
+
+> ⚠️ Комісія не вказана.
+
+Кнопки:
+- 👀 Переглянути
+- ❤️ Зберегти
+- 🙈 Не цікаво
+- 🗺 На карті
+- 🔗 Джерело
+
+Не надсилай однакове оголошення користувачу повторно без причини.
+
+Повторне повідомлення можливе, якщо:
+- суттєво зменшилася ціна;
+- оголошення знову активне;
+- змінилася важлива характеристика;
+- Match Score суттєво зріс.
+
+## 21. СПІЛЬНИЙ ПОШУК
+
+Це одна з головних wow-функцій.
+
+Користувач може створити спільний простір:
+
+> Шукаємо квартиру разом
+
+Запрошення працює через deep link.
+
+Учасники можуть:
+- переглядати квартири;
+- голосувати;
+- додавати нотатки;
+- коментувати;
+- позначати переваги;
+- позначати проблеми;
+- створювати спільний shortlist;
+- домовлятися про перегляд.
+
+Реакції:
+- 😍 Дуже подобається
+- 👍 Підійде
+- 🤔 Треба подумати
+- 👎 Не подобається
+- 🚫 Точно ні
+
+Створи Consensus Score.
+
+Наприклад:
+
+> Загальна оцінка групи: 84%
+
+> Дмитро: дуже подобається
+> Віка: підійде
+> Середня оцінка критеріїв: 89%
+> Спірний момент: відстань до роботи Віки.
+
+Додай режим:
+
+Знайти компроміс
+
+Система повинна визначити квартири, які найкраще задовольняють критерії всіх учасників.
+
+## 22. ОБРАНЕ Й СТАТУСИ
+
+Для кожної квартири користувач може встановити статус:
+- нова;
+- переглянути пізніше;
+- подобається;
+- написав власнику;
+- очікую відповідь;
+- домовився про перегляд;
+- переглянув;
+- думаю;
+- відмовився;
+- орендовано;
+- оголошення неактуальне.
+
+Дозволь:
+- додавати нотатки;
+- вказувати дату перегляду;
+- додавати свої фотографії після перегляду;
+- записувати реальну запропоновану ціну;
+- зазначати фактичну комісію;
+- створювати нагадування.
+
+## 23. ІСТОРІЯ ЦІНИ
+
+Зберігай snapshots оголошення.
+
+Показуй:
+- початкову ціну;
+- поточну ціну;
+- усі зміни;
+- дату зміни;
+- абсолютну різницю;
+- відсоткову різницю.
+
+Приклад:
+
+```text
+12 липня — 18 500 грн
+14 липня — 17 500 грн
+15 липня — 16 900 грн
+```
+
+Повідомлення:
+
+> 💸 Ціна знижена на 600 грн.
+
+> Загальне зниження від першої публікації: 1 600 грн.
+
+Не створюй фальшиву історію, якщо оголошення було виявлене не з моменту публікації.
+
+## 24. АДМІНПАНЕЛЬ
+
+Створи сучасну кастомну адміністративну панель.
+
+Звичайний Django Admin можна залишити як аварійний технічний інструмент, але основний інтерфейс повинен бути окремим і сучасним.
+
+### 24.1. Dashboard
+
+Покажи:
+- активні користувачі;
+- нові користувачі;
+- активні пошуки;
+- кількість отриманих оголошень;
+- кількість нових оголошень;
+- кількість дублікатів;
+- кількість відправлених сповіщень;
+- CTR сповіщень;
+- середній Match Score;
+- AI-витрати;
+- помилки джерел;
+- стан черг;
+- тривалість обробки;
+- конверсію onboarding;
+- retention.
+
+### 24.2. Джерела
+
+Для кожного джерела:
+- статус;
+- тип доступу;
+- остання успішна синхронізація;
+- остання помилка;
+- середня тривалість;
+- кількість отриманих оголошень;
+- rate limit;
+- наступний запуск;
+- кнопка health check;
+- кнопка тестового імпорту;
+- журнал запитів;
+- конфігурація;
+- feature flag.
+
+### 24.3. Оголошення
+
+Фільтри:
+- джерело;
+- місто;
+- район;
+- статус;
+- дата;
+- ціна;
+- Match Score;
+- Risk Score;
+- дублікати;
+- помилки нормалізації.
+
+Дії:
+- переглянути raw payload;
+- повторно нормалізувати;
+- повторно проаналізувати;
+- об’єднати дублікати;
+- роз’єднати кластер;
+- деактивувати;
+- позначити як помилкове;
+- очистити персональні дані.
+
+### 24.4. Користувачі
+
+Покажи:
+- Telegram ID;
+- username;
+- ім’я;
+- мову;
+- дату реєстрації;
+- активність;
+- кількість пошуків;
+- кількість обраних;
+- тариф;
+- статус;
+- згоду на обробку даних;
+- дату видалення;
+- журнал дій.
+
+### 24.5. AI Control Center
+
+Покажи:
+- провайдера;
+- модель;
+- активні prompt versions;
+- кількість запитів;
+- витрати;
+- latency;
+- error rate;
+- cache hit rate;
+- приклади невдалих відповідей;
+- ручне оцінювання;
+- можливість вимкнути конкретну AI-функцію.
+
+## 25. БАЗА ДАНИХ
+
+Створи щонайменше такі сутності:
+
+```text
+User
+UserSettings
+UserConsent
+TelegramProfile
+SearchProfile
+SearchFilter
+SearchLocation
+ImportantPlace
+Source
+SourceCredential
+SourceRequestLog
+RawListing
+Listing
+ListingImage
+ListingAttribute
+ListingSnapshot
+ListingPriceHistory
+ListingCluster
+ListingDuplicateCandidate
+ListingRiskAssessment
+ListingMarketAssessment
+ListingMatch
+Favorite
+HiddenListing
+UserListingStatus
+UserListingNote
+SharedSearch
+SharedSearchMember
+SharedSearchInvitation
+SharedSearchReaction
+SharedSearchComment
+Notification
+NotificationDelivery
+NotificationPreference
+Subscription
+Payment
+AIRequest
+AIPromptVersion
+GeocodingCache
+TravelTimeCache
+ImportJob
+BackgroundJob
+FeatureFlag
+AuditLog
+ErrorEvent
+```
+
+Використовуй UUID для внутрішніх публічних ідентифікаторів.
+
+Telegram user ID зберігай у 64-бітному полі.
+
+Додай індекси:
+- source + external_id;
+- city + price;
+- coordinates через PostGIS;
+- published_at;
+- first_seen_at;
+- is_active;
+- normalized phone hash;
+- image hash;
+- search profile + listing;
+- notification status;
+- created_at.
+
+Додай унікальні constraints там, де це необхідно.
+
+## 26. API
+
+Створи документований REST API.
+
+Приблизні endpoints:
+
+```text
+POST   /api/v1/auth/telegram/
+GET    /api/v1/me/
+PATCH  /api/v1/me/settings/
+DELETE /api/v1/me/
+
+GET    /api/v1/search-profiles/
+POST   /api/v1/search-profiles/
+GET    /api/v1/search-profiles/{id}/
+PATCH  /api/v1/search-profiles/{id}/
+DELETE /api/v1/search-profiles/{id}/
+POST   /api/v1/search-profiles/{id}/activate/
+POST   /api/v1/search-profiles/{id}/pause/
+POST   /api/v1/search-profiles/parse-natural-language/
+
+GET    /api/v1/listings/
+GET    /api/v1/listings/{id}/
+POST   /api/v1/listings/{id}/favorite/
+DELETE /api/v1/listings/{id}/favorite/
+POST   /api/v1/listings/{id}/hide/
+POST   /api/v1/listings/{id}/status/
+POST   /api/v1/listings/{id}/notes/
+GET    /api/v1/listings/{id}/duplicates/
+GET    /api/v1/listings/{id}/price-history/
+GET    /api/v1/listings/{id}/market-analysis/
+GET    /api/v1/listings/{id}/risk-analysis/
+POST   /api/v1/listings/compare/
+
+POST   /api/v1/import/url/
+POST   /api/v1/import/json/
+POST   /api/v1/import/csv/
+
+GET    /api/v1/shared-searches/
+POST   /api/v1/shared-searches/
+POST   /api/v1/shared-searches/{id}/invite/
+POST   /api/v1/shared-searches/{id}/react/
+POST   /api/v1/shared-searches/{id}/comments/
+
+GET    /api/v1/notifications/
+PATCH  /api/v1/notification-preferences/
+
+GET    /api/v1/map/listings/
+GET    /api/v1/analytics/summary/
+
+GET    /api/v1/admin/sources/
+POST   /api/v1/admin/sources/{id}/health-check/
+POST   /api/v1/admin/listings/{id}/renormalize/
+POST   /api/v1/admin/listing-clusters/merge/
+POST   /api/v1/admin/listing-clusters/split/
+```
+
+Додай:
+- pagination;
+- filtering;
+- sorting;
+- API versioning;
+- standardized errors;
+- idempotency keys для повторюваних команд;
+- OpenAPI schema;
+- rate limiting;
+- permission classes.
+
+## 27. АВТОРИЗАЦІЯ TELEGRAM MINI APP
+
+Не довіряй даним, які прийшли напряму з frontend.
+
+Mini App передає на backend оригінальний Telegram initData.
+
+Backend повинен:
+1. Розібрати query string.
+2. Перевірити hash або signature відповідно до документації Telegram.
+3. Перевірити auth_date.
+4. Відхилити занадто старі дані.
+5. Знайти або створити користувача.
+6. Видати короткострокову backend-сесію.
+7. Використовувати secure HttpOnly cookie або короткостроковий access token із безпечним refresh-механізмом.
+8. Не зберігати bot token у frontend.
+9. Не логувати повний initData.
+10. Не логувати секрети.
+
+Зроби replay protection.
+
+Додай тести на:
+- правильний hash;
+- неправильний hash;
+- прострочений auth_date;
+- змінені user data;
+- повторне використання;
+- відсутнє поле;
+- некоректне кодування.
+
+## 28. TELEGRAM WEBHOOK
+
+Production webhook повинен:
+- працювати тільки через HTTPS;
+- перевіряти секретний заголовок Telegram;
+- мати непередбачуваний URL;
+- швидко повертати відповідь;
+- не виконувати важку роботу всередині HTTP-запиту;
+- передавати важкі задачі в Celery;
+- бути idempotent;
+- захищатися від повторної обробки Update;
+- зберігати оброблені update_id;
+- логувати тільки безпечні метадані.
+
+Дозволяй тільки потрібні типи update.
+
+Створи health endpoint і окремий endpoint для перевірки webhook status.
+
+## 29. ФОНОВІ ЗАДАЧІ
+
+Використовуй Celery.
+
+Черги:
+- sources;
+- normalization;
+- images;
+- matching;
+- ai;
+- notifications;
+- analytics;
+- maintenance.
+
+Періодичні задачі:
+- перевірка джерел;
+- імпорт нових оголошень;
+- оновлення активних оголошень;
+- деактивація зниклих оголошень;
+- нормалізація;
+- пошук дублікатів;
+- Match Score;
+- Risk Score;
+- ринкова оцінка;
+- підготовка сповіщень;
+- щоденні звіти;
+- очищення кешу;
+- очищення raw payload;
+- повторна обробка помилок;
+- health checks;
+- агрегація аналітики.
+
+Усі задачі повинні бути:
+- idempotent;
+- retryable;
+- observable;
+- з exponential backoff;
+- з timeout;
+- з dead-letter механізмом або окремим статусом failed;
+- з correlation ID.
+
+Не запускай декілька екземплярів Celery Beat одночасно.
+
+## 30. ПРАВИЛА СПОВІЩЕНЬ
+
+Перед відправленням перевіряй:
+1. Чи активний пошук.
+2. Чи не приховав користувач цю квартиру.
+3. Чи не отримував він її раніше.
+4. Чи відповідає вона порогу.
+5. Чи не перевищений денний ліміт.
+6. Чи не ввімкнений тихий режим.
+7. Чи активний Telegram-чат.
+8. Чи не заблокував користувач бота.
+
+Зберігай статуси:
+- pending;
+- queued;
+- sent;
+- delivered, якщо можна визначити;
+- clicked;
+- failed;
+- suppressed;
+- expired.
+
+Не повторюй повідомлення через retry, якщо Telegram уже прийняв його.
+
+## 31. ПЕРСОНАЛІЗАЦІЯ ЗА РЕАКЦІЯМИ
+
+Система може поступово вчитися на діях користувача.
+
+Наприклад, користувач часто приховує:
+- квартири зі старим ремонтом;
+- перший поверх;
+- варіанти далеко від центру.
+
+Система може запропонувати:
+
+> Я помітив, що ви часто відхиляєте квартири зі старим ремонтом. Додати сучасний ремонт як важливу умову?
+
+Кнопки:
+- Так, додати;
+- Ні;
+- Не пропонувати подібне.
+
+Не змінюй критерії автоматично без підтвердження.
+
+Зроби можливість вимкнути персоналізацію.
+
+## 32. ДЕМО-РЕЖИМ ДЛЯ ПОРТФОЛІО
+
+Проєкт повинен працювати навіть без доступу до реальних джерел.
+
+Створи якісні synthetic demo data.
+
+Додай щонайменше:
+- 150 квартир;
+- 3 міста: Львів, Рівне, Київ;
+- різні райони;
+- різні ціни;
+- різні ремонти;
+- різні типи будинків;
+- дублікати між джерелами;
+- історію зміни цін;
+- підозрілі оголошення;
+- хороші пропозиції;
+- квартири з тваринами;
+- квартири без комісії;
+- квартири з автономним живленням;
+- квартири біля університетів;
+- неактуальні оголошення.
+
+Створи декілька demo-джерел:
+- Demo Realty;
+- Demo Classifieds;
+- Demo Agency;
+- Manual Import.
+
+Demo-дані повинні виглядати реалістично, але чітко позначатися як демонстраційні.
+
+Не використовуй чужі фотографії без дозволу.
+
+Для demo використовуй:
+- власні зображення;
+- ліцензовані assets;
+- згенеровані зображення;
+- нейтральні placeholders.
+
+Додай кнопку:
+
+✨ Запустити демо-пошук
+
+Після натискання користувач одразу отримує:
+- готовий профіль;
+- кілька квартир;
+- приклад дубліката;
+- приклад зниження ціни;
+- приклад Risk Score;
+- приклад спільного пошуку.
+
+## 33. ДИЗАЙН
+
+Стиль:
+- сучасний;
+- преміальний;
+- легкий;
+- чистий;
+- технологічний;
+- без перевантаження;
+- орієнтований на мобільні пристрої.
+
+Не роби інтерфейс схожим на стандартну адмінку або Bootstrap-шаблон.
+
+Основні принципи:
+- великі фотографії;
+- чітка ціна;
+- Match Score помітний, але не агресивний;
+- важливі характеристики видно без відкриття деталей;
+- один головний CTA на екрані;
+- зрозуміла ієрархія;
+- скелетони замість порожнього екрана;
+- красиві empty states;
+- зручні bottom sheets;
+- мінімум модальних вікон;
+- контрастний текст;
+- підтримка світлої й темної теми;
+- доступність.
+
+Не задавай жорстко тему, яка конфліктує з Telegram theme params.
+
+Додай анімації:
+- відкриття картки;
+- збереження в обране;
+- зміна фільтрів;
+- поява нового оголошення;
+- зміна Match Score;
+- відкриття bottom sheet.
+
+Анімації повинні бути швидкими й не заважати користуванню.
+
+## 34. ЛОКАЛІЗАЦІЯ
+
+Основна мова — українська.
+
+Додаткова — англійська.
+
+Усі тексти зберігай у файлах локалізації.
+
+Не розміщуй тексти безпосередньо всередині компонентів, якщо вони належать до UI.
+
+Враховуй:
+- правильні українські відмінки;
+- формат ціни;
+- формат дати;
+- множину;
+- часовий пояс Europe/Kyiv.
+
+## 35. ПЕРСОНАЛЬНІ ДАНІ Й ПРИВАТНІСТЬ
+
+Система повинна мати:
+- Privacy Policy;
+- Terms of Use;
+- згоду на обробку персональних даних;
+- опис мети обробки;
+- можливість видалення профілю;
+- можливість експорту власних даних;
+- мінімізацію зібраних даних;
+- строки зберігання;
+- журнал згод;
+- механізм анонімізації;
+- механізм очищення Telegram-даних.
+
+Не збирай більше даних, ніж потрібно.
+
+Не показуй одному користувачу приватні нотатки іншого, якщо вони не є учасниками спільного пошуку.
+
+Не зберігай повні контакти авторів оголошень довше, ніж це дозволено й необхідно.
+
+Секрети зберігай тільки в environment variables або secret manager.
+
+## 36. БЕЗПЕКА
+
+Реалізуй:
+- перевірку Telegram initData;
+- перевірку webhook secret;
+- CSRF protection там, де застосовно;
+- CORS allowlist;
+- CSP;
+- HSTS;
+- secure cookies;
+- HttpOnly;
+- SameSite;
+- rate limiting;
+- brute-force protection;
+- API permission checks;
+- object-level permissions;
+- audit log;
+- секрети поза репозиторієм;
+- dependency scanning;
+- input validation;
+- file validation;
+- обмеження розміру файлів;
+- перевірку MIME type;
+- захист від SSRF під час імпорту URL;
+- блокування localhost і приватних IP для URL importer;
+- redirect limit;
+- DNS rebinding protection;
+- timeout для зовнішніх запитів;
+- SQL injection protection через ORM;
+- XSS sanitization;
+- safe HTML rendering;
+- перевірку upload-файлів;
+- видалення EXIF із завантажених користувачем фотографій, де це доречно.
+
+Особливо уважно реалізуй URL import.
+
+Не дозволяй backend отримувати:
+- localhost;
+- 127.0.0.1;
+- 0.0.0.0;
+- приватні мережі;
+- cloud metadata endpoints;
+- внутрішні Docker hostnames;
+- file://;
+- ftp://;
+- нестандартні схеми.
+
+## 37. СПОСТЕРЕЖУВАНІСТЬ
+
+Додай:
+- структуровані JSON logs;
+- request ID;
+- correlation ID;
+- user-safe error messages;
+- error tracking;
+- метрики;
+- health checks;
+- readiness checks;
+- liveness checks;
+- Celery queue metrics;
+- source health;
+- AI latency;
+- AI cost;
+- API latency;
+- notification success rate;
+- database connection health;
+- Redis health.
+
+Не записуй у журнали:
+- bot token;
+- паролі;
+- повний Telegram initData;
+- повні телефони;
+- API keys;
+- cookies;
+- платіжні реквізити.
+
+## 38. ТЕСТУВАННЯ
+
+Створи повний набір тестів.
+
+### Unit tests
+
+Перевір:
+- нормалізацію;
+- Match Score;
+- Risk Score;
+- дедуплікацію;
+- price analysis;
+- Telegram initData validation;
+- webhook secret validation;
+- notification rules;
+- permissions;
+- URL security;
+- AI schema validation.
+
+### Integration tests
+
+Перевір:
+- PostgreSQL;
+- Redis;
+- Celery;
+- API;
+- Telegram update handling;
+- Mini App authentication;
+- імпорт demo-оголошень;
+- фоновий pipeline;
+- надсилання повідомлень через mock Telegram API.
+
+### End-to-end tests
+
+Сценарії:
+1. Користувач запускає бота.
+2. Створює пошук.
+3. Відкриває Mini App.
+4. Отримує нову квартиру.
+5. Зберігає її.
+6. Порівнює з іншою.
+7. Запрошує друга.
+8. Друг ставить реакцію.
+9. Користувач змінює статус.
+10. Користувач видаляє профіль.
+
+Додай тести мобільної версії.
+
+Додай accessibility tests для основних екранів.
+
+Не вважай задачу завершеною, поки основні тести не проходять.
+
+## 39. CI/CD
+
+GitHub Actions повинен виконувати:
+- backend lint;
+- backend formatting check;
+- type checking;
+- backend tests;
+- frontend lint;
+- TypeScript check;
+- frontend tests;
+- build frontend;
+- build Docker images;
+- dependency audit;
+- secret scanning.
+
+Production deployment повинен бути документований.
+
+Не додавай реальні секрети в workflow.
+
+## 40. ENVIRONMENT VARIABLES
+
+Створи .env.example.
+
+Приблизний набір:
+
+```dotenv
+DJANGO_SECRET_KEY=
+DJANGO_DEBUG=false
+DJANGO_ALLOWED_HOSTS=
+DATABASE_URL=
+REDIS_URL=
+
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_BOT_USERNAME=
+TELEGRAM_WEBHOOK_URL=
+TELEGRAM_WEBHOOK_SECRET=
+TELEGRAM_MINI_APP_URL=
+TELEGRAM_ADMIN_IDS=
+
+AI_PROVIDER=
+AI_API_KEY=
+AI_MODEL=
+AI_ENABLED=true
+AI_DAILY_BUDGET=
+
+GEOCODING_PROVIDER=
+GEOCODING_API_KEY=
+ROUTING_PROVIDER=
+ROUTING_API_KEY=
+MAP_TILES_URL=
+MAP_ATTRIBUTION=
+
+SENTRY_DSN=
+LOG_LEVEL=INFO
+
+CELERY_BROKER_URL=
+CELERY_RESULT_BACKEND=
+
+SOURCE_DEMO_ENABLED=true
+SOURCE_OLX_ENABLED=false
+SOURCE_LUN_ENABLED=false
+SOURCE_RIELTOR_ENABLED=false
+SOURCE_OTODIM_ENABLED=false
+
+FRONTEND_URL=
+BACKEND_URL=
+CORS_ALLOWED_ORIGINS=
+CSRF_TRUSTED_ORIGINS=
+```
+
+Джерела, до яких немає підтвердженого доступу, повинні бути вимкнені за замовчуванням.
+
+## 41. ДОКУМЕНТАЦІЯ
+
+README повинен містити:
+- опис продукту;
+- функції;
+- архітектуру;
+- стек;
+- запуск через Docker;
+- локальний запуск;
+- створення Telegram-бота;
+- налаштування Mini App;
+- налаштування webhook;
+- запуск Celery;
+- запуск Celery Beat;
+- міграції;
+- seed demo data;
+- запуск тестів;
+- типові помилки;
+- production deployment;
+- правила додавання джерела;
+- безпекові обмеження;
+- legal notice щодо сторонніх платформ.
+
+Створи також:
+- architecture diagram;
+- database diagram;
+- bot flow diagram;
+- data ingestion diagram;
+- notification flow;
+- deployment diagram.
+
+Діаграми можна зробити в Mermaid.
+
+## 42. ЕТАПИ РЕАЛІЗАЦІЇ
+
+Не намагайся написати весь продукт одним гігантським неперевіреним комітом.
+
+### Етап 1. Основа
+- monorepo;
+- Docker;
+- Django;
+- PostgreSQL;
+- Redis;
+- Next.js;
+- базова авторизація;
+- Telegram bot;
+- Mini App;
+- health checks.
+
+### Етап 2. Користувачі й пошуки
+- onboarding;
+- SearchProfile;
+- фільтри;
+- природномовний запит;
+- налаштування сповіщень.
+
+### Етап 3. Demo data pipeline
+- demo source;
+- RawListing;
+- normalization;
+- Listing;
+- seed data;
+- стрічка.
+
+### Етап 4. Matching
+- deterministic Match Score;
+- пояснення;
+- фільтрація;
+- сортування.
+
+### Етап 5. Mini App UI
+- dashboard;
+- listing feed;
+- listing details;
+- filters;
+- favorites;
+- comparison.
+
+### Етап 6. Карта
+- PostGIS;
+- geocoding provider;
+- map;
+- markers;
+- важливі точки.
+
+### Етап 7. Дублікати
+- exact matching;
+- fuzzy matching;
+- image hashing;
+- ListingCluster.
+
+### Етап 8. AI
+- structured provider;
+- natural-language parser;
+- summaries;
+- comparison;
+- questions for owner.
+
+### Етап 9. Risk і market analysis
+- price statistics;
+- Risk Score;
+- price history;
+- warning UI.
+
+### Етап 10. Notifications
+- Celery;
+- scheduling;
+- Telegram messages;
+- quiet hours;
+- duplicate protection.
+
+### Етап 11. Shared Search
+- invitation;
+- deep links;
+- reactions;
+- comments;
+- consensus.
+
+### Етап 12. Адмінка
+- dashboard;
+- users;
+- sources;
+- listings;
+- jobs;
+- AI center;
+- logs.
+
+### Етап 13. Безпека й тести
+- security review;
+- API permissions;
+- SSRF protection;
+- rate limiting;
+- unit tests;
+- integration tests;
+- E2E.
+
+### Етап 14. Production
+- webhook;
+- HTTPS;
+- monitoring;
+- backup;
+- documentation;
+- deployment.
+
+Після кожного етапу:
+1. Запускай lint.
+2. Запускай type checking.
+3. Запускай тести.
+4. Перевіряй Docker build.
+5. Оновлюй документацію.
+6. Не переходь далі з очевидно зламаною основою.
+
+## 43. MVP
+
+Мінімальна версія повинна мати:
+- Telegram /start;
+- onboarding;
+- один або декілька пошукових профілів;
+- Mini App;
+- demo source;
+- 150 demo listings;
+- фільтри;
+- Match Score;
+- стрічку;
+- детальну сторінку;
+- карту;
+- обране;
+- приховування;
+- порівняння;
+- Telegram-сповіщення;
+- базову адмінку;
+- Docker;
+- README;
+- тести.
+
+MVP не вважається завершеним, якщо:
+- Mini App відкривається, але не авторизується;
+- дані захардкоджені тільки у frontend;
+- бот працює лише через ручний запуск одного script-файлу;
+- відсутні міграції;
+- немає demo data;
+- немає тестів;
+- bot token знаходиться в коді;
+- frontend не адаптований до телефону;
+- після перезапуску втрачаються дані.
+
+## 44. КРИТЕРІЇ ГОТОВНОСТІ
+
+Проєкт вважається готовим, якщо:
+1. Його можна запустити через документовані команди.
+2. Docker Compose підіймає всі необхідні сервіси.
+3. Міграції виконуються без помилок.
+4. Demo data створюються окремою командою.
+5. Бот відповідає на /start.
+6. Користувач може створити пошук.
+7. Mini App безпечно авторизує Telegram-користувача.
+8. Користувач бачить demo-квартири.
+9. Фільтри реально впливають на результати.
+10. Match Score має зрозуміле пояснення.
+11. Оголошення можна додати в обране.
+12. Оголошення можна приховати.
+13. Дві квартири можна порівняти.
+14. Квартири показуються на карті.
+15. Система розпізнає підготовлені demo-дублікати.
+16. Працює історія ціни.
+17. Працюють Telegram-сповіщення.
+18. Повторні задачі не створюють дублікати повідомлень.
+19. Адміністратор бачить стан джерел і задач.
+20. Основні тести проходять.
+21. У репозиторії немає секретів.
+22. README дозволяє іншому розробнику запустити систему.
+23. Інтерфейс виглядає як готовий комерційний продукт.
+24. Усі недоступні реальні джерела вимкнені за замовчуванням.
+25. Для портфоліо доступний повноцінний демонстраційний сценарій.
+
+## 45. ПРАВИЛА РОБОТИ CODING-АГЕНТА
+
+Не обмежуйся планом або псевдокодом.
+
+Потрібно створювати реальні файли й робочий код.
+
+Перед початком:
+1. Проаналізуй репозиторій, якщо він уже існує.
+2. Не видаляй робочий код без необхідності.
+3. Визнач актуальні версії залежностей.
+4. Склади короткий внутрішній план.
+5. Починай з інфраструктури й доменної моделі.
+
+Під час роботи:
+- використовуй строгі типи;
+- пиши зрозумілі назви;
+- не дублюй логіку;
+- не створюй надмірно великі компоненти;
+- не залишай критичний функціонал як TODO;
+- не приховуй помилки порожніми except;
+- не використовуй небезпечні значення за замовчуванням;
+- не захардкоджуй секрети;
+- не вигадуй, що стороння інтеграція працює, якщо вона не перевірена;
+- використовуй mock і demo adapters для непідключених сервісів;
+- документуй важливі архітектурні рішення.
+
+Якщо певне стороннє API недоступне:
+1. Не зупиняй увесь проєкт.
+2. Створи adapter interface.
+3. Створи mock implementation.
+4. Додай конфігурацію.
+5. Документуй, що потрібно для реального підключення.
+6. Продовжуй реалізацію решти системи.
+
+Після реалізації кожного значного блоку:
+- запусти тести;
+- виправ помилки;
+- перевір типи;
+- перевір збірку;
+- покажи список змінених файлів;
+- коротко опиши результат.
+
+## 46. ФІНАЛЬНИЙ РЕЗУЛЬТАТ ВІД АГЕНТА
+
+Після завершення надай:
+1. Короткий опис реалізованої системи.
+2. Архітектуру.
+3. Структуру репозиторію.
+4. Список реалізованих функцій.
+5. Список demo-функцій.
+6. Список реальних інтеграцій.
+7. Список інтеграцій, які очікують дозволу або ключів.
+8. Інструкцію локального запуску.
+9. Інструкцію production deployment.
+10. Команди для міграцій.
+11. Команди для demo data.
+12. Команди для тестів.
+13. Дані тестового адміністратора, створені безпечним способом.
+14. Перелік environment variables.
+15. Результати тестів.
+16. Відомі обмеження.
+17. Рекомендований наступний етап.
+
+Головний пріоритет:
+
+Спочатку створити стабільний, безпечний і красивий демонстраційний продукт на synthetic data, а вже потім підключати реальні джерела тільки після перевірки умов доступу.
+
+Система повинна виглядати так, щоб її можна було показати клієнту словами:
+
+> Це не просто Telegram-бот. Це система, яка збирає дані з декількох джерел, прибирає дублікати, аналізує ринок, оцінює ризики, показує квартири на карті й миттєво знаходить найкращі варіанти для конкретної людини.

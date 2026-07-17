@@ -75,7 +75,8 @@ def build_owner_questions(listing: dict[str, Any]) -> dict[str, Any]:
         questions.append("Який тип опалення?")
     if not listing.get("attributes", {}).get("backup_power"):
         questions.append("Чи є резервне живлення або інвертор?")
-    if listing.get("floor") and listing.get("floor") > 4:
+    floor = listing.get("floor")
+    if isinstance(floor, int) and floor > 4:
         questions.append("Чи працює ліфт під час відключень?")
 
     message = (
