@@ -20,9 +20,10 @@ from apps.analysis.serializers import (
     ListingRiskAssessmentSerializer,
 )
 from apps.analysis.services import refresh_listing_analysis
+from apps.listings.models import Listing
 
 
-def _listing(listing_id: UUID):
+def _listing(listing_id: UUID) -> Listing:
     return get_object_or_404(approved_listing_queryset(), pk=listing_id)
 
 
