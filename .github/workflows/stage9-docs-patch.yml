@@ -1,0 +1,116 @@
+name: Stage 9 documentation patch
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-stage9-docs:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/stage-9-risk-market-analysis
+      - name: Patch README and architecture docs
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          readme = Path("README.md")
+          content = readme.read_text()
+          content = content.replace(
+              "Поточний стан: **Етап 8 — безпечний AI-шар**. Система має deterministic search/matching, PostGIS-карту, guarded duplicate clusters і user-facing AI workspace для структурованого аналізу без передачі AI права вигадувати факти або приймати рішення за користувача.",
+              "Поточний стан: **Етап 9 — Risk і market analysis**. Система має deterministic search/matching, PostGIS-карту, guarded duplicate clusters, безпечний AI workspace, версійовану історію ціни, кластерно-дедупліковану ринкову оцінку та пояснюваний Risk Score без категоричних юридичних висновків.",
+          )
+          marker = "- sanitized `AIRequest` audit і `AIPromptVersion` registry;\n"
+          addition = (
+              "- idempotent `ListingSnapshot` і реальна `ListingPriceHistory`;\n"
+              "- cluster-aware market median, Q1/Q3, price/m², deviation і confidence;\n"
+              "- explainable Risk Score 0–100 із evidence та neutral safety wording;\n"
+              "- Stage 9 API й accessible Mini App analytics panel із price-history chart;\n"
+          )
+          if addition not in content:
+              content = content.replace(marker, marker + addition, 1)
+          command_marker = "docker compose exec backend python manage.py rebuild_listing_clusters\n"
+          command_addition = (
+              "docker compose exec backend python manage.py backfill_listing_snapshots\n"
+              "docker compose exec backend python manage.py refresh_listing_analyses\n"
+          )
+          if command_addition not in content:
+              content = content.replace(command_marker, command_marker + command_addition, 1)
+          docs_marker = "- [`docs/stage-8-ai.md`](docs/stage-8-ai.md).\n"
+          docs_addition = "- [`docs/stage-9-risk-market-analysis.md`](docs/stage-9-risk-market-analysis.md).\n"
+          if docs_addition not in content:
+              content = content.replace(docs_marker, docs_marker + docs_addition, 1)
+          api_marker = "## API етапу 8\n"
+          if api_marker in content:
+              content = content.replace(api_marker, "## API етапів 8–9\n", 1)
+          endpoint_marker = "POST /api/v1/ai/listings/compare/\n"
+          endpoint_addition = (
+              "GET  /api/v1/listings/{listing_id}/price-history/\n"
+              "GET  /api/v1/listings/{listing_id}/market-analysis/\n"
+              "GET  /api/v1/listings/{listing_id}/risk-analysis/\n"
+              "POST /api/v1/listings/{listing_id}/analysis/refresh/\n"
+          )
+          if endpoint_addition not in content:
+              content = content.replace(endpoint_marker, endpoint_marker + endpoint_addition, 1)
+          readme.write_text(content)
+
+          architecture = Path("docs/architecture.md")
+          content = architecture.read_text()
+          content = content.replace(
+              "# Архітектура FlatHunter AI — Stage 8",
+              "# Архітектура FlatHunter AI — Stage 9",
+              1,
+          )
+          principle_marker = "- core matching, duplicate detection, demo geocoding і базовий пошук не залежать від AI;\n"
+          principle_addition = "- market analysis і Risk Score детерміновані, versioned, explainable та не залежать від LLM;\n"
+          if principle_addition not in content:
+              content = content.replace(principle_marker, principle_marker + principle_addition, 1)
+          module_marker = "- `apps.ai_analysis`: typed providers, structured schemas, deterministic fallback, reliability controls, prompt registry й sanitized audit trail.\n"
+          module_addition = "- `apps.analysis`: canonical snapshots, real price history, cluster-aware comparables, market statistics, Risk Score, persistence, tasks і API.\n"
+          if module_addition not in content:
+              content = content.replace(module_marker, module_marker + module_addition, 1)
+          trust_old = "- exact routing time, Risk Score, deposit and contacts remain unknown unless a trusted deterministic provider supplies them;"
+          trust_new = "- exact routing time, deposit and contacts remain unknown; Risk Score і market facts використовуються лише з persisted validated non-stale Stage 9 assessments;"
+          content = content.replace(trust_old, trust_new, 1)
+          stage9_section = '''\n## Stage 9 analytics flow\n\n```mermaid\nflowchart LR\n    LISTING[(Approved Active Listing)] --> SNAPSHOT[Canonical Snapshot + SHA-256]\n    SNAPSHOT --> HISTORY[(Real Price History)]\n    LISTING --> COMPARABLES[Bounded Cluster-aware Comparables]\n    COMPARABLES --> MARKET[Median + Q1/Q3 + Confidence]\n    MARKET --> MARKETDB[(Market Assessment)]\n    LISTING --> RISK[Deterministic Risk Signals]\n    HISTORY --> RISK\n    MARKETDB --> RISK\n    RISK --> RISKDB[(Risk Assessment)]\n    MARKETDB --> API[Authenticated Analysis API]\n    RISKDB --> API\n    HISTORY --> API\n    API --> MINI[Mini App Chips + Detail Panel]\n    MARKETDB --> AICTX[Validated Stage 8 Context]\n    RISKDB --> AICTX\n```\n\nComparable selection excludes the target, inactive/unapproved/stale rows and every member of the same duplicate cluster. Market statistics expose sample size and confidence; insufficient samples return null estimates. Risk signals retain stable evidence and never auto-hide listings or make categorical claims about an author.\n'''
+          if "## Stage 9 analytics flow" not in content:
+              content += stage9_section
+          architecture.write_text(content)
+
+          api = Path("docs/api.md")
+          content = api.read_text()
+          payload_marker = '  "price_max_uah": 19000\n'
+          payload_addition = (
+              '  "analysis_summary": {\n'
+              '    "market": {"status": "ready", "median_price_uah": 18000, "confidence_label": "high"},\n'
+              '    "risk": {"status": "ready", "score": 32, "level": "review"},\n'
+              '    "latest_price_change": null\n'
+              '  }\n'
+          )
+          if '"analysis_summary"' not in content:
+              content = content.replace(payload_marker, payload_marker.rstrip("\n") + ",\n" + payload_addition, 1)
+          content = content.replace(
+              '`risk_score` and exact `travel_minutes` stay `null` until their dedicated providers/stages are available.',
+              '`risk_score` is populated only from a persisted validated non-stale Stage 9 assessment. Exact `travel_minutes` stays `null` until a routing provider is available.',
+              1,
+          )
+          stage9_api = '''\n## Stage 9 Risk і market analysis\n\n- `GET /listings/{id}/price-history/` — current price and real normalized price-change events;\n- `GET /listings/{id}/market-analysis/` — median, Q1/Q3, price/m², deviation, sample size, confidence and status;\n- `GET /listings/{id}/risk-analysis/` — explainable score, neutral level, signals, safety advice and disclaimer;\n- `POST /listings/{id}/analysis/refresh/` — throttled idempotent refresh.\n\nRefresh accepts only:\n\n```json\n{ "force": false }\n```\n\nOptional header `Idempotency-Key` deduplicates repeated commands. Provider names, weights and algorithms are server-controlled and cannot be supplied by frontend. Endpoints return `404` for inactive listings or sources without `approved`/`approved_demo` legal status. `insufficient_data`, `stale`, `failed` and `disabled` are normal explicit states rather than fabricated numbers or HTTP 500.\n'''
+          if "## Stage 9 Risk і market analysis" not in content:
+              content = content.replace("\n## Schema\n", stage9_api + "\n## Schema\n", 1)
+          api.write_text(content)
+          PY
+      - name: Commit Stage 9 docs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md docs/architecture.md docs/api.md
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "docs: integrate Stage 9 across project documentation"
+          git push
