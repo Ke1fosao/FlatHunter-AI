@@ -10,6 +10,7 @@ urlpatterns = [
     path("health/ready/", health_ready, name="health-ready"),
     path("api/v1/health/", health_api, name="health-api"),
     path("api/v1/", include("apps.accounts.urls")),
+    path("api/v1/", include("apps.ai_analysis.urls")),
     path("api/v1/", include("apps.searches.urls")),
     path("api/v1/", include("apps.listings.urls")),
     path("api/v1/", include("apps.duplicates.urls")),

@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "apps.core",
     "apps.accounts",
+    "apps.ai_analysis",
     "apps.searches",
     "apps.listings",
     "apps.duplicates",
@@ -161,6 +162,13 @@ TELEGRAM_WEBHOOK_SECRET = env("TELEGRAM_WEBHOOK_SECRET", default="")
 TELEGRAM_MINI_APP_URL = env("TELEGRAM_MINI_APP_URL", default="")
 TELEGRAM_AUTH_MAX_AGE = env.int("TELEGRAM_AUTH_MAX_AGE", default=300)
 TELEGRAM_UPDATE_TTL = env.int("TELEGRAM_UPDATE_TTL", default=86400)
+
+AI_PROVIDER = env("AI_PROVIDER", default="local_rules")
+AI_API_KEY = env("AI_API_KEY", default="")
+AI_MODEL = env("AI_MODEL", default="local-rules-v1")
+AI_ENABLED = env.bool("AI_ENABLED", default=False)
+AI_DAILY_BUDGET = env.float("AI_DAILY_BUDGET", default=0)
+AI_TIMEOUT_SECONDS = env.int("AI_TIMEOUT_SECONDS", default=15)
 
 GEOCODING_PROVIDER = env("GEOCODING_PROVIDER", default="demo")
 GEOCODING_API_KEY = env("GEOCODING_API_KEY", default="")

@@ -188,7 +188,8 @@ npm audit --audit-level=high
 - [`docs/stage-4-matching.md`](docs/stage-4-matching.md);
 - [`docs/stage-5-miniapp-ui.md`](docs/stage-5-miniapp-ui.md);
 - [`docs/stage-6-map-geodata.md`](docs/stage-6-map-geodata.md);
-- [`docs/stage-7-duplicate-clustering.md`](docs/stage-7-duplicate-clustering.md).
+- [`docs/stage-7-duplicate-clustering.md`](docs/stage-7-duplicate-clustering.md);
+- [`docs/stage-8-ai.md`](docs/stage-8-ai.md).
 
 ## Відомі обмеження
 

@@ -10,12 +10,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import User
+from apps.ai_analysis.services import parse_search_with_ai
 from apps.duplicates.presentation import cluster_aware_listing_queryset
 from apps.listings.models import Listing
 from apps.listings.serializers import ListingSerializer
 from apps.matching.engine import evaluate_match
 from apps.searches.models import SearchProfile
-from apps.searches.parser import parse_search_text
 from apps.searches.serializers import (
     MatchQuerySerializer,
     NaturalLanguageSearchSerializer,
@@ -111,12 +111,15 @@ class ParseNaturalLanguageView(APIView):
     def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         serializer = NaturalLanguageSearchSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        parsed = parse_search_text(serializer.validated_data["text"])
+        parsed = parse_search_with_ai(
+            serializer.validated_data["text"], user=cast(User, request.user)
+        )
         return Response(
             {
                 "data": parsed.data,
                 "confidence": parsed.confidence,
                 "missing_fields": parsed.missing_fields,
+                "meta": parsed.meta,
             },
             status=status.HTTP_200_OK,
         )
