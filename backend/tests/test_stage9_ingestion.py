@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from asgiref.sync import async_to_sync
-
 import pytest
+from asgiref.sync import async_to_sync
 
 from apps.analysis.models import ListingPriceHistory, ListingSnapshot
 from apps.listings.contracts import SourceSearchRequest
