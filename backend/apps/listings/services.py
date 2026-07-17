@@ -72,8 +72,10 @@ def _persist_normalized_listing(
         prepared.raw.normalized_at = timezone.now()
         prepared.raw.normalization_error = ""
         prepared.raw.save(update_fields=("normalized_at", "normalization_error"))
+    from apps.analysis.services import capture_and_optionally_refresh
     from apps.duplicates.services import schedule_listing_duplicate_refresh
 
+    transaction.on_commit(lambda: capture_and_optionally_refresh(listing.id))
     transaction.on_commit(lambda: schedule_listing_duplicate_refresh(listing.id))
     return "created" if created else "updated"
 
