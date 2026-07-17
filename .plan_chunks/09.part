@@ -1,0 +1,268 @@
+- API;
+- Telegram update handling;
+- Mini App authentication;
+- імпорт demo-оголошень;
+- фоновий pipeline;
+- надсилання повідомлень через mock Telegram API.
+
+### End-to-end tests
+
+Сценарії:
+1. Користувач запускає бота.
+2. Створює пошук.
+3. Відкриває Mini App.
+4. Отримує нову квартиру.
+5. Зберігає її.
+6. Порівнює з іншою.
+7. Запрошує друга.
+8. Друг ставить реакцію.
+9. Користувач змінює статус.
+10. Користувач видаляє профіль.
+
+Додай тести мобільної версії.
+
+Додай accessibility tests для основних екранів.
+
+Не вважай задачу завершеною, поки основні тести не проходять.
+
+## 39. CI/CD
+
+GitHub Actions повинен виконувати:
+- backend lint;
+- backend formatting check;
+- type checking;
+- backend tests;
+- frontend lint;
+- TypeScript check;
+- frontend tests;
+- build frontend;
+- build Docker images;
+- dependency audit;
+- secret scanning.
+
+Production deployment повинен бути документований.
+
+Не додавай реальні секрети в workflow.
+
+## 40. ENVIRONMENT VARIABLES
+
+Створи .env.example.
+
+Приблизний набір:
+
+```dotenv
+DJANGO_SECRET_KEY=
+DJANGO_DEBUG=false
+DJANGO_ALLOWED_HOSTS=
+DATABASE_URL=
+REDIS_URL=
+
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_BOT_USERNAME=
+TELEGRAM_WEBHOOK_URL=
+TELEGRAM_WEBHOOK_SECRET=
+TELEGRAM_MINI_APP_URL=
+TELEGRAM_ADMIN_IDS=
+
+AI_PROVIDER=
+AI_API_KEY=
+AI_MODEL=
+AI_ENABLED=true
+AI_DAILY_BUDGET=
+
+GEOCODING_PROVIDER=
+GEOCODING_API_KEY=
+ROUTING_PROVIDER=
+ROUTING_API_KEY=
+MAP_TILES_URL=
+MAP_ATTRIBUTION=
+
+SENTRY_DSN=
+LOG_LEVEL=INFO
+
+CELERY_BROKER_URL=
+CELERY_RESULT_BACKEND=
+
+SOURCE_DEMO_ENABLED=true
+SOURCE_OLX_ENABLED=false
+SOURCE_LUN_ENABLED=false
+SOURCE_RIELTOR_ENABLED=false
+SOURCE_OTODIM_ENABLED=false
+
+FRONTEND_URL=
+BACKEND_URL=
+CORS_ALLOWED_ORIGINS=
+CSRF_TRUSTED_ORIGINS=
+```
+
+Джерела, до яких немає підтвердженого доступу, повинні бути вимкнені за замовчуванням.
+
+## 41. ДОКУМЕНТАЦІЯ
+
+README повинен містити:
+- опис продукту;
+- функції;
+- архітектуру;
+- стек;
+- запуск через Docker;
+- локальний запуск;
+- створення Telegram-бота;
+- налаштування Mini App;
+- налаштування webhook;
+- запуск Celery;
+- запуск Celery Beat;
+- міграції;
+- seed demo data;
+- запуск тестів;
+- типові помилки;
+- production deployment;
+- правила додавання джерела;
+- безпекові обмеження;
+- legal notice щодо сторонніх платформ.
+
+Створи також:
+- architecture diagram;
+- database diagram;
+- bot flow diagram;
+- data ingestion diagram;
+- notification flow;
+- deployment diagram.
+
+Діаграми можна зробити в Mermaid.
+
+## 42. ЕТАПИ РЕАЛІЗАЦІЇ
+
+Не намагайся написати весь продукт одним гігантським неперевіреним комітом.
+
+### Етап 1. Основа
+- monorepo;
+- Docker;
+- Django;
+- PostgreSQL;
+- Redis;
+- Next.js;
+- базова авторизація;
+- Telegram bot;
+- Mini App;
+- health checks.
+
+### Етап 2. Користувачі й пошуки
+- onboarding;
+- SearchProfile;
+- фільтри;
+- природномовний запит;
+- налаштування сповіщень.
+
+### Етап 3. Demo data pipeline
+- demo source;
+- RawListing;
+- normalization;
+- Listing;
+- seed data;
+- стрічка.
+
+### Етап 4. Matching
+- deterministic Match Score;
+- пояснення;
+- фільтрація;
+- сортування.
+
+### Етап 5. Mini App UI
+- dashboard;
+- listing feed;
+- listing details;
+- filters;
+- favorites;
+- comparison.
+
+### Етап 6. Карта
+- PostGIS;
+- geocoding provider;
+- map;
+- markers;
+- важливі точки.
+
+### Етап 7. Дублікати
+- exact matching;
+- fuzzy matching;
+- image hashing;
+- ListingCluster.
+
+### Етап 8. AI
+- structured provider;
+- natural-language parser;
+- summaries;
+- comparison;
+- questions for owner.
+
+### Етап 9. Risk і market analysis
+- price statistics;
+- Risk Score;
+- price history;
+- warning UI.
+
+### Етап 10. Notifications
+- Celery;
+- scheduling;
+- Telegram messages;
+- quiet hours;
+- duplicate protection.
+
+### Етап 11. Shared Search
+- invitation;
+- deep links;
+- reactions;
+- comments;
+- consensus.
+
+### Етап 12. Адмінка
+- dashboard;
+- users;
+- sources;
+- listings;
+- jobs;
+- AI center;
+- logs.
+
+### Етап 13. Безпека й тести
+- security review;
+- API permissions;
+- SSRF protection;
+- rate limiting;
+- unit tests;
+- integration tests;
+- E2E.
+
+### Етап 14. Production
+- webhook;
+- HTTPS;
+- monitoring;
+- backup;
+- documentation;
+- deployment.
+
+Після кожного етапу:
+1. Запускай lint.
+2. Запускай type checking.
+3. Запускай тести.
+4. Перевіряй Docker build.
+5. Оновлюй документацію.
+6. Не переходь далі з очевидно зламаною основою.
+
+## 43. MVP
+
+Мінімальна версія повинна мати:
+- Telegram /start;
+- onboarding;
+- один або декілька пошукових профілів;
+- Mini App;
+- demo source;
+- 150 demo listings;
+- фільтри;
+- Match Score;
+- стрічку;
+- детальну сторінку;
+- карту;
+- обране;
+- приховування;
+- порівняння;
