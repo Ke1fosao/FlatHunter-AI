@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from decimal import Decimal
 from typing import Any
 
 from django.conf import settings
@@ -18,9 +20,21 @@ class AIProviderError(Exception):
     """Raised when an AI provider cannot complete a structured task."""
 
 
+@dataclass(frozen=True)
+class AIUsage:
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    estimated_cost_usd: Decimal = Decimal("0")
+
+    @property
+    def total_tokens(self) -> int:
+        return self.prompt_tokens + self.completion_tokens
+
+
 class AIProvider(ABC):
     provider_name: str
     model_name: str
+    last_usage: AIUsage = AIUsage()
 
     @abstractmethod
     async def structured_completion(
@@ -37,6 +51,7 @@ class LocalRulesAIProvider(AIProvider):
 
     def __init__(self, model_name: str = "local-rules-v1") -> None:
         self.model_name = model_name or "local-rules-v1"
+        self.last_usage = AIUsage()
 
     async def structured_completion(
         self,
