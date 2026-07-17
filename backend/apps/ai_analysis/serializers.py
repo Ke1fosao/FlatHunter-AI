@@ -3,7 +3,11 @@ from __future__ import annotations
 from rest_framework import serializers
 
 
-class ListingComparisonRequestSerializer(serializers.Serializer):
+class ListingAIRequestSerializer(serializers.Serializer):
+    search_profile_id = serializers.UUIDField(required=False, allow_null=True)
+
+
+class ListingComparisonRequestSerializer(ListingAIRequestSerializer):
     listing_ids = serializers.ListField(
         child=serializers.UUIDField(),
         min_length=2,

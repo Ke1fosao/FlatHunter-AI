@@ -162,6 +162,109 @@ Coordinates must be supplied together. Otherwise an address is required and back
 
 Query `listing_ids` accepts up to 100 comma-separated UUID values. The response contains owned places and straight-line PostGIS distances for each requested listing.
 
+## Stage 8 AI layer
+
+AI endpoints return structured, schema-validated output. The deterministic search, map, matching and listing flows remain available when AI is disabled or unavailable.
+
+### `POST /search-profiles/parse-natural-language/`
+
+```json
+{
+  "text": "Шукаю однокімнатну квартиру у Львові до 18 тисяч, до 25 хв від політехніки"
+}
+```
+
+Response contains:
+
+- normalized search `data`;
+- per-field `confidence` in range `0..1`;
+- `missing_fields`;
+- AI/fallback `meta`.
+
+### `POST /ai/listings/{listing_id}/summary/`
+
+Empty JSON body is accepted. Returns:
+
+- `summary`;
+- `advantages`;
+- `caveats`;
+- `unknowns`;
+- `confidence`;
+- `meta`.
+
+### `POST /ai/listings/{listing_id}/owner-questions/`
+
+```json
+{
+  "search_profile_id": "optional-owned-profile-uuid"
+}
+```
+
+The profile is optional. When present, questions account for pets, children and configured filters. The endpoint never contacts the owner automatically.
+
+### `POST /ai/listings/compare/`
+
+```json
+{
+  "listing_ids": ["uuid-1", "uuid-2"],
+  "search_profile_id": "optional-owned-profile-uuid"
+}
+```
+
+Rules:
+
+- `listing_ids` must contain 2–5 unique UUIDs;
+- every listing must be active and belong to an enabled legally approved source;
+- `search_profile_id`, when supplied, must belong to the authenticated user;
+- recommendation is profile-aware through deterministic Match Score;
+- a listing is marked decisive only when the score gap is meaningful;
+- unavailable facts remain in `unknowns` instead of being invented.
+
+Comparison rows may include:
+
+```json
+{
+  "id": "uuid",
+  "price_uah": 16500,
+  "commission": "потрібно уточнити",
+  "known_first_payment_uah": null,
+  "match_score": 92,
+  "risk_score": null,
+  "travel_minutes": null,
+  "advantages": [],
+  "disadvantages": [],
+  "unknowns": ["deposit", "risk_score", "travel_time"]
+}
+```
+
+`risk_score` and exact `travel_minutes` stay `null` until their dedicated providers/stages are available.
+
+### AI metadata
+
+```json
+{
+  "meta": {
+    "feature": "listings.compare",
+    "provider": "local_rules",
+    "model": "local-rules-v1",
+    "prompt_version": "listings-compare-v2",
+    "status": "success",
+    "latency_ms": 7,
+    "attempts": 1,
+    "cache_key": "sanitized-hash"
+  }
+}
+```
+
+Status values:
+
+- `success`;
+- `cached`;
+- `fallback`;
+- `disabled`.
+
+Fallback responses additionally include a safe `reason`, such as `provider_error`, `provider_unavailable`, `circuit_open` or `daily_budget_exhausted`.
+
 ## Schema
 
 - `GET /api/schema/` — OpenAPI JSON;
