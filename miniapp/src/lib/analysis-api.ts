@@ -82,7 +82,7 @@ export type MarketAnalysisResponse = {
 export type RiskSignal = {
   code: string;
   weight: number;
-  severity: "low" | "medium" | "high" | "protective" | string;
+  severity: string;
   evidence: Record<string, unknown>;
   label: string;
   recommendation: string;
