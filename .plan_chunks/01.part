@@ -1,0 +1,213 @@
+    @abstractmethod
+    async def fetch_details(self, external_id: str) -> RawListingDetails:
+        ...
+
+    @abstractmethod
+    async def normalize(self, raw_listing: RawListing) -> NormalizedListing:
+        ...
+```
+
+Перед кожною реальною інтеграцією перевір правила конкретного ресурсу.
+
+Якщо законний автоматичний доступ відсутній, джерело не повинно запускатися. Замість цього система повинна використовувати demo adapter або ручний імпорт.
+
+## 4. РЕКОМЕНДОВАНИЙ ТЕХНОЛОГІЧНИЙ СТЕК
+
+Використовуй актуальні стабільні версії бібліотек на момент реалізації. Зафіксуй точні версії у lock-файлах.
+
+### Backend
+- Python;
+- Django;
+- Django REST Framework;
+- PostgreSQL;
+- PostGIS;
+- Redis;
+- Celery;
+- Celery Beat;
+- aiogram;
+- Pydantic;
+- HTTPX;
+- Pillow;
+- pHash або інший алгоритм perceptual hashing;
+- Sentry SDK або сумісний механізм;
+- структуроване логування.
+
+### Telegram Mini App
+- Next.js;
+- TypeScript;
+- React;
+- Tailwind CSS;
+- shadcn/ui або власна компонентна система;
+- TanStack Query;
+- Zustand або інший мінімальний state manager;
+- React Hook Form;
+- Zod;
+- MapLibre GL або Leaflet;
+- Telegram Mini Apps JavaScript SDK;
+- i18n для української й англійської мов.
+
+### Інфраструктура
+- Docker;
+- Docker Compose;
+- Nginx або Caddy;
+- HTTPS;
+- PostgreSQL із PostGIS;
+- Redis;
+- окремий Celery worker;
+- окремий Celery Beat;
+- backend;
+- Mini App frontend;
+- health checks;
+- автоматичні міграції;
+- CI через GitHub Actions;
+- lint;
+- type checking;
+- unit tests;
+- integration tests;
+- end-to-end tests.
+
+### Локальна розробка
+
+Для локальної розробки бот може працювати через long polling.
+
+Для production використовуй webhook.
+
+Long polling і webhook не повинні працювати одночасно.
+
+## 5. СТРУКТУРА РЕПОЗИТОРІЮ
+
+Створи monorepo приблизно з такою структурою:
+
+```text
+flathunter-ai/
+├── backend/
+│   ├── config/
+│   ├── apps/
+│   │   ├── accounts/
+│   │   ├── telegram_bot/
+│   │   ├── searches/
+│   │   ├── listings/
+│   │   ├── sources/
+│   │   ├── matching/
+│   │   ├── ai_analysis/
+│   │   ├── notifications/
+│   │   ├── favorites/
+│   │   ├── shared_search/
+│   │   ├── subscriptions/
+│   │   ├── analytics/
+│   │   ├── geolocation/
+│   │   ├── fraud_detection/
+│   │   ├── administration/
+│   │   └── audit/
+│   ├── tests/
+│   ├── manage.py
+│   └── pyproject.toml
+├── miniapp/
+│   ├── src/
+│   │   ├── app/
+│   │   ├── components/
+│   │   ├── features/
+│   │   ├── hooks/
+│   │   ├── lib/
+│   │   ├── services/
+│   │   ├── stores/
+│   │   ├── types/
+│   │   └── locales/
+│   ├── public/
+│   ├── tests/
+│   └── package.json
+├── infrastructure/
+│   ├── nginx/
+│   ├── docker/
+│   ├── scripts/
+│   └── monitoring/
+├── docs/
+│   ├── architecture.md
+│   ├── api.md
+│   ├── bot-flows.md
+│   ├── data-sources.md
+│   ├── security.md
+│   ├── deployment.md
+│   └── demo.md
+├── docker-compose.yml
+├── docker-compose.production.yml
+├── .env.example
+├── README.md
+└── Makefile
+```
+
+Не роби весь проєкт одним великим файлом.
+
+Дотримуйся принципів:
+- separation of concerns;
+- dependency inversion;
+- reusable services;
+- typed interfaces;
+- domain services;
+- adapter pattern;
+- repository pattern там, де це виправдано;
+- idempotent background tasks;
+- централізована обробка помилок.
+
+## 6. РОЛІ КОРИСТУВАЧІВ
+
+Реалізуй такі ролі:
+
+### 6.1. Звичайний користувач
+
+Може:
+- створювати пошуки;
+- змінювати фільтри;
+- переглядати результати;
+- отримувати сповіщення;
+- додавати квартири в обране;
+- приховувати квартири;
+- ставити реакції;
+- додавати нотатки;
+- ділитися пошуком;
+- запрошувати інших користувачів;
+- порівнювати квартири;
+- імпортувати оголошення;
+- видаляти свій профіль і дані.
+
+### 6.2. Premium-користувач
+
+Додатково може:
+- створювати більше активних пошуків;
+- отримувати швидші повідомлення;
+- використовувати розширену AI-оцінку;
+- переглядати історію зміни ціни;
+- отримувати розширену ринкову аналітику;
+- використовувати більше учасників у спільному пошуку;
+- отримувати щоденний AI-звіт;
+- експортувати результати;
+- використовувати складніші правила.
+
+На першому етапі Premium можна зробити demo-функцією без реального списання коштів.
+
+### 6.3. Модератор
+
+Може:
+- переглядати скарги;
+- перевіряти підозрілі оголошення;
+- позначати помилки AI;
+- об’єднувати дублікати;
+- блокувати некоректні джерела;
+- редагувати нормалізовані дані.
+
+### 6.4. Адміністратор
+
+Має доступ до:
+- користувачів;
+- джерел;
+- оголошень;
+- пошукових профілів;
+- фонових задач;
+- черг;
+- помилок;
+- AI-запитів;
+- витрат;
+- підписок;
+- аналітики;
+- конфігурації;
+- журналу дій;
