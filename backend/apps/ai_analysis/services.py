@@ -19,7 +19,7 @@ from pydantic import BaseModel, ValidationError
 
 from apps.accounts.models import User
 from apps.ai_analysis.models import AIPromptVersion, AIRequest, AIRequestStatus
-from apps.ai_analysis.providers import AIProvider, AIProviderError, get_ai_provider
+from apps.ai_analysis.providers import AIProvider, AIProviderError, AIUsage, get_ai_provider
 from apps.ai_analysis.rules import (
     build_listing_comparison,
     build_listing_summary,
@@ -344,6 +344,7 @@ def _run_structured_task(
         output_data=payload,
         latency_ms=latency_ms,
         cache_key=result_cache_key,
+        usage=provider.last_usage,
     )
     return AIResult(
         payload=payload,
@@ -379,7 +380,7 @@ async def _call_provider(
             )
             validated = schema.model_validate(raw_result.model_dump())
             return validated, attempt
-        except (ValidationError, AIProviderError, Exception) as exc:
+        except Exception as exc:
             last_error = exc
             if attempt < attempts:
                 await asyncio.sleep(min(0.05 * (2 ** (attempt - 1)), 0.25))
@@ -451,6 +452,7 @@ def _write_audit(
     latency_ms: int,
     error_message: str = "",
     cache_key: str = "",
+    usage: AIUsage = AIUsage(),
 ) -> None:
     AIRequest.objects.create(
         user=user,
@@ -463,6 +465,10 @@ def _write_audit(
         output_data=output_data,
         error_message=error_message,
         latency_ms=max(latency_ms, 0),
+        prompt_tokens=max(usage.prompt_tokens, 0),
+        completion_tokens=max(usage.completion_tokens, 0),
+        total_tokens=max(usage.total_tokens, 0),
+        estimated_cost_usd=max(usage.estimated_cost_usd, Decimal("0")),
         cache_key=cache_key,
     )
 
