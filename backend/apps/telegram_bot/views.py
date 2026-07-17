@@ -5,15 +5,12 @@ import json
 import logging
 from typing import Any
 
-from aiogram.types import Update
 from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.core.cache import cache
 from django.http import HttpRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET
-
-from apps.telegram_bot.runtime import create_bot, create_dispatcher
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +39,10 @@ async def telegram_webhook(request: HttpRequest) -> JsonResponse:
     if not settings.TELEGRAM_BOT_TOKEN:
         await sync_to_async(cache.delete)(cache_key)
         return JsonResponse({"error": "bot_not_configured"}, status=503)
+
+    from aiogram.types import Update
+
+    from apps.telegram_bot.runtime import create_bot, create_dispatcher
 
     bot = create_bot(settings.TELEGRAM_BOT_TOKEN)
     dispatcher = create_dispatcher(mini_app_url=settings.TELEGRAM_MINI_APP_URL)
