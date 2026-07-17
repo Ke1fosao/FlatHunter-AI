@@ -14,17 +14,20 @@ class Command(BaseCommand):
     def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument("--count", type=int, default=150)
         parser.add_argument("--seed", type=int, default=20260716)
+        parser.add_argument("--revision", type=int, default=1)
 
     def handle(self, *args: Any, **options: Any) -> None:
         count = max(1, min(int(options["count"]), 1000))
         seed = int(options["seed"])
+        revision = max(1, min(int(options["revision"]), 20))
         result = async_to_sync(ingest_source)(
             DemoListingSourceAdapter(),
-            SourceSearchRequest(limit=count, seed=seed),
+            SourceSearchRequest(limit=count, seed=seed, revision=revision),
         )
         summary = (
-            f"Demo pipeline: received={result.received}, created={result.created}, "
-            f"updated={result.updated}, unchanged={result.unchanged}, failed={result.failed}"
+            f"Demo pipeline revision={revision}: received={result.received}, "
+            f"created={result.created}, updated={result.updated}, "
+            f"unchanged={result.unchanged}, failed={result.failed}"
         )
         if result.failed:
             self.stdout.write(self.style.WARNING(summary))
