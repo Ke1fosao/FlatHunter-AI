@@ -83,6 +83,8 @@ DATABASES = {"default": env.db_url_config(DATABASE_URL)}
 if DATABASES["default"]["ENGINE"] == "django.db.backends.postgresql":
     DATABASES["default"]["ENGINE"] = "django.contrib.gis.db.backends.postgis"
 DATABASE_SCHEMA = env("DATABASE_SCHEMA", default="")
+if not DATABASE_SCHEMA and "rmwadgvxlpurmsxrzseu" in DATABASE_URL:
+    DATABASE_SCHEMA = "flathunter"
 if DATABASE_SCHEMA:
     if not DATABASE_SCHEMA.replace("_", "").isalnum():
         raise ValueError("DATABASE_SCHEMA must contain only letters, numbers, and underscores.")
