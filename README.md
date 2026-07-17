@@ -2,7 +2,7 @@
 
 **FlatHunter AI — розумний пошук житла**: Telegram-бот і Mini App для автоматизованого персоналізованого пошуку довгострокової оренди в Україні.
 
-> Поточний стан: **Етап 8 — безпечний AI-шар**. Система має deterministic search/matching, PostGIS-карту, guarded duplicate clusters і user-facing AI workspace для структурованого аналізу без передачі AI права вигадувати факти або приймати рішення за користувача.
+> Поточний стан: **Етап 9 — Risk і market analysis**. Система має deterministic search/matching, PostGIS-карту, guarded duplicate clusters, безпечний AI workspace, версійовану історію ціни, кластерно-дедупліковану ринкову оцінку та пояснюваний Risk Score без категоричних юридичних висновків.
 
 ## Реалізовано
 
@@ -33,6 +33,10 @@
 - Mini App AI workspace з copy-ready текстом без автоматичного надсилання;
 - timeout, retry, result cache, circuit breaker і daily budget guard;
 - sanitized `AIRequest` audit і `AIPromptVersion` registry;
+- idempotent `ListingSnapshot` і реальна `ListingPriceHistory`;
+- cluster-aware market median, Q1/Q3, price/m², deviation і confidence;
+- explainable Risk Score 0–100 із evidence та neutral safety wording;
+- Stage 9 API й accessible Mini App analytics panel із price-history chart;
 - Ruff, mypy, pytest, ESLint, TypeScript, Vitest, audits, Docker builds і Gitleaks.
 
 ## Архітектура
@@ -69,6 +73,7 @@ flowchart LR
 - [`docs/architecture.md`](docs/architecture.md);
 - [`docs/stage-7-duplicate-clustering.md`](docs/stage-7-duplicate-clustering.md);
 - [`docs/stage-8-ai.md`](docs/stage-8-ai.md).
+- [`docs/stage-9-risk-market-analysis.md`](docs/stage-9-risk-market-analysis.md).
 
 ## Запуск через Docker
 
@@ -81,6 +86,8 @@ docker compose exec backend python manage.py geocode_demo_data
 docker compose exec backend python manage.py build_listing_fingerprints
 docker compose exec backend python manage.py detect_listing_duplicates
 docker compose exec backend python manage.py rebuild_listing_clusters
+docker compose exec backend python manage.py backfill_listing_snapshots
+docker compose exec backend python manage.py refresh_listing_analyses
 ```
 
 Mini App: `http://localhost:8080`  
@@ -159,13 +166,17 @@ Image fingerprint command працює лише з trusted imported/demo metadat
 python manage.py process_listing_image_hashes
 ```
 
-## API етапу 8
+## API етапів 8–9
 
 ```text
 POST /api/v1/search-profiles/parse-natural-language/
 POST /api/v1/ai/listings/{listing_id}/summary/
 POST /api/v1/ai/listings/{listing_id}/owner-questions/
 POST /api/v1/ai/listings/compare/
+GET  /api/v1/listings/{listing_id}/price-history/
+GET  /api/v1/listings/{listing_id}/market-analysis/
+GET  /api/v1/listings/{listing_id}/risk-analysis/
+POST /api/v1/listings/{listing_id}/analysis/refresh/
 ```
 
 `owner-questions` і `compare` приймають optional `search_profile_id`. Backend перевіряє, що профіль належить authenticated user.
