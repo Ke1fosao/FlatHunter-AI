@@ -345,7 +345,7 @@ def _run_structured_task(
         output_data=payload,
         latency_ms=latency_ms,
         cache_key=result_cache_key,
-        usage=provider.last_usage,
+        usage=getattr(provider, "last_usage", AIUsage()),
     )
     return AIResult(
         payload=payload,
