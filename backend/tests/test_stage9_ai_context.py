@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from decimal import Decimal
 
 import pytest
@@ -61,7 +62,7 @@ def test_ai_context_uses_only_persisted_ready_stage9_values(ai_context_listing: 
         comparable_ids=[],
         selection_summary={},
         explanation="Validated synthetic market result.",
-        valid_until=timezone.now() + timezone.timedelta(hours=1),
+        valid_until=timezone.now() + timedelta(hours=1),
     )
     ListingRiskAssessment.objects.create(
         listing=ai_context_listing,
@@ -75,7 +76,7 @@ def test_ai_context_uses_only_persisted_ready_stage9_values(ai_context_listing: 
         safety_advice="Перевірте документи.",
         algorithm_version="risk-v1",
         input_hash="b" * 64,
-        valid_until=timezone.now() + timezone.timedelta(hours=1),
+        valid_until=timezone.now() + timedelta(hours=1),
     )
 
     context = listing_context(ai_context_listing)
@@ -100,7 +101,7 @@ def test_ai_context_keeps_insufficient_or_stale_analysis_unknown(ai_context_list
         comparable_ids=[],
         selection_summary={},
         explanation="Insufficient sample.",
-        valid_until=timezone.now() + timezone.timedelta(hours=1),
+        valid_until=timezone.now() + timedelta(hours=1),
     )
     ListingRiskAssessment.objects.create(
         listing=ai_context_listing,
@@ -114,7 +115,7 @@ def test_ai_context_keeps_insufficient_or_stale_analysis_unknown(ai_context_list
         safety_advice="Check documents.",
         algorithm_version="risk-v1",
         input_hash="d" * 64,
-        valid_until=timezone.now() - timezone.timedelta(seconds=1),
+        valid_until=timezone.now() - timedelta(seconds=1),
     )
 
     context = listing_context(ai_context_listing)
