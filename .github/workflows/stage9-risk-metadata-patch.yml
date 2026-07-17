@@ -1,7 +1,8 @@
 name: Stage 9 risk metadata patch
 
 on:
-  pull_request:
+  push:
+    branches: [feat/stage-9-risk-market-analysis]
 
 permissions:
   contents: write
