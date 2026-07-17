@@ -1,0 +1,42 @@
+name: Stage 9 frontend diagnostic
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend-diagnostic:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: miniapp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: miniapp/package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Capture frontend checks
+        id: checks
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          {
+            npm run lint
+            npm run typecheck
+            npm test
+            npm run build
+            npm audit --audit-level=high
+          } 2>&1 | tee frontend-quality.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stage9-frontend-diagnostic
+          path: miniapp/frontend-quality.log
+          if-no-files-found: error
+      - if: steps.checks.outcome == 'failure'
+        run: exit 1
