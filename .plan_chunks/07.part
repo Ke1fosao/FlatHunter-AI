@@ -1,0 +1,192 @@
+POST   /api/v1/listings/{id}/status/
+POST   /api/v1/listings/{id}/notes/
+GET    /api/v1/listings/{id}/duplicates/
+GET    /api/v1/listings/{id}/price-history/
+GET    /api/v1/listings/{id}/market-analysis/
+GET    /api/v1/listings/{id}/risk-analysis/
+POST   /api/v1/listings/compare/
+
+POST   /api/v1/import/url/
+POST   /api/v1/import/json/
+POST   /api/v1/import/csv/
+
+GET    /api/v1/shared-searches/
+POST   /api/v1/shared-searches/
+POST   /api/v1/shared-searches/{id}/invite/
+POST   /api/v1/shared-searches/{id}/react/
+POST   /api/v1/shared-searches/{id}/comments/
+
+GET    /api/v1/notifications/
+PATCH  /api/v1/notification-preferences/
+
+GET    /api/v1/map/listings/
+GET    /api/v1/analytics/summary/
+
+GET    /api/v1/admin/sources/
+POST   /api/v1/admin/sources/{id}/health-check/
+POST   /api/v1/admin/listings/{id}/renormalize/
+POST   /api/v1/admin/listing-clusters/merge/
+POST   /api/v1/admin/listing-clusters/split/
+```
+
+Додай:
+- pagination;
+- filtering;
+- sorting;
+- API versioning;
+- standardized errors;
+- idempotency keys для повторюваних команд;
+- OpenAPI schema;
+- rate limiting;
+- permission classes.
+
+## 27. АВТОРИЗАЦІЯ TELEGRAM MINI APP
+
+Не довіряй даним, які прийшли напряму з frontend.
+
+Mini App передає на backend оригінальний Telegram initData.
+
+Backend повинен:
+1. Розібрати query string.
+2. Перевірити hash або signature відповідно до документації Telegram.
+3. Перевірити auth_date.
+4. Відхилити занадто старі дані.
+5. Знайти або створити користувача.
+6. Видати короткострокову backend-сесію.
+7. Використовувати secure HttpOnly cookie або короткостроковий access token із безпечним refresh-механізмом.
+8. Не зберігати bot token у frontend.
+9. Не логувати повний initData.
+10. Не логувати секрети.
+
+Зроби replay protection.
+
+Додай тести на:
+- правильний hash;
+- неправильний hash;
+- прострочений auth_date;
+- змінені user data;
+- повторне використання;
+- відсутнє поле;
+- некоректне кодування.
+
+## 28. TELEGRAM WEBHOOK
+
+Production webhook повинен:
+- працювати тільки через HTTPS;
+- перевіряти секретний заголовок Telegram;
+- мати непередбачуваний URL;
+- швидко повертати відповідь;
+- не виконувати важку роботу всередині HTTP-запиту;
+- передавати важкі задачі в Celery;
+- бути idempotent;
+- захищатися від повторної обробки Update;
+- зберігати оброблені update_id;
+- логувати тільки безпечні метадані.
+
+Дозволяй тільки потрібні типи update.
+
+Створи health endpoint і окремий endpoint для перевірки webhook status.
+
+## 29. ФОНОВІ ЗАДАЧІ
+
+Використовуй Celery.
+
+Черги:
+- sources;
+- normalization;
+- images;
+- matching;
+- ai;
+- notifications;
+- analytics;
+- maintenance.
+
+Періодичні задачі:
+- перевірка джерел;
+- імпорт нових оголошень;
+- оновлення активних оголошень;
+- деактивація зниклих оголошень;
+- нормалізація;
+- пошук дублікатів;
+- Match Score;
+- Risk Score;
+- ринкова оцінка;
+- підготовка сповіщень;
+- щоденні звіти;
+- очищення кешу;
+- очищення raw payload;
+- повторна обробка помилок;
+- health checks;
+- агрегація аналітики.
+
+Усі задачі повинні бути:
+- idempotent;
+- retryable;
+- observable;
+- з exponential backoff;
+- з timeout;
+- з dead-letter механізмом або окремим статусом failed;
+- з correlation ID.
+
+Не запускай декілька екземплярів Celery Beat одночасно.
+
+## 30. ПРАВИЛА СПОВІЩЕНЬ
+
+Перед відправленням перевіряй:
+1. Чи активний пошук.
+2. Чи не приховав користувач цю квартиру.
+3. Чи не отримував він її раніше.
+4. Чи відповідає вона порогу.
+5. Чи не перевищений денний ліміт.
+6. Чи не ввімкнений тихий режим.
+7. Чи активний Telegram-чат.
+8. Чи не заблокував користувач бота.
+
+Зберігай статуси:
+- pending;
+- queued;
+- sent;
+- delivered, якщо можна визначити;
+- clicked;
+- failed;
+- suppressed;
+- expired.
+
+Не повторюй повідомлення через retry, якщо Telegram уже прийняв його.
+
+## 31. ПЕРСОНАЛІЗАЦІЯ ЗА РЕАКЦІЯМИ
+
+Система може поступово вчитися на діях користувача.
+
+Наприклад, користувач часто приховує:
+- квартири зі старим ремонтом;
+- перший поверх;
+- варіанти далеко від центру.
+
+Система може запропонувати:
+
+> Я помітив, що ви часто відхиляєте квартири зі старим ремонтом. Додати сучасний ремонт як важливу умову?
+
+Кнопки:
+- Так, додати;
+- Ні;
+- Не пропонувати подібне.
+
+Не змінюй критерії автоматично без підтвердження.
+
+Зроби можливість вимкнути персоналізацію.
+
+## 32. ДЕМО-РЕЖИМ ДЛЯ ПОРТФОЛІО
+
+Проєкт повинен працювати навіть без доступу до реальних джерел.
+
+Створи якісні synthetic demo data.
+
+Додай щонайменше:
+- 150 квартир;
+- 3 міста: Львів, Рівне, Київ;
+- різні райони;
+- різні ціни;
+- різні ремонти;
+- різні типи будинків;
+- дублікати між джерелами;
