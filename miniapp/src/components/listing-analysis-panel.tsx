@@ -83,7 +83,7 @@ function PriceChart({ history }: { history: PriceHistoryResponse }) {
       y: 90 - ((value - minimum) / spread) * 75
     }));
   }, [history]);
-  const line = points.map((point) => `${point.x},${point.y}`).join(" ");
+  const line = points.map((point) => `${String(point.x)},${String(point.y)}`).join(" ");
   return (
     <div className="analysis-chart">
       <svg viewBox="0 0 100 100" role="img" aria-labelledby="price-chart-title price-chart-description">
@@ -157,13 +157,8 @@ export function ListingAnalysisPanel({ listingId, summary }: { listingId: string
   return (
     <section className="listing-analysis" aria-labelledby={`analysis-title-${listingId}`}>
       <header className="listing-analysis__header">
-        <div>
-          <span>STAGE 09 · АНАЛІТИКА</span>
-          <h3 id={`analysis-title-${listingId}`}>Аналітика квартири</h3>
-        </div>
-        <button type="button" onClick={() => { void refresh(); }} disabled={loading || refreshing}>
-          {refreshing ? "Оновлюю…" : "Оновити"}
-        </button>
+        <div><span>STAGE 09 · АНАЛІТИКА</span><h3 id={`analysis-title-${listingId}`}>Аналітика квартири</h3></div>
+        <button type="button" onClick={() => { void refresh(); }} disabled={loading || refreshing}>{refreshing ? "Оновлюю…" : "Оновити"}</button>
       </header>
       <AnalysisChips summary={summary} />
       {loading && <div className="listing-analysis__state" role="status">Розраховую ринкову оцінку й Risk Score…</div>}
@@ -188,16 +183,16 @@ export function ListingAnalysisPanel({ listingId, summary }: { listingId: string
             </article>
           </div>
           <PriceChart history={history} />
-          {riskAssessment.signals.length > 0 && (
-            <div className="listing-analysis__signals">
-              <h4>Що варто перевірити</h4>
-              <ul>{riskAssessment.signals.map((signal) => <li key={signal.code}><strong>{signal.label}</strong><span>{signal.recommendation}</span></li>)}</ul>
-            </div>
-          )}
+          {riskAssessment.signals.length > 0 && <div className="listing-analysis__signals"><h4>Що варто перевірити</h4><ul>{riskAssessment.signals.map((signal) => <li key={signal.code}><strong>{signal.label}</strong><span>{signal.recommendation}</span></li>)}</ul></div>}
           <p className="listing-analysis__advice">{riskAssessment.safety_advice}</p>
-          <p className="listing-analysis__disclaimer">{risk?.disclaimer ?? "Допоміжна оцінка, не юридичний висновок."}</p>
+          <p className="listing-analysis__disclaimer">{risk.disclaimer}</p>
         </>
       )}
+      <style jsx global>{`
+        .analysis-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}.analysis-chip{display:inline-flex;align-items:center;min-height:28px;padding:5px 8px;border:1px solid var(--line);border-radius:999px;background:var(--bg);color:var(--muted);font-size:10px;font-weight:850}.analysis-chip--decrease{color:var(--accent)}.analysis-chip--increase,.analysis-chip--risk-review{color:var(--warning)}.analysis-chip--risk-elevated{color:var(--danger)}.analysis-chip--risk-low{color:var(--accent)}
+        .listing-analysis{display:grid;gap:14px;margin:20px 0;padding:18px;border:1px solid var(--line);border-radius:20px;background:color-mix(in srgb,var(--bg) 76%,var(--surface-solid));overflow:hidden}.listing-analysis__header{display:flex;align-items:center;justify-content:space-between;gap:12px}.listing-analysis__header span{color:var(--accent);font-size:9px;font-weight:900;letter-spacing:.12em}.listing-analysis__header h3{margin:4px 0 0}.listing-analysis__header button{min-height:44px;border:1px solid var(--line);border-radius:12px;padding:0 13px;background:var(--surface-solid);color:var(--accent);font-weight:900}.listing-analysis__header button:disabled{opacity:.55}.listing-analysis__state{display:grid;place-items:center;min-height:120px;border:1px dashed var(--line);border-radius:15px;color:var(--muted);text-align:center}.listing-analysis__state--error{color:var(--danger)}.listing-analysis__grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.listing-analysis__grid article{display:grid;gap:8px;padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--surface-solid)}.listing-analysis__grid small{color:var(--muted);font-size:10px;font-weight:800}.listing-analysis__grid strong{font-size:21px}.listing-analysis__grid p{margin:0;color:var(--muted);font-size:11px;line-height:1.5}.listing-analysis__risk--elevated{border-color:color-mix(in srgb,var(--danger) 35%,var(--line))!important}.listing-analysis__risk--review{border-color:color-mix(in srgb,var(--warning) 35%,var(--line))!important}.analysis-chart{display:grid;grid-template-columns:minmax(160px,.8fr) minmax(0,1.2fr);gap:14px;align-items:center}.analysis-chart svg{width:100%;min-height:130px;padding:10px;border-radius:15px;background:var(--surface-solid)}.analysis-chart polyline{stroke:var(--accent);stroke-width:2}.analysis-chart circle{fill:var(--surface-solid);stroke:var(--accent);stroke-width:1.5}.analysis-chart__alternative{max-height:150px;overflow:auto;margin:0;padding-left:20px;color:var(--muted);font-size:11px;line-height:1.6}.listing-analysis__signals h4{margin:0 0 9px}.listing-analysis__signals ul{display:grid;gap:8px;margin:0;padding:0;list-style:none}.listing-analysis__signals li{display:grid;gap:3px;padding:11px;border-radius:13px;background:var(--surface-solid)}.listing-analysis__signals strong{font-size:12px}.listing-analysis__signals span,.listing-analysis__advice,.listing-analysis__disclaimer{color:var(--muted);font-size:11px;line-height:1.55}.listing-analysis__advice{margin:0;padding:12px;border-left:3px solid var(--warning);background:color-mix(in srgb,var(--warning) 8%,transparent)}.listing-analysis__disclaimer{margin:0;font-weight:800}
+        @media(max-width:560px){.listing-analysis{padding:14px}.listing-analysis__grid,.analysis-chart{grid-template-columns:1fr}.analysis-chart svg{min-height:110px}.listing-analysis__header{align-items:flex-start}.listing-analysis__header button{flex:0 0 auto}.analysis-chip{white-space:normal}.listing-analysis__grid strong{font-size:18px}}
+      `}</style>
     </section>
   );
 }
