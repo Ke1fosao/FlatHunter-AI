@@ -2,7 +2,7 @@
 
 **FlatHunter AI — розумний пошук житла**: Telegram-бот і Mini App для автоматизованого персоналізованого пошуку довгострокової оренди в Україні.
 
-> Поточний стан: **Етап 7 — пошук дублікатів і кластери оголошень**. Користувач бачить одну картку й один маркер на квартиру, але може відкрити всі публікації, ціни та першоджерела.
+> Поточний стан: **Етап 8 — безпечний AI-шар**. Система має deterministic search/matching, PostGIS-карту, guarded duplicate clusters і user-facing AI workspace для структурованого аналізу без передачі AI права вигадувати факти або приймати рішення за користувача.
 
 ## Реалізовано
 
@@ -12,7 +12,7 @@
 - Telegram auth через перевірений `initData` і HttpOnly session;
 - aiogram bot із `/start`, Mini App та FSM onboarding;
 - `SearchProfile`, важливі точки й правила сповіщень;
-- natural-language fallback parser без обов'язкового AI API;
+- natural-language parser з deterministic fallback і confidence;
 - legal-first source adapters, `RawListing`, `Listing` і persistent user states;
 - deterministic synthetic data зі стабільними координатами й контрольованими групами дублікатів;
 - deterministic Match Score із поясненнями;
@@ -27,7 +27,13 @@
 - manual confirm/split/block/restore з immutable audit history;
 - одна cluster-aware favorite/hidden/compare/note state;
 - одна картка і один map marker на кластер;
-- Ruff, mypy, pytest, ESLint, TypeScript, audits, Docker builds і Gitleaks.
+- typed `AIProvider` abstraction і offline `local_rules` provider;
+- суворі AI output schemas та deterministic fallback;
+- AI summary, profile-aware owner questions і profile-aware comparison 2–5 квартир;
+- Mini App AI workspace з copy-ready текстом без автоматичного надсилання;
+- timeout, retry, result cache, circuit breaker і daily budget guard;
+- sanitized `AIRequest` audit і `AIPromptVersion` registry;
+- Ruff, mypy, pytest, ESLint, TypeScript, Vitest, audits, Docker builds і Gitleaks.
 
 ## Архітектура
 
@@ -47,15 +53,22 @@ flowchart LR
     CLUSTER --> FEED[One Card + All Sources]
     CLUSTER --> MAP[One Leaflet Marker]
     MATCH --> FEED
+    PROFILE --> AI[Safe AI Orchestration]
+    CLUSTER --> AI
+    AI --> PROVIDER[Typed AIProvider]
+    AI --> FALLBACK[Deterministic Rules]
+    AI --> AUDIT[(AIRequest + Prompt Versions)]
+    AI --> MINI
     API --> DB[(PostgreSQL + PostGIS)]
-    API --> REDIS[(Redis Cache / Broker)]
+    API --> REDIS[(Redis Cache / Broker / Circuit)]
     API --> CELERY[Celery Workers]
 ```
 
 Детальніше:
 
 - [`docs/architecture.md`](docs/architecture.md);
-- [`docs/stage-7-duplicate-clustering.md`](docs/stage-7-duplicate-clustering.md).
+- [`docs/stage-7-duplicate-clustering.md`](docs/stage-7-duplicate-clustering.md);
+- [`docs/stage-8-ai.md`](docs/stage-8-ai.md).
 
 ## Запуск через Docker
 
@@ -103,7 +116,27 @@ npm ci
 npm run dev
 ```
 
-Браузерний preview не обходить Telegram-вхід. Персональні профілі, геодані, кластери й user states доступні лише після серверної перевірки Telegram `initData`.
+Браузерний preview не обходить Telegram-вхід. Персональні профілі, геодані, кластери, user states й AI context доступні лише після серверної перевірки Telegram `initData`.
+
+## Налаштування AI
+
+Безпечний локальний режим:
+
+```env
+AI_PROVIDER=local_rules
+AI_MODEL=local-rules-v1
+AI_ENABLED=false
+AI_DAILY_BUDGET=0
+AI_TIMEOUT_SECONDS=15
+AI_MAX_RETRIES=1
+AI_CACHE_SECONDS=300
+AI_CIRCUIT_BREAKER_FAILURES=3
+AI_CIRCUIT_BREAKER_COOLDOWN_SECONDS=60
+```
+
+`AI_ENABLED=false` залишає deterministic parser та всі core flows працездатними без зовнішнього provider. Для демонстрації provider contract і audit можна встановити `AI_ENABLED=true` з `AI_PROVIDER=local_rules`.
+
+Remote provider у production дозволено підключати лише окремим reviewed adapter із secret manager, schema validation, timeout, cost metadata та бюджетним лімітом.
 
 ## Налаштування дедуплікації
 
@@ -126,30 +159,22 @@ Image fingerprint command працює лише з trusted imported/demo metadat
 python manage.py process_listing_image_hashes
 ```
 
-## API етапу 7
+## API етапу 8
 
 ```text
-GET   /api/v1/listing-clusters/{cluster_id}/
-PATCH /api/v1/listing-clusters/{cluster_id}/state/
-
-GET  /api/v1/duplicate-candidates/                         staff only
-POST /api/v1/duplicate-candidates/{candidate_id}/confirm/ staff only
-POST /api/v1/duplicate-candidates/{candidate_id}/split/   staff only
-POST /api/v1/duplicate-candidates/{candidate_id}/restore/ staff only
+POST /api/v1/search-profiles/parse-natural-language/
+POST /api/v1/ai/listings/{listing_id}/summary/
+POST /api/v1/ai/listings/{listing_id}/owner-questions/
+POST /api/v1/ai/listings/compare/
 ```
 
-Existing listing, match, dashboard and map endpoints remain backward compatible and add:
+`owner-questions` і `compare` приймають optional `search_profile_id`. Backend перевіряє, що профіль належить authenticated user.
 
-```text
-cluster_id
-source_count
-member_count
-is_cluster_primary
-price_min_uah
-price_max_uah
-```
+Comparison приймає 2–5 унікальних listing IDs. Рекомендація ґрунтується на deterministic Match Score; при незначній різниці система прямо повідомляє, що однозначного переможця немає.
 
-Default feeds return only standalone listings and active cluster primaries.
+Кожна відповідь містить `meta` зі status `success`, `cached`, `fallback` або `disabled`, provider/model/prompt version, latency та безпечним fallback reason.
+
+Повна API-документація: [`docs/api.md`](docs/api.md).
 
 ## Перевірки
 
@@ -193,13 +218,16 @@ npm audit --audit-level=high
 
 ## Відомі обмеження
 
+- production remote LLM adapter ще не підключений; `local_rules` є offline demo/fallback provider;
+- token/cost audit fields готові, але реальні значення має надати майбутній remote provider;
 - routing time пішки/авто/транспортом ще потребує окремого routing provider;
+- Risk Score, ринкова оцінка й історія ціни не вигадуються та належать наступному етапу;
 - production image downloading intentionally не реалізовано без source allowlist і окремої security review;
 - повноцінна moderation workspace запланована для admin етапу, а Stage 7 надає Django Admin і staff API primitives.
 
 ## Наступний етап
 
-Етап 8: AI enrichment поверх deterministic pipeline — структурований аналіз опису, extraction і language assistance без передачі AI права вирішувати duplicate identity.
+Етап 9: ринкова оцінка ціни, Risk Score, історія ціни й пояснення ризиків без юридичних висновків або фальшивої точності.
 
 ## Legal notice
 
