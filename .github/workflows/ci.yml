@@ -13,13 +13,60 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  format-stage8:
+    if: github.event_name == 'pull_request' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/stage-8-ai-hardening
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install ruff==0.15.21
+      - name: Fix Stage 8 backend lint
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          rules = Path("backend/apps/ai_analysis/rules.py")
+          text = rules.read_text()
+          text = text.replace(
+              '        "Точний час у дорозі потребує routing provider; без нього система не створює фальшиву точність.",',
+              '        (\n            "Точний час у дорозі потребує routing provider; "\n            "без нього система не створює фальшиву точність."\n        ),',
+          )
+          text = text.replace(
+              '        "Risk Score буде доданий окремим ринковим і ризиковим етапом; зараз він позначається як невідомий.",',
+              '        (\n            "Risk Score буде доданий окремим ринковим і ризиковим етапом; "\n            "зараз він позначається як невідомий."\n        ),',
+          )
+          rules.write_text(text)
+
+          schemas = Path("backend/apps/ai_analysis/schemas.py")
+          text = schemas.read_text().replace(
+              '        if self.price_min is not None and self.price_max is not None:\n            if self.price_min > self.price_max:\n                raise ValueError("price_min must not exceed price_max")',
+              '        if (\n            self.price_min is not None\n            and self.price_max is not None\n            and self.price_min > self.price_max\n        ):\n            raise ValueError("price_min must not exceed price_max")',
+          )
+          schemas.write_text(text)
+          PY
+          ruff check --fix backend/apps/ai_analysis/services.py
+          ruff format backend/apps/ai_analysis/rules.py backend/apps/ai_analysis/schemas.py backend/apps/ai_analysis/services.py
+      - name: Commit lint fixes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backend/apps/ai_analysis/rules.py backend/apps/ai_analysis/schemas.py backend/apps/ai_analysis/services.py
+          git commit -m "style: satisfy Stage 8 backend lint"
+          git push
+
   backend:
     runs-on: ubuntu-latest
     env:
       DJANGO_SECRET_KEY: ci-only-secret-key-not-for-production
       DJANGO_DEBUG: "true"
       DATABASE_URL: postgresql://flathunter:flathunter@flathunter-postgres:5432/flathunter_test
-      REDIS_URL: redis://flathunter-redis:6379/0
+      REDIS_URL: redis://redis:6379/0
       TELEGRAM_WEBHOOK_SECRET: ci-webhook-secret
       GEOCODING_PROVIDER: demo
       GEOCODING_EXTERNAL_ENABLED: "false"
