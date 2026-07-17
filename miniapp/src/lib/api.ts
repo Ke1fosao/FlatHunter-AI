@@ -301,7 +301,7 @@ export async function parseNaturalLanguageSearch(text: string): Promise<ParsedSe
 }
 
 export async function createSearchProfile(payload: SearchProfileInput): Promise<{ id: string }> {
-  return postJson<{ id: string }>("/search-profiles/", payload as unknown as Record<string, unknown>);
+  return postJson<{ id: string }>("/search-profiles/", payload);
 }
 
 export async function fetchSearchProfiles(signal?: AbortSignal): Promise<SearchProfileSummary[]> {

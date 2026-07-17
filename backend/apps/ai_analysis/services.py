@@ -601,13 +601,10 @@ def _daily_budget_exhausted() -> bool:
         datetime.combine(timezone.localdate(), datetime_time.min),
         current_timezone,
     )
-    spent = (
-        AIRequest.objects.filter(
-            created_at__gte=start,
-            status=AIRequestStatus.SUCCESS,
-        ).aggregate(total=Sum("estimated_cost_usd"))["total"]
-        or Decimal("0")
-    )
+    spent = AIRequest.objects.filter(
+        created_at__gte=start,
+        status=AIRequestStatus.SUCCESS,
+    ).aggregate(total=Sum("estimated_cost_usd"))["total"] or Decimal("0")
     return bool(spent >= budget)
 
 

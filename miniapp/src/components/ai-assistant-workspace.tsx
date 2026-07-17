@@ -219,7 +219,7 @@ export function AIAssistantWorkspace() {
                 <h4>{row.title}</h4>
                 <dl>
                   <div><dt>Ціна</dt><dd>{row.price}</dd></div>
-                  <div><dt>Match Score</dt><dd>{row.match_score === null ? "—" : `${row.match_score}%`}</dd></div>
+                  <div><dt>Match Score</dt><dd>{row.match_score === null ? "—" : `${String(row.match_score)}%`}</dd></div>
                   <div><dt>Перший платіж</dt><dd>{row.known_first_payment_uah === null ? "потрібно уточнити" : formatPrice(row.known_first_payment_uah)}</dd></div>
                   <div><dt>Комісія</dt><dd>{row.commission}</dd></div>
                   <div><dt>Тварини</dt><dd>{row.pets}</dd></div>
