@@ -17,10 +17,13 @@ class SourceHealth:
 class SourceSearchRequest:
     limit: int = 150
     seed: int = 20260716
+    revision: int = 1
 
     def __post_init__(self) -> None:
         if not 1 <= self.limit <= 1000:
             raise ValueError("limit must be between 1 and 1000")
+        if not 1 <= self.revision <= 20:
+            raise ValueError("revision must be between 1 and 20")
 
 
 @dataclass(frozen=True)
