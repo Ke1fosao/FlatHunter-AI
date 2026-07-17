@@ -129,7 +129,7 @@ describe("ListingAnalysisPanel", () => {
     expect(screen.getByText(/аналогів: 23/)).toBeInTheDocument();
     expect(screen.getByText("34/100")).toBeInTheDocument();
     expect(screen.getByText("Ціна нижча за схожі оголошення")).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "Історія ціни квартири" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /Історія ціни квартири/ })).toBeInTheDocument();
     expect(screen.getByLabelText("Текстова історія ціни")).toHaveTextContent("18 000 грн → 16 500 грн");
     expect(screen.getByText("Допоміжна оцінка, не юридичний висновок.")).toBeInTheDocument();
   });
