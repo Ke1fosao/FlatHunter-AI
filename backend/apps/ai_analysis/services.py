@@ -452,8 +452,9 @@ def _write_audit(
     latency_ms: int,
     error_message: str = "",
     cache_key: str = "",
-    usage: AIUsage = AIUsage(),
+    usage: AIUsage | None = None,
 ) -> None:
+    request_usage = usage or AIUsage()
     AIRequest.objects.create(
         user=user,
         feature=feature,
@@ -465,10 +466,10 @@ def _write_audit(
         output_data=output_data,
         error_message=error_message,
         latency_ms=max(latency_ms, 0),
-        prompt_tokens=max(usage.prompt_tokens, 0),
-        completion_tokens=max(usage.completion_tokens, 0),
-        total_tokens=max(usage.total_tokens, 0),
-        estimated_cost_usd=max(usage.estimated_cost_usd, Decimal("0")),
+        prompt_tokens=max(request_usage.prompt_tokens, 0),
+        completion_tokens=max(request_usage.completion_tokens, 0),
+        total_tokens=max(request_usage.total_tokens, 0),
+        estimated_cost_usd=max(request_usage.estimated_cost_usd, Decimal("0")),
         cache_key=cache_key,
     )
 
