@@ -33,6 +33,7 @@ from apps.ai_analysis.schemas import (
     OwnerQuestionsResult,
     SearchCriteriaExtraction,
 )
+from apps.analysis.context import validated_analysis_context
 from apps.listings.models import Listing
 from apps.matching.engine import evaluate_match
 from apps.searches.models import SearchProfile
@@ -173,6 +174,7 @@ def listing_context(
         "published_at": listing.published_at.isoformat(),
         "attributes": listing.attributes,
     }
+    context.update(validated_analysis_context(listing))
     if profile is not None:
         match = evaluate_match(profile, listing).to_dict()
         context["match_score"] = int(match["score"])

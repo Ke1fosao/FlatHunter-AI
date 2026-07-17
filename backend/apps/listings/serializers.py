@@ -6,6 +6,7 @@ from rest_framework import serializers
 from rest_framework.fields import empty
 
 from apps.accounts.models import User
+from apps.analysis.services import latest_analysis_summary
 from apps.duplicates.presentation import cluster_metadata, projected_user_state
 from apps.listings.models import Listing, UserListingState
 
@@ -57,6 +58,7 @@ class ListingSerializer(serializers.ModelSerializer):
     is_cluster_primary = serializers.SerializerMethodField()
     price_min_uah = serializers.SerializerMethodField()
     price_max_uah = serializers.SerializerMethodField()
+    analysis_summary = serializers.SerializerMethodField()
 
     class Meta:
         model = Listing
@@ -105,6 +107,7 @@ class ListingSerializer(serializers.ModelSerializer):
             "source_count",
             "member_count",
             "is_cluster_primary",
+            "analysis_summary",
         )
 
     def get_is_demo(self, instance: Listing) -> bool:
@@ -146,3 +149,6 @@ class ListingSerializer(serializers.ModelSerializer):
 
     def get_price_max_uah(self, instance: Listing) -> int:
         return int(self._cluster_value(instance, "price_max_uah"))
+
+    def get_analysis_summary(self, instance: Listing) -> dict[str, Any]:
+        return latest_analysis_summary(instance)

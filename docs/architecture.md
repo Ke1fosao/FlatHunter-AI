@@ -1,10 +1,11 @@
-# Архітектура FlatHunter AI — Stage 8
+# Архітектура FlatHunter AI — Stage 9
 
 ## Принципи
 
 - modular monorepo без змішування frontend, bot і domain logic;
 - Telegram є каналом ідентифікації, backend залишається джерелом істини;
 - core matching, duplicate detection, demo geocoding і базовий пошук не залежать від AI;
+- market analysis і Risk Score детерміновані, versioned, explainable та не залежать від LLM;
 - AI працює лише через typed `AIProvider` boundary і не отримує право змінювати доменні факти;
 - зовнішні джерела та providers підключаються через legal-first adapters;
 - персональні профілі, стани, геодані й AI-context завжди user-scoped;
@@ -96,6 +97,7 @@ flowchart TB
 - `apps.duplicates`: normalized fingerprints, candidate scoring, manual decisions, guarded clusters, cluster user state and presentation helpers;
 - `apps.geodata`: geometry helpers, providers, spatial services, GeoJSON і map API;
 - `apps.ai_analysis`: typed providers, structured schemas, deterministic fallback, reliability controls, prompt registry й sanitized audit trail.
+- `apps.analysis`: canonical snapshots, real price history, cluster-aware comparables, market statistics, Risk Score, persistence, tasks і API.
 
 ## Listing and duplicate flow
 
@@ -208,7 +210,7 @@ sequenceDiagram
 - all provider output is validated by task-specific Pydantic schemas;
 - `SearchProfile` context is loaded by authenticated object ownership;
 - Match Score is calculated by `apps.matching`, not invented by AI;
-- exact routing time, Risk Score, deposit and contacts remain unknown unless a trusted deterministic provider supplies them;
+- exact routing time, deposit and contacts remain unknown; Risk Score і market facts використовуються лише з persisted validated non-stale Stage 9 assessments;
 - AI failure never blocks the listing feed, map, filters or notifications;
 - raw user prompts are not stored in audit records.
 
@@ -273,3 +275,26 @@ sequenceDiagram
 - Telegram webhook;
 - external AI provider only through a reviewed adapter, secret manager, strict timeout, cost metadata and configured budget;
 - source policies, image allowlists, backups, thresholds and monitoring configured before enabling automatic duplicate refresh.
+
+## Stage 9 analytics flow
+
+```mermaid
+flowchart LR
+    LISTING[(Approved Active Listing)] --> SNAPSHOT[Canonical Snapshot + SHA-256]
+    SNAPSHOT --> HISTORY[(Real Price History)]
+    LISTING --> COMPARABLES[Bounded Cluster-aware Comparables]
+    COMPARABLES --> MARKET[Median + Q1/Q3 + Confidence]
+    MARKET --> MARKETDB[(Market Assessment)]
+    LISTING --> RISK[Deterministic Risk Signals]
+    HISTORY --> RISK
+    MARKETDB --> RISK
+    RISK --> RISKDB[(Risk Assessment)]
+    MARKETDB --> API[Authenticated Analysis API]
+    RISKDB --> API
+    HISTORY --> API
+    API --> MINI[Mini App Chips + Detail Panel]
+    MARKETDB --> AICTX[Validated Stage 8 Context]
+    RISKDB --> AICTX
+```
+
+Comparable selection excludes the target, inactive/unapproved/stale rows and every member of the same duplicate cluster. Market statistics expose sample size and confidence; insufficient samples return null estimates. Risk signals retain stable evidence and never auto-hide listings or make categorical claims about an author.

@@ -71,7 +71,12 @@ Every listing payload includes:
   "member_count": 3,
   "is_cluster_primary": true,
   "price_min_uah": 18000,
-  "price_max_uah": 19000
+  "price_max_uah": 19000,
+  "analysis_summary": {
+    "market": {"status": "ready", "median_price_uah": 18000, "confidence_label": "high"},
+    "risk": {"status": "ready", "score": 32, "level": "review"},
+    "latest_price_change": null
+  }
 }
 ```
 
@@ -237,7 +242,7 @@ Comparison rows may include:
 }
 ```
 
-`risk_score` and exact `travel_minutes` stay `null` until their dedicated providers/stages are available.
+`risk_score` is populated only from a persisted validated non-stale Stage 9 assessment. Exact `travel_minutes` stays `null` until a routing provider is available.
 
 ### AI metadata
 
@@ -264,6 +269,21 @@ Status values:
 - `disabled`.
 
 Fallback responses additionally include a safe `reason`, such as `provider_error`, `provider_unavailable`, `circuit_open` or `daily_budget_exhausted`.
+
+## Stage 9 Risk і market analysis
+
+- `GET /listings/{id}/price-history/` — current price and real normalized price-change events;
+- `GET /listings/{id}/market-analysis/` — median, Q1/Q3, price/m², deviation, sample size, confidence and status;
+- `GET /listings/{id}/risk-analysis/` — explainable score, neutral level, signals, safety advice and disclaimer;
+- `POST /listings/{id}/analysis/refresh/` — throttled idempotent refresh.
+
+Refresh accepts only:
+
+```json
+{ "force": false }
+```
+
+Optional header `Idempotency-Key` deduplicates repeated commands. Provider names, weights and algorithms are server-controlled and cannot be supplied by frontend. Endpoints return `404` for inactive listings or sources without `approved`/`approved_demo` legal status. `insufficient_data`, `stale`, `failed` and `disabled` are normal explicit states rather than fabricated numbers or HTTP 500.
 
 ## Schema
 

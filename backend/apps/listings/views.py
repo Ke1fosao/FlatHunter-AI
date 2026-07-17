@@ -3,13 +3,18 @@ from __future__ import annotations
 from typing import Any, cast
 
 from django.db import transaction
-from django.db.models import QuerySet
+from django.db.models import Prefetch, QuerySet
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from apps.accounts.models import User
+from apps.analysis.models import (
+    ListingMarketAssessment,
+    ListingPriceHistory,
+    ListingRiskAssessment,
+)
 from apps.duplicates.models import UserClusterState
 from apps.duplicates.presentation import (
     cluster_aware_listing_queryset,
@@ -34,6 +39,26 @@ class ListingViewSet(viewsets.ReadOnlyModelViewSet):
     search_fields = ("title", "description", "city", "district", "street")
     ordering_fields = ("published_at", "price_uah", "rooms", "total_area")
     ordering = ("-published_at",)
+
+    @staticmethod
+    def _with_analysis(queryset: QuerySet[Listing]) -> QuerySet[Listing]:
+        return queryset.prefetch_related(
+            Prefetch(
+                "market_assessments",
+                queryset=ListingMarketAssessment.objects.order_by("-calculated_at"),
+                to_attr="prefetched_market_assessments",
+            ),
+            Prefetch(
+                "risk_assessments",
+                queryset=ListingRiskAssessment.objects.order_by("-calculated_at"),
+                to_attr="prefetched_risk_assessments",
+            ),
+            Prefetch(
+                "price_history",
+                queryset=ListingPriceHistory.objects.order_by("-changed_at", "-detected_at"),
+                to_attr="prefetched_price_history",
+            ),
+        )
 
     def get_queryset(self) -> QuerySet[Listing]:
         user = cast(User, self.request.user)
@@ -79,7 +104,7 @@ class ListingViewSet(viewsets.ReadOnlyModelViewSet):
                 field="is_compared",
                 value=bool(params["compared"]),
             )
-        return queryset.distinct()
+        return self._with_analysis(queryset.distinct())
 
     @action(detail=False, methods=["get"])
     def dashboard(self, request: Request) -> Response:
@@ -95,7 +120,9 @@ class ListingViewSet(viewsets.ReadOnlyModelViewSet):
             source__legal_status__in=("approved_demo", "approved"),
         )
         available = collapse_clustered_queryset(base).count()
-        recent_queryset = cluster_aware_listing_queryset(base, user=user).order_by("-published_at")
+        recent_queryset = self._with_analysis(
+            cluster_aware_listing_queryset(base, user=user).order_by("-published_at")
+        )
         recent = list(recent_queryset[:4])
         return Response(
             {
@@ -137,9 +164,11 @@ class ListingViewSet(viewsets.ReadOnlyModelViewSet):
                 )
             cast(Any, cluster).current_user_cluster_states = [state]
             primary_id = cluster.primary_listing_id or listing.id
-            updated = presentation_queryset(
-                Listing.objects.filter(pk=primary_id),
-                user,
+            updated = self._with_analysis(
+                presentation_queryset(
+                    Listing.objects.filter(pk=primary_id),
+                    user,
+                )
             ).get()
             return Response(self.get_serializer(updated).data)
 
