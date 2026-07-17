@@ -168,7 +168,13 @@ AI_API_KEY = env("AI_API_KEY", default="")
 AI_MODEL = env("AI_MODEL", default="local-rules-v1")
 AI_ENABLED = env.bool("AI_ENABLED", default=False)
 AI_DAILY_BUDGET = env.float("AI_DAILY_BUDGET", default=0)
-AI_TIMEOUT_SECONDS = env.int("AI_TIMEOUT_SECONDS", default=15)
+AI_TIMEOUT_SECONDS = env.float("AI_TIMEOUT_SECONDS", default=15)
+AI_MAX_RETRIES = env.int("AI_MAX_RETRIES", default=1)
+AI_CACHE_SECONDS = env.int("AI_CACHE_SECONDS", default=300)
+AI_CIRCUIT_BREAKER_FAILURES = env.int("AI_CIRCUIT_BREAKER_FAILURES", default=3)
+AI_CIRCUIT_BREAKER_COOLDOWN_SECONDS = env.int(
+    "AI_CIRCUIT_BREAKER_COOLDOWN_SECONDS", default=60
+)
 
 GEOCODING_PROVIDER = env("GEOCODING_PROVIDER", default="demo")
 GEOCODING_API_KEY = env("GEOCODING_API_KEY", default="")
