@@ -47,9 +47,7 @@ def validated_analysis_context(listing: Listing) -> dict[str, Any]:
             if market_ready is not None and market_ready.deviation_percent is not None
             else None
         ),
-        "market_confidence": (
-            market_ready.confidence_label if market_ready is not None else None
-        ),
+        "market_confidence": (market_ready.confidence_label if market_ready is not None else None),
         "market_comparable_count": (
             market_ready.comparable_count if market_ready is not None else None
         ),
