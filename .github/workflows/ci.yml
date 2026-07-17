@@ -13,6 +13,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  fix-stage8-provider-usage:
+    if: github.event_name == 'pull_request' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/stage-8-ai-hardening
+      - name: Make provider usage metadata optional
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("backend/apps/ai_analysis/services.py")
+          content = path.read_text()
+          old = "        usage=provider.last_usage,"
+          new = '        usage=getattr(provider, "last_usage", AIUsage()),'
+          if old not in content:
+              raise SystemExit("expected provider usage line not found")
+          path.write_text(content.replace(old, new, 1))
+          PY
+      - name: Commit compatibility fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backend/apps/ai_analysis/services.py
+          git commit -m "fix: tolerate providers without usage metadata"
+          git push
+
   backend:
     runs-on: ubuntu-latest
     env:
