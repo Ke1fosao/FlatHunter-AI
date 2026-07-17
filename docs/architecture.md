@@ -1,14 +1,15 @@
-# Архітектура FlatHunter AI — Stage 7
+# Архітектура FlatHunter AI — Stage 8
 
 ## Принципи
 
 - modular monorepo без змішування frontend, bot і domain logic;
 - Telegram є каналом ідентифікації, backend залишається джерелом істини;
-- core matching, duplicate detection і demo geocoding не залежать від AI;
+- core matching, duplicate detection, demo geocoding і базовий пошук не залежать від AI;
+- AI працює лише через typed `AIProvider` boundary і не отримує право змінювати доменні факти;
 - зовнішні джерела та providers підключаються через legal-first adapters;
-- персональні профілі, стани й геодані завжди user-scoped;
+- персональні профілі, стани, геодані й AI-context завжди user-scoped;
 - оригінальні `Listing` зберігаються навіть після об’єднання в кластер;
-- external geocoding та queued duplicate refresh є opt-in;
+- external geocoding, remote AI і queued duplicate refresh є opt-in;
 - PostGIS використовується для spatial filtering і distances;
 - polling і webhook ніколи не працюють одночасно.
 
@@ -22,6 +23,7 @@ flowchart TB
       MiniApp[Next.js Mini App]
       ClusterUI[Cluster-first Feed]
       Leaflet[Leaflet Map]
+      AIUI[Safe AI Workspace]
     end
 
     subgraph Edge
@@ -38,11 +40,16 @@ flowchart TB
       Matcher[Deterministic Match Engine]
       DuplicateEngine[Fingerprint + Duplicate Engine]
       ClusterBuilder[Guarded Cluster Builder]
+      AIService[AI Orchestration]
+      AIProvider[Typed AIProvider]
+      Rules[Deterministic AI Fallback Rules]
+      Reliability[Timeout + Retry + Cache + Circuit + Budget]
     end
 
     subgraph Data
       PostgreSQL[(PostgreSQL + PostGIS)]
       Redis[(Redis Cache / Broker)]
+      AIAudit[(AIRequest + Prompt Versions)]
     end
 
     Telegram --> Bot
@@ -53,11 +60,18 @@ flowchart TB
     Gateway --> MiniApp
     MiniApp --> ClusterUI
     MiniApp --> Leaflet
+    MiniApp --> AIUI
     Leaflet --> Tiles
     Bot --> API
     API --> Matcher
     API --> Geocoder
     API --> DuplicateEngine
+    API --> AIService
+    AIService --> Reliability
+    Reliability --> AIProvider
+    Reliability --> Rules
+    AIService --> AIAudit
+    AIService --> Matcher
     DuplicateEngine --> ClusterBuilder
     API --> PostgreSQL
     API --> Redis
@@ -68,6 +82,7 @@ flowchart TB
     Worker --> Redis
     ClusterBuilder --> ClusterUI
     ClusterBuilder --> Leaflet
+    AIService --> AIUI
 ```
 
 ## Backend modules
@@ -79,7 +94,8 @@ flowchart TB
 - `apps.listings`: raw/normalized listings і backward-compatible listing state;
 - `apps.matching`: deterministic Match Score;
 - `apps.duplicates`: normalized fingerprints, candidate scoring, manual decisions, guarded clusters, cluster user state and presentation helpers;
-- `apps.geodata`: geometry helpers, providers, spatial services, GeoJSON і map API.
+- `apps.geodata`: geometry helpers, providers, spatial services, GeoJSON і map API;
+- `apps.ai_analysis`: typed providers, structured schemas, deterministic fallback, reliability controls, prompt registry й sanitized audit trail.
 
 ## Listing and duplicate flow
 
@@ -119,7 +135,7 @@ Small clusters require a complete compatibility graph. Large clusters require co
 
 `UserClusterState` owns favorite, hidden, compared, and note for clustered apartments. Existing `UserListingState` remains valid for standalone listings and mirrors the current cluster primary for backward compatibility.
 
-One cluster occupies one comparison slot. Default feeds, personalized matches, dashboard metrics, and map markers collapse duplicates to active primaries.
+One cluster occupies one comparison slot. Default feeds, personalized matches, dashboard metrics, map markers and AI apartment selections collapse duplicates to active primaries.
 
 ## Geodata flow
 
@@ -151,6 +167,66 @@ flowchart LR
 
 API не приймає provider URL і не розкриває credentials.
 
+## Stage 8 AI flow
+
+```mermaid
+sequenceDiagram
+    participant U as Authenticated User
+    participant M as Mini App
+    participant A as AI API
+    participant S as AI Service
+    participant C as Redis Cache/Circuit
+    participant P as AIProvider
+    participant R as Deterministic Rules
+    participant D as PostgreSQL Audit
+
+    U->>M: Request summary/questions/comparison
+    M->>A: Structured IDs + optional owned profile
+    A->>A: Validate input, listing policy and ownership
+    A->>S: Structured context only
+    S->>S: Check AI enabled and daily budget
+    S->>C: Read result cache / circuit state
+    alt cached result
+      C-->>S: Validated cached payload
+    else provider available
+      S->>P: structured_completion + timeout/retry
+      P-->>S: Typed result
+      S->>S: Schema re-validation
+      S->>C: Cache validated result
+    else disabled/failure/open circuit/budget
+      S->>R: Deterministic fallback
+      R-->>S: Typed safe result
+    end
+    S->>D: Sanitized AIRequest + prompt/model version
+    S-->>A: Payload + safe meta
+    A-->>M: Render facts, unknowns and confidence
+```
+
+### AI trust boundary
+
+- `AIProvider` receives bounded structured context, not database access;
+- all provider output is validated by task-specific Pydantic schemas;
+- `SearchProfile` context is loaded by authenticated object ownership;
+- Match Score is calculated by `apps.matching`, not invented by AI;
+- exact routing time, Risk Score, deposit and contacts remain unknown unless a trusted deterministic provider supplies them;
+- AI failure never blocks the listing feed, map, filters or notifications;
+- raw user prompts are not stored in audit records.
+
+### Reliability boundary
+
+`apps.ai_analysis.services` centralizes:
+
+- timeout;
+- bounded retries;
+- structured result cache;
+- provider circuit breaker;
+- daily cost budget guard;
+- active prompt version registry;
+- latency/status/error audit;
+- deterministic fallback.
+
+Provider/model/prompt version and canonical structured context are part of the cache key, so stale output from a different model or prompt is not reused.
+
 ## Authentication boundary
 
 ```mermaid
@@ -181,7 +257,8 @@ sequenceDiagram
 - Next.js dev server;
 - Django development server;
 - Telegram long polling;
-- demo geocoder and offline demo duplicate hashes by default;
+- demo geocoder, local rules AI and offline demo duplicate hashes by default;
+- AI may stay fully disabled while deterministic fallback remains available;
 - duplicate queue disabled by default.
 
 ### Production-oriented
@@ -190,8 +267,9 @@ sequenceDiagram
 - Gunicorn Django service with GIS runtime libraries;
 - Next.js standalone runtime;
 - PostgreSQL/PostGIS;
-- Redis;
+- Redis for cache, circuit state and Celery;
 - Celery worker with optional dedicated `duplicates` queue;
 - exactly one Celery Beat;
 - Telegram webhook;
+- external AI provider only through a reviewed adapter, secret manager, strict timeout, cost metadata and configured budget;
 - source policies, image allowlists, backups, thresholds and monitoring configured before enabling automatic duplicate refresh.
