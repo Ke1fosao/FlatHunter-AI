@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, cast
 
+from django.db.models import QuerySet
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.request import Request
@@ -18,7 +19,7 @@ from apps.ai_analysis.services import (
 from apps.listings.models import Listing
 
 
-def _approved_listing_queryset():
+def _approved_listing_queryset() -> QuerySet[Listing]:
     return Listing.objects.filter(
         is_active=True,
         source__enabled=True,
