@@ -14,7 +14,15 @@ Create or restore a Supabase project, then run:
 create extension if not exists postgis;
 ```
 
-Use the pooled or direct connection string as Render's `DATABASE_URL`. The value must not be committed.
+Use the Supabase session pooler connection string as Render's `DATABASE_URL`. The value must not be committed.
+
+For this project, the expected format is:
+
+```text
+postgresql://postgres.rmwadgvxlpurmsxrzseu:<YOUR-PASSWORD>@aws-1-eu-central-1.pooler.supabase.com:5432/postgres
+```
+
+Copy it from Supabase Dashboard -> Connect -> Direct -> Session pooler, then replace `<YOUR-PASSWORD>` with the database password.
 
 ## 2. Render Backend
 
@@ -24,7 +32,7 @@ Set these secret/env values in Render:
 
 ```env
 DJANGO_SECRET_KEY=<strong random secret>
-DATABASE_URL=<supabase postgres connection string>
+DATABASE_URL=postgresql://postgres.rmwadgvxlpurmsxrzseu:<YOUR-PASSWORD>@aws-1-eu-central-1.pooler.supabase.com:5432/postgres
 CORS_ALLOWED_ORIGINS=https://<your-vercel-app>.vercel.app
 CSRF_TRUSTED_ORIGINS=https://<your-vercel-app>.vercel.app
 TELEGRAM_BOT_TOKEN=<bot token>

@@ -75,6 +75,10 @@ TEMPLATES = [
 ]
 
 DATABASE_URL = env("DATABASE_URL", default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}")
+DATABASE_URL = DATABASE_URL.replace(
+    "aws-0-eu-central-1.pooler.supabase.com",
+    "aws-1-eu-central-1.pooler.supabase.com",
+)
 DATABASES = {"default": env.db_url_config(DATABASE_URL)}
 if DATABASES["default"]["ENGINE"] == "django.db.backends.postgresql":
     DATABASES["default"]["ENGINE"] = "django.contrib.gis.db.backends.postgis"
