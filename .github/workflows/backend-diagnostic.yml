@@ -1,8 +1,8 @@
 name: Backend CI diagnostic
 
 on:
-  push:
-    branches: [fix/backend-ci-and-full-plan]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: read
