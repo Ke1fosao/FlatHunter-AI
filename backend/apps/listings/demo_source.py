@@ -31,6 +31,36 @@ class DemoListingSourceAdapter(ListingSourceAdapter):
     async def health_check(self) -> SourceHealth:
         return SourceHealth(healthy=True, message="Synthetic source is available")
 
+    @staticmethod
+    def _stage9_price(index: int, base_price: int, revision: int) -> int:
+        price = base_price
+        if index % 30 == 2:
+            price = round(price * 0.68)
+        if revision >= 2 and index % 20 == 0:
+            price = round(price * 0.90)
+        elif revision >= 2 and index % 20 == 1:
+            price = round(price * 1.08)
+        if revision >= 3 and index % 45 == 0:
+            price = round(price * 0.94)
+        return max(6000, price)
+
+    @staticmethod
+    def _stage9_description(index: int, default: str) -> str:
+        if index % 30 == 0:
+            return (
+                "Синтетичний demo-сценарій: для бронювання нібито потрібна передоплата "
+                "до перегляду. Не використовуйте це оголошення для реальної оренди."
+            )
+        if index % 30 == 1:
+            return "Короткий synthetic demo-опис."
+        if index % 30 == 3:
+            return (
+                "Детальне синтетичне оголошення з умовами договору, площею, поверхом, "
+                "опаленням, комунальними платежами та оплатою лише після перегляду й "
+                "перевірки документів. Не описує реальну квартиру або людину."
+            )
+        return default
+
     async def search(self, request: SourceSearchRequest) -> list[dict[str, Any]]:
         reference_time = datetime(2026, 7, 16, 12, 0, tzinfo=UTC)
         results: list[dict[str, Any]] = []
@@ -49,15 +79,15 @@ class DemoListingSourceAdapter(ListingSourceAdapter):
             district = property_rng.choice(self.cities[city])
             rooms = property_rng.randint(1, 4)
             area = round(property_rng.uniform(28 + rooms * 7, 42 + rooms * 18), 1)
-            base_price = {"Львів": 14500, "Рівне": 10500, "Київ": 18500}[city]
+            city_base = {"Львів": 14500, "Рівне": 10500, "Київ": 18500}[city]
             shared_price = max(
-                base_price
+                city_base
                 + rooms * property_rng.randint(1800, 3900)
                 + property_rng.randint(-2500, 3500),
                 6000,
             )
             price_variation = (-350, 0, 450)[duplicate_slot] if duplicate_group else 0
-            price = max(6000, shared_price + price_variation)
+            price = self._stage9_price(index, shared_price + price_variation, request.revision)
             floor = property_rng.randint(1, 14)
             floors_total = max(floor, property_rng.randint(5, 18))
             centre_lat, centre_lon = self.city_centres[city]
@@ -70,7 +100,7 @@ class DemoListingSourceAdapter(ListingSourceAdapter):
                 f"Квартира на {rooms} кімнати · район {district}",
             )
             title = title_variants[duplicate_slot] if duplicate_group else title_variants[0]
-            description = (
+            default_description = (
                 "Синтетичне demo-оголошення, яке не описує реальну квартиру."
                 if not duplicate_group
                 else (
@@ -78,13 +108,21 @@ class DemoListingSourceAdapter(ListingSourceAdapter):
                     f"Варіант публікації {duplicate_slot + 1}."
                 )
             )
+            description = self._stage9_description(index, default_description)
             attributes: dict[str, Any] = {
                 "balcony": property_rng.choice([True, False]),
                 "elevator": floors_total > 5,
                 "furniture": property_rng.choice([True, False]),
                 "backup_power": property_rng.choice([True, False, None]),
                 "demo": True,
+                "demo_revision": request.revision,
             }
+            if index in {5, 6}:
+                attributes["demo_image_hashes"] = ["synthetic-cross-city-image-001"]
+            if index % 25 == 4:
+                attributes["relisted_count"] = 4
+            if index % 30 == 7:
+                attributes["hidden_commission"] = True
             if duplicate_group:
                 attributes["demo_duplicate_group"] = duplicate_group
                 attributes["building_number"] = 10 + (index // 12)
@@ -164,6 +202,6 @@ class DemoListingSourceAdapter(ListingSourceAdapter):
             "attributes": dict(raw_listing.get("attributes", {})),
             "published_at": raw_listing["published_at"],
             "is_active": True,
-            "normalization_version": 3,
+            "normalization_version": 4,
         }
         return NormalizedListingData(external_id=external_id, values=values)
