@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from decimal import Decimal
 
 from django.conf import settings
 from django.contrib.gis.measure import D
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q, QuerySet
 from django.utils import timezone
 
@@ -19,14 +21,14 @@ def _approved_candidates(listing: Listing) -> QuerySet[Listing]:
         source__legal_status__in=("approved_demo", "approved"),
         city__iexact=listing.city,
         price_uah__gt=0,
-        published_at__gte=timezone.now() - timezone.timedelta(days=freshness_days),
+        published_at__gte=timezone.now() - timedelta(days=freshness_days),
     ).exclude(pk=listing.pk)
     queryset = queryset.filter(
         Q(cluster_membership__isnull=True) | Q(cluster_membership__role="primary")
     )
     try:
         membership = listing.cluster_membership
-    except Listing.cluster_membership.RelatedObjectDoesNotExist:
+    except ObjectDoesNotExist:
         membership = None
     if membership is not None:
         queryset = queryset.exclude(cluster_membership__cluster=membership.cluster)
