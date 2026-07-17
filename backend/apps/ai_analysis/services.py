@@ -19,6 +19,7 @@ from django.utils import timezone
 from pydantic import BaseModel, ValidationError
 
 from apps.accounts.models import User
+from apps.analysis.context import validated_analysis_context
 from apps.ai_analysis.models import AIPromptVersion, AIRequest, AIRequestStatus
 from apps.ai_analysis.providers import AIProvider, AIProviderError, AIUsage, get_ai_provider
 from apps.ai_analysis.rules import (
@@ -173,6 +174,7 @@ def listing_context(
         "published_at": listing.published_at.isoformat(),
         "attributes": listing.attributes,
     }
+    context.update(validated_analysis_context(listing))
     if profile is not None:
         match = evaluate_match(profile, listing).to_dict()
         context["match_score"] = int(match["score"])

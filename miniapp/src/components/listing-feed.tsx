@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { AnalysisChips, ListingAnalysisPanel } from "@/components/listing-analysis-panel";
+import type { AnalysisSummary } from "@/lib/analysis-api";
 import {
   ApiError,
   fetchDashboard,
@@ -16,6 +18,12 @@ import {
   type PersonalizedMatch,
   type SearchProfileSummary
 } from "@/lib/api";
+
+type AnalyzedListing = ListingFeedItem & { analysis_summary?: AnalysisSummary };
+
+function listingAnalysis(listing: ListingFeedItem): AnalysisSummary | undefined {
+  return (listing as AnalyzedListing).analysis_summary;
+}
 
 type WorkspaceTab = "dashboard" | "feed" | "favorites" | "comparison";
 
@@ -82,6 +90,7 @@ function ListingCard({
           <h3>{listing.title}</h3>
           <strong>{formatPrice(listing.price_uah)}</strong>
           <p>{listing.rooms} кімн. · {listing.total_area ? `${listing.total_area} м²` : "площа не вказана"}</p>
+          <AnalysisChips summary={listingAnalysis(listing)} />
           {match && <p className="workspace-card__summary">{match.summary}</p>}
         </div>
       </button>
@@ -127,6 +136,7 @@ function DetailPanel({
           <ActionButton active={listing.user_state.is_favorite} label={listing.user_state.is_favorite ? "★ В обраному" : "☆ Додати в обране"} onClick={() => { onState("favorite", !listing.user_state.is_favorite); }} />
           <ActionButton active={listing.user_state.is_compared} label={listing.user_state.is_compared ? "✓ У порівнянні" : "⇄ Додати до порівняння"} onClick={() => { onState("compare", !listing.user_state.is_compared); }} />
         </div>
+        <ListingAnalysisPanel listingId={listing.id} summary={listingAnalysis(listing)} />
         <a className="detail-panel__source" href={listing.source_url} target="_blank" rel="noreferrer">Відкрити першоджерело ↗</a>
       </aside>
     </div>
