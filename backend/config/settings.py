@@ -82,6 +82,12 @@ DATABASE_URL = DATABASE_URL.replace(
 DATABASES = {"default": env.db_url_config(DATABASE_URL)}
 if DATABASES["default"]["ENGINE"] == "django.db.backends.postgresql":
     DATABASES["default"]["ENGINE"] = "django.contrib.gis.db.backends.postgis"
+DATABASE_SCHEMA = env("DATABASE_SCHEMA", default="")
+if DATABASE_SCHEMA:
+    if not DATABASE_SCHEMA.replace("_", "").isalnum():
+        raise ValueError("DATABASE_SCHEMA must contain only letters, numbers, and underscores.")
+    DATABASES["default"].setdefault("OPTIONS", {})
+    DATABASES["default"]["OPTIONS"]["options"] = f"-c search_path={DATABASE_SCHEMA},public"
 DATABASES["default"]["CONN_MAX_AGE"] = 60
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"

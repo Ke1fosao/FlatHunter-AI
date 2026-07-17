@@ -24,6 +24,14 @@ postgresql://postgres.rmwadgvxlpurmsxrzseu:<YOUR-PASSWORD>@aws-1-eu-central-1.po
 
 Copy it from Supabase Dashboard -> Connect -> Direct -> Session pooler, then replace `<YOUR-PASSWORD>` with the database password.
 
+This repository uses a dedicated PostgreSQL schema for the app:
+
+```env
+DATABASE_SCHEMA=flathunter
+```
+
+That keeps FlatHunter's Django migration history separate from any old tables in the default `public` schema.
+
 ## 2. Render Backend
 
 Use the root-level `render.yaml` Blueprint. It creates one free Docker web service from `backend/Dockerfile`.
@@ -33,6 +41,7 @@ Set these secret/env values in Render:
 ```env
 DJANGO_SECRET_KEY=<strong random secret>
 DATABASE_URL=postgresql://postgres.rmwadgvxlpurmsxrzseu:<YOUR-PASSWORD>@aws-1-eu-central-1.pooler.supabase.com:5432/postgres
+DATABASE_SCHEMA=flathunter
 CORS_ALLOWED_ORIGINS=https://<your-vercel-app>.vercel.app
 CSRF_TRUSTED_ORIGINS=https://<your-vercel-app>.vercel.app
 TELEGRAM_BOT_TOKEN=<bot token>
