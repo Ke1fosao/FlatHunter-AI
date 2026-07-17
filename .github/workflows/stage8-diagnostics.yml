@@ -1,0 +1,40 @@
+name: Stage 8 diagnostics
+
+on:
+  push:
+    branches: [fix/stage-8-ai-hardening]
+
+permissions:
+  contents: read
+
+jobs:
+  frontend-diagnostics:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: miniapp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: miniapp/package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Capture checks
+        run: |
+          set +e
+          npm run lint > ../stage8-frontend.log 2>&1
+          echo "lint_exit=$?" >> ../stage8-frontend.log
+          npm run typecheck >> ../stage8-frontend.log 2>&1
+          echo "typecheck_exit=$?" >> ../stage8-frontend.log
+          npm test >> ../stage8-frontend.log 2>&1
+          echo "test_exit=$?" >> ../stage8-frontend.log
+          npm run build >> ../stage8-frontend.log 2>&1
+          echo "build_exit=$?" >> ../stage8-frontend.log
+          exit 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stage8-frontend-diagnostics
+          path: stage8-frontend.log
+          if-no-files-found: error
