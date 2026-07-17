@@ -20,31 +20,41 @@ def validated_analysis_context(listing: Listing) -> dict[str, Any]:
     market = ListingMarketAssessment.objects.filter(listing=listing).first()
     risk = ListingRiskAssessment.objects.filter(listing=listing).first()
 
-    market_ready = bool(
-        market is not None
+    market_ready = (
+        market
+        if market is not None
         and market.status == AnalysisStatus.READY
         and (market.valid_until is None or market.valid_until > now)
+        else None
     )
-    risk_ready = bool(
-        risk is not None
+    risk_ready = (
+        risk
+        if risk is not None
         and risk.status == AnalysisStatus.READY
         and (risk.valid_until is None or risk.valid_until > now)
+        else None
     )
 
     return {
         "market_status": market.status if market is not None else "unknown",
-        "market_median_price_uah": market.median_price_uah if market_ready else None,
-        "market_q1_price_uah": market.q1_price_uah if market_ready else None,
-        "market_q3_price_uah": market.q3_price_uah if market_ready else None,
+        "market_median_price_uah": (
+            market_ready.median_price_uah if market_ready is not None else None
+        ),
+        "market_q1_price_uah": market_ready.q1_price_uah if market_ready is not None else None,
+        "market_q3_price_uah": market_ready.q3_price_uah if market_ready is not None else None,
         "market_deviation_percent": (
-            str(market.deviation_percent)
-            if market_ready and market.deviation_percent is not None
+            str(market_ready.deviation_percent)
+            if market_ready is not None and market_ready.deviation_percent is not None
             else None
         ),
-        "market_confidence": market.confidence_label if market_ready else None,
-        "market_comparable_count": market.comparable_count if market_ready else None,
+        "market_confidence": (
+            market_ready.confidence_label if market_ready is not None else None
+        ),
+        "market_comparable_count": (
+            market_ready.comparable_count if market_ready is not None else None
+        ),
         "risk_status": risk.status if risk is not None else "unknown",
-        "risk_score": risk.score if risk_ready else None,
-        "risk_level": risk.level if risk_ready else None,
-        "risk_summary": risk.summary if risk_ready else None,
+        "risk_score": risk_ready.score if risk_ready is not None else None,
+        "risk_level": risk_ready.level if risk_ready is not None else None,
+        "risk_summary": risk_ready.summary if risk_ready is not None else None,
     }
