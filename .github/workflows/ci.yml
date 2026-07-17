@@ -13,36 +13,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  fix-stage8-provider-usage:
-    if: github.event_name == 'pull_request' && github.actor != 'github-actions[bot]'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: fix/stage-8-ai-hardening
-      - name: Make provider usage metadata optional
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          path = Path("backend/apps/ai_analysis/services.py")
-          content = path.read_text()
-          old = "        usage=provider.last_usage,"
-          new = '        usage=getattr(provider, "last_usage", AIUsage()),'
-          if old not in content:
-              raise SystemExit("expected provider usage line not found")
-          path.write_text(content.replace(old, new, 1))
-          PY
-      - name: Commit compatibility fix
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add backend/apps/ai_analysis/services.py
-          git commit -m "fix: tolerate providers without usage metadata"
-          git push
-
   backend:
     runs-on: ubuntu-latest
     env:
@@ -67,10 +37,7 @@ jobs:
           done
           exit 1
       - name: Run backend quality gates
-        id: backend_quality
-        continue-on-error: true
         run: |
-          set -o pipefail
           docker run --rm --network flathunter-ci \
             --env DJANGO_SECRET_KEY --env DJANGO_DEBUG --env DATABASE_URL --env REDIS_URL \
             --env TELEGRAM_WEBHOOK_SECRET --env GEOCODING_PROVIDER --env GEOCODING_EXTERNAL_ENABLED \
@@ -83,15 +50,7 @@ jobs:
               python manage.py makemigrations --check --dry-run
               pytest --cov=apps --cov-report=term-missing
               uvx pip-audit --strict -r requirements.lock
-            ' 2>&1 | tee backend-quality.log
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: stage8-final-backend-diagnostic
-          path: backend-quality.log
-          if-no-files-found: error
-      - if: steps.backend_quality.outcome == 'failure'
-        run: exit 1
+            '
 
   frontend:
     runs-on: ubuntu-latest
