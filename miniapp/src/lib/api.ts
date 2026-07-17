@@ -50,10 +50,23 @@ export type SearchProfileSummary = {
   is_active: boolean;
 };
 
+export type AIMeta = {
+  feature?: string;
+  provider: string;
+  model: string;
+  prompt_version?: string;
+  status: "success" | "cached" | "fallback" | "disabled";
+  latency_ms?: number;
+  reason?: string;
+  attempts?: number;
+  cache_key?: string;
+};
+
 export type ParsedSearchResponse = {
   data: Partial<SearchProfileInput>;
   confidence: Record<string, number>;
   missing_fields: string[];
+  meta?: AIMeta;
 };
 
 export type ListingUserState = {
@@ -143,6 +156,61 @@ export type MatchFeedResponse = {
   meta: { algorithm: string; min_score: number; eligible_only: boolean; ordering: string };
 };
 
+export type AISummaryResponse = {
+  summary: string;
+  advantages: string[];
+  caveats: string[];
+  unknowns: string[];
+  confidence: Record<string, number>;
+  meta: AIMeta;
+};
+
+export type AIOwnerQuestionsResponse = {
+  questions: string[];
+  message: string;
+  confidence: Record<string, number>;
+  meta: AIMeta;
+};
+
+export type AIComparisonRow = {
+  id: string;
+  title: string;
+  city: string;
+  district: string;
+  price_uah: number;
+  price: string;
+  rooms: number | null;
+  area: string;
+  area_value: number;
+  floor: string;
+  commission: string;
+  known_first_payment_uah: number | null;
+  pets: string;
+  children_allowed: boolean | null;
+  building_type: string;
+  renovation_level: string;
+  heating_type: string;
+  backup_power: boolean | null;
+  parking: boolean | null;
+  match_score: number | null;
+  risk_score: number | null;
+  travel_minutes: number | null;
+  advantages: string[];
+  disadvantages: string[];
+  unknowns: string[];
+};
+
+export type AIComparisonResponse = {
+  listings: AIComparisonRow[];
+  recommended_listing_id: string | null;
+  is_decisive: boolean;
+  recommendation: string;
+  tradeoffs: string[];
+  unknowns: string[];
+  confidence: Record<string, number>;
+  meta: AIMeta;
+};
+
 type PaginatedProfiles = { count: number; results: SearchProfileSummary[] };
 type TelegramAuthResponse = { user: AuthenticatedUser; csrfToken: string };
 type ApiErrorPayload = { error?: { code?: string; message?: string } };
@@ -197,6 +265,20 @@ function getJson<T>(endpoint: string, signal?: AbortSignal): Promise<T> {
   }).then(parseResponse<T>);
 }
 
+async function postJson<T>(endpoint: string, body: Record<string, unknown>): Promise<T> {
+  const response = await fetch(buildApiUrl(apiBaseUrl, endpoint), {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-CSRFToken": csrfToken()
+    },
+    body: JSON.stringify(body)
+  });
+  return parseResponse<T>(response);
+}
+
 export async function fetchBackendHealth(signal?: AbortSignal): Promise<HealthResponse> {
   return getJson<HealthResponse>("/health/", signal);
 }
@@ -215,23 +297,11 @@ export async function authenticateTelegram(initData: string, signal?: AbortSigna
 }
 
 export async function parseNaturalLanguageSearch(text: string): Promise<ParsedSearchResponse> {
-  const response = await fetch(buildApiUrl(apiBaseUrl, "/search-profiles/parse-natural-language/"), {
-    method: "POST",
-    credentials: "include",
-    headers: { Accept: "application/json", "Content-Type": "application/json", "X-CSRFToken": csrfToken() },
-    body: JSON.stringify({ text })
-  });
-  return parseResponse<ParsedSearchResponse>(response);
+  return postJson<ParsedSearchResponse>("/search-profiles/parse-natural-language/", { text });
 }
 
 export async function createSearchProfile(payload: SearchProfileInput): Promise<{ id: string }> {
-  const response = await fetch(buildApiUrl(apiBaseUrl, "/search-profiles/"), {
-    method: "POST",
-    credentials: "include",
-    headers: { Accept: "application/json", "Content-Type": "application/json", "X-CSRFToken": csrfToken() },
-    body: JSON.stringify(payload)
-  });
-  return parseResponse<{ id: string }>(response);
+  return postJson<{ id: string }>("/search-profiles/", payload as unknown as Record<string, unknown>);
 }
 
 export async function fetchSearchProfiles(signal?: AbortSignal): Promise<SearchProfileSummary[]> {
@@ -276,11 +346,28 @@ export async function setListingState(
   action: "favorite" | "hide" | "compare",
   value: boolean
 ): Promise<ListingFeedItem> {
-  const response = await fetch(buildApiUrl(apiBaseUrl, `/listings/${id}/${action}/`), {
-    method: "POST",
-    credentials: "include",
-    headers: { Accept: "application/json", "Content-Type": "application/json", "X-CSRFToken": csrfToken() },
-    body: JSON.stringify({ value })
+  return postJson<ListingFeedItem>(`/listings/${id}/${action}/`, { value });
+}
+
+export async function summarizeListingWithAI(id: string): Promise<AISummaryResponse> {
+  return postJson<AISummaryResponse>(`/ai/listings/${id}/summary/`, {});
+}
+
+export async function generateOwnerQuestionsWithAI(
+  id: string,
+  searchProfileId?: string
+): Promise<AIOwnerQuestionsResponse> {
+  return postJson<AIOwnerQuestionsResponse>(`/ai/listings/${id}/owner-questions/`, {
+    ...(searchProfileId ? { search_profile_id: searchProfileId } : {})
   });
-  return parseResponse<ListingFeedItem>(response);
+}
+
+export async function compareListingsWithAI(
+  listingIds: string[],
+  searchProfileId?: string
+): Promise<AIComparisonResponse> {
+  return postJson<AIComparisonResponse>("/ai/listings/compare/", {
+    listing_ids: listingIds,
+    ...(searchProfileId ? { search_profile_id: searchProfileId } : {})
+  });
 }
