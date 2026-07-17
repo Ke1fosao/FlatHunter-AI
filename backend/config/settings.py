@@ -14,6 +14,9 @@ env = environ.Env(
     GEOCODING_TIMEOUT_SECONDS=(int, 8),
     GEOCODING_CACHE_SECONDS=(int, 2592000),
     DUPLICATE_AUTO_QUEUE_ENABLED=(bool, False),
+    MARKET_ANALYSIS_ENABLED=(bool, True),
+    RISK_ANALYSIS_ENABLED=(bool, True),
+    ANALYSIS_AUTO_REFRESH_ENABLED=(bool, False),
 )
 env_file = BASE_DIR.parent / ".env"
 if env_file.exists():
@@ -36,6 +39,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "apps.core",
     "apps.accounts",
+    "apps.analysis",
     "apps.ai_analysis",
     "apps.searches",
     "apps.listings",
@@ -146,6 +150,7 @@ REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "apps.core.exceptions.api_exception_handler",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
+    "DEFAULT_THROTTLE_RATES": {"analysis_refresh": "12/hour"},
 }
 SPECTACULAR_SETTINGS = {
     "TITLE": "FlatHunter AI API",
@@ -197,6 +202,20 @@ DUPLICATE_SIMHASH_BLOCK_DISTANCE = env.int("DUPLICATE_SIMHASH_BLOCK_DISTANCE", d
 DUPLICATE_BLOCK_LIMIT = env.int("DUPLICATE_BLOCK_LIMIT", default=500)
 DUPLICATE_AUTO_QUEUE_ENABLED = env.bool("DUPLICATE_AUTO_QUEUE_ENABLED", default=False)
 DUPLICATE_TASK_QUEUE = env("DUPLICATE_TASK_QUEUE", default="duplicates")
+
+MARKET_ANALYSIS_PROVIDER = env("MARKET_ANALYSIS_PROVIDER", default="local")
+MARKET_ANALYSIS_ENABLED = env.bool("MARKET_ANALYSIS_ENABLED", default=True)
+MARKET_MIN_COMPARABLES = env.int("MARKET_MIN_COMPARABLES", default=8)
+MARKET_MAX_COMPARABLES = env.int("MARKET_MAX_COMPARABLES", default=120)
+MARKET_FRESHNESS_DAYS = env.int("MARKET_FRESHNESS_DAYS", default=90)
+MARKET_RADIUS_KM = env.float("MARKET_RADIUS_KM", default=5.0)
+MARKET_AREA_TOLERANCE_PERCENT = env.float("MARKET_AREA_TOLERANCE_PERCENT", default=25.0)
+MARKET_ASSESSMENT_TTL_SECONDS = env.int("MARKET_ASSESSMENT_TTL_SECONDS", default=21600)
+RISK_ANALYSIS_ENABLED = env.bool("RISK_ANALYSIS_ENABLED", default=True)
+RISK_ASSESSMENT_TTL_SECONDS = env.int("RISK_ASSESSMENT_TTL_SECONDS", default=21600)
+ANALYSIS_AUTO_REFRESH_ENABLED = env.bool("ANALYSIS_AUTO_REFRESH_ENABLED", default=False)
+ANALYSIS_TASK_QUEUE = env("ANALYSIS_TASK_QUEUE", default="analytics")
+ANALYSIS_BATCH_SIZE = env.int("ANALYSIS_BATCH_SIZE", default=100)
 
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=REDIS_URL or "redis://redis:6379/1")
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=REDIS_URL or "redis://redis:6379/2")
