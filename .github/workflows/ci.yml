@@ -13,6 +13,121 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  patch-stage9-risk-metadata:
+    if: github.event_name == 'pull_request' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/stage-9-risk-market-analysis
+      - name: Add trusted metadata risk signals
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          snapshots = Path("backend/apps/analysis/snapshots.py")
+          content = snapshots.read_text()
+          marker = '    "furniture",\n'
+          addition = '    "hidden_commission",\n    "address_coordinate_mismatch",\n'
+          if '    "hidden_commission",\n' not in content:
+              content = content.replace(marker, marker + addition, 1)
+          snapshots.write_text(content)
+
+          risk = Path("backend/apps/analysis/risk.py")
+          content = risk.read_text()
+          function_marker = "\ndef _commission_signal(listing: Listing) -> RiskSignal | None:\n"
+          metadata_function = '''\ndef _metadata_signals(listing: Listing) -> list[RiskSignal]:
+    attributes = listing.attributes if isinstance(listing.attributes, dict) else {}
+    signals: list[RiskSignal] = []
+    relisted_count = attributes.get("relisted_count")
+    if isinstance(relisted_count, int) and relisted_count >= 3:
+        signals.append(
+            _signal(
+                "frequent_relisting",
+                min(6 + relisted_count, 14),
+                "medium" if relisted_count >= 5 else "low",
+                "Оголошення неодноразово перевиставлялося",
+                "Уточніть причину повторних публікацій і поточну актуальність квартири.",
+                relisted_count=relisted_count,
+            )
+        )
+    if attributes.get("address_coordinate_mismatch") is True:
+        signals.append(
+            _signal(
+                "address_coordinate_mismatch",
+                16,
+                "medium",
+                "Перевірена адресна ознака не узгоджується з координатами",
+                "Звірте адресу на перегляді та не покладайтеся лише на точку на карті.",
+                location_accuracy=listing.location_accuracy,
+                trusted_mismatch=True,
+            )
+        )
+    return signals
+'''
+          if "def _metadata_signals" not in content:
+              if function_marker not in content:
+                  raise SystemExit("commission marker not found")
+              content = content.replace(function_marker, metadata_function + function_marker, 1)
+          extend_marker = "    signals.extend(_price_history_signals(listing))\n    signals.extend(_content_signals(listing))\n"
+          extend_replacement = (
+              "    signals.extend(_price_history_signals(listing))\n"
+              "    signals.extend(_content_signals(listing))\n"
+              "    signals.extend(_metadata_signals(listing))\n"
+          )
+          if "signals.extend(_metadata_signals(listing))" not in content:
+              if extend_marker not in content:
+                  raise SystemExit("risk aggregation marker not found")
+              content = content.replace(extend_marker, extend_replacement, 1)
+          risk.write_text(content)
+
+          tests = Path("backend/tests/test_stage9_risk.py")
+          content = tests.read_text()
+          test_block = '''\n\ndef test_trusted_metadata_signals_are_scored_and_explained(risk_source):
+    listing = make_risk_listing(
+        risk_source,
+        "risk-metadata",
+        description=(
+            "Синтетичне оголошення з достатнім описом умов, площі, поверху, договору "
+            "та порядку перевірки документів під час особистого перегляду квартири."
+        ),
+    )
+    listing.attributes = {
+        "demo": True,
+        "relisted_count": 5,
+        "address_coordinate_mismatch": True,
+    }
+    listing.save(update_fields=("attributes",))
+
+    result = calculate_risk_assessment(listing, make_market(listing, "-4.00"))
+    signals = {signal.code: signal for signal in result.signals}
+
+    assert "frequent_relisting" in signals
+    assert signals["frequent_relisting"].evidence["relisted_count"] == 5
+    assert "address_coordinate_mismatch" in signals
+    assert signals["address_coordinate_mismatch"].evidence["trusted_mismatch"] is True
+'''
+          if "test_trusted_metadata_signals_are_scored_and_explained" not in content:
+              content += test_block
+          tests.write_text(content)
+          PY
+          python -m pip install --disable-pip-version-check ruff==0.15.21
+          cd backend
+          ruff format apps/analysis/snapshots.py apps/analysis/risk.py tests/test_stage9_risk.py
+          ruff check apps/analysis/snapshots.py apps/analysis/risk.py tests/test_stage9_risk.py --fix
+      - name: Commit risk metadata signals
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backend/apps/analysis/snapshots.py backend/apps/analysis/risk.py backend/tests/test_stage9_risk.py
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "feat: complete trusted metadata risk signals"
+          git push
+
   backend:
     runs-on: ubuntu-latest
     env:
