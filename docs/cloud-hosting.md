@@ -51,6 +51,8 @@ TELEGRAM_WEBHOOK_URL=https://<your-render-service>.onrender.com/api/v1/telegram/
 TELEGRAM_MINI_APP_URL=https://<your-vercel-app>.vercel.app
 ```
 
+Keep `SECURE_SSL_REDIRECT=false` on Render. Render terminates HTTPS before the container, and enabling Django's redirect can make internal Render health checks receive `301` instead of `200`.
+
 The `render.yaml` Blueprint includes an `initialDeployHook` that runs these demo data commands once after the first successful deploy:
 
 ```bash
