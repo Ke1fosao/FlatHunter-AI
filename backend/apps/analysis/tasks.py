@@ -60,10 +60,9 @@ def refresh_listing_analysis_task(listing_id: str, force: bool = False) -> dict[
 
 @shared_task(name="apps.analysis.tasks.refresh_stale_listing_analyses_task", **TASK_OPTIONS)
 def refresh_stale_listing_analyses_task(limit: int | None = None) -> dict[str, int]:
-    batch_size = min(
-        max(int(limit or getattr(settings, "ANALYSIS_BATCH_SIZE", 100)), 1),
-        500,
-    )
+    configured_limit = int(getattr(settings, "ANALYSIS_BATCH_SIZE", 100))
+    requested_limit = limit if limit is not None else configured_limit
+    batch_size = min(max(requested_limit, 1), 500)
     now = timezone.now()
     stale_market = ListingMarketAssessment.objects.filter(valid_until__lte=now).values_list(
         "listing_id",
