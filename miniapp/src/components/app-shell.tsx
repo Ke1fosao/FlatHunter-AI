@@ -409,7 +409,7 @@ export function AppShell({
             className="button button--dark"
             type="button"
             onClick={() => {
-              navigate("search");
+              navigate("feed");
             }}
           >
             {dictionary.listing.open}
