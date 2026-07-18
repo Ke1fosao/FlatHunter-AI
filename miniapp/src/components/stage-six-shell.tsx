@@ -3,22 +3,78 @@
 import { useState } from "react";
 
 import { AIAssistantWorkspace } from "@/components/ai-assistant-workspace";
-import { AppShell } from "@/components/app-shell";
+import { AppShell, type AppNavigationTarget } from "@/components/app-shell";
 import { ClusterBrowser } from "@/components/cluster-browser";
 import { ListingFeed } from "@/components/listing-feed";
 import { MapWorkspace } from "@/components/map-workspace";
+import { ProfileWorkspace } from "@/components/profile-workspace";
 import { SearchWizard } from "@/components/search-wizard";
 
-type ProductView = "clusters" | "workspace" | "map" | "ai";
+type ProductView = "clusters" | "workspace" | "map" | "ai" | "profile";
+type WorkspaceTab = "dashboard" | "feed" | "favorites" | "comparison";
+type MainNavigation = "search" | "map" | "favorites" | "compare" | "profile";
 
 export function StageSixShell() {
   const [view, setView] = useState<ProductView>("clusters");
+  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>("dashboard");
   const [open, setOpen] = useState(false);
   const [created, setCreated] = useState(false);
 
+  const activeNavigation: MainNavigation =
+    view === "map"
+      ? "map"
+      : view === "profile"
+        ? "profile"
+        : view === "workspace" && workspaceTab === "favorites"
+          ? "favorites"
+          : view === "workspace" && workspaceTab === "comparison"
+            ? "compare"
+            : "search";
+
+  const openWorkspace = (tab: WorkspaceTab) => {
+    setWorkspaceTab(tab);
+    setView("workspace");
+  };
+
+  const navigate = (target: AppNavigationTarget) => {
+    if (target === "map") {
+      setView("map");
+      return;
+    }
+    if (target === "favorites") {
+      openWorkspace("favorites");
+      return;
+    }
+    if (target === "compare") {
+      openWorkspace("comparison");
+      return;
+    }
+    if (target === "feed") {
+      openWorkspace("feed");
+      return;
+    }
+    if (target === "dashboard") {
+      openWorkspace("dashboard");
+      return;
+    }
+    if (target === "profile") {
+      setView("profile");
+      return;
+    }
+    if (target === "ai") {
+      setView("ai");
+      return;
+    }
+    setView("clusters");
+  };
+
   return (
     <>
-      <AppShell />
+      <AppShell
+        activeNavigation={activeNavigation}
+        onCreateSearch={() => { setOpen(true); }}
+        onNavigate={navigate}
+      />
       <nav className="stage-six-switch" aria-label="Режим перегляду">
         <button
           type="button"
@@ -30,7 +86,7 @@ export function StageSixShell() {
         <button
           type="button"
           className={view === "workspace" ? "is-active" : ""}
-          onClick={() => { setView("workspace"); }}
+          onClick={() => { openWorkspace("dashboard"); }}
         >
           ▦ Кабінет
         </button>
@@ -50,9 +106,10 @@ export function StageSixShell() {
         </button>
       </nav>
       {view === "clusters" && <ClusterBrowser />}
-      {view === "workspace" && <ListingFeed />}
+      {view === "workspace" && <ListingFeed initialTab={workspaceTab} />}
       {view === "map" && <MapWorkspace />}
       {view === "ai" && <AIAssistantWorkspace />}
+      {view === "profile" && <ProfileWorkspace onCreateSearch={() => { setOpen(true); }} onNavigate={navigate} />}
       <button className="stage-six-create" type="button" onClick={() => { setOpen(true); }}>
         ＋ Створити пошук
       </button>
