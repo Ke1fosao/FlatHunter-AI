@@ -1,8 +1,7 @@
 name: Mini App typecheck diagnostic
 
 on:
-  push:
-    branches: [fix/miniapp-button-wiring]
+  pull_request:
 
 permissions:
   contents: read
