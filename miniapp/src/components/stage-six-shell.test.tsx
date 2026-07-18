@@ -16,52 +16,22 @@ vi.mock("@/components/app-shell", () => ({
       <button type="button" onClick={onCreateSearch}>
         Hero create
       </button>
-      <button
-        type="button"
-        onClick={() => {
-          onNavigate("search");
-        }}
-      >
+      <button type="button" onClick={() => { onNavigate("search"); }}>
         Bottom search
       </button>
-      <button
-        type="button"
-        onClick={() => {
-          onNavigate("feed");
-        }}
-      >
+      <button type="button" onClick={() => { onNavigate("feed"); }}>
         Hero demo
       </button>
-      <button
-        type="button"
-        onClick={() => {
-          onNavigate("map");
-        }}
-      >
+      <button type="button" onClick={() => { onNavigate("map"); }}>
         Bottom map
       </button>
-      <button
-        type="button"
-        onClick={() => {
-          onNavigate("favorites");
-        }}
-      >
+      <button type="button" onClick={() => { onNavigate("favorites"); }}>
         Bottom favorites
       </button>
-      <button
-        type="button"
-        onClick={() => {
-          onNavigate("compare");
-        }}
-      >
+      <button type="button" onClick={() => { onNavigate("compare"); }}>
         Bottom compare
       </button>
-      <button
-        type="button"
-        onClick={() => {
-          onNavigate("profile");
-        }}
-      >
+      <button type="button" onClick={() => { onNavigate("profile"); }}>
         Bottom profile
       </button>
     </div>
@@ -123,17 +93,11 @@ describe("StageSixShell", () => {
     expect(screen.getByText("Active navigation: map")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Bottom favorites" }));
-    expect(
-      screen.getByText("Listing workspace: favorites"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("Active navigation: favorites"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Listing workspace: favorites")).toBeInTheDocument();
+    expect(screen.getByText("Active navigation: favorites")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Bottom compare" }));
-    expect(
-      screen.getByText("Listing workspace: comparison"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Listing workspace: comparison")).toBeInTheDocument();
     expect(screen.getByText("Active navigation: compare")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Hero demo" }));
@@ -151,16 +115,16 @@ describe("StageSixShell", () => {
     fireEvent.click(screen.getByRole("button", { name: "Закрити" }));
 
     fireEvent.click(screen.getByRole("button", { name: "Bottom profile" }));
-    expect(
-      screen.getByRole("region", { name: "Профіль користувача" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Профіль користувача" })).toBeInTheDocument();
     expect(screen.getByText("Active navigation: profile")).toBeInTheDocument();
   });
 
   it("scrolls the selected product workspace into view", () => {
     const scrollIntoView = vi.fn();
-    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
-    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scrollIntoView,
+    });
 
     render(<StageSixShell />);
     fireEvent.click(screen.getByRole("button", { name: "Bottom map" }));
@@ -169,7 +133,5 @@ describe("StageSixShell", () => {
       behavior: "smooth",
       block: "start",
     });
-
-    HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
   });
 });
