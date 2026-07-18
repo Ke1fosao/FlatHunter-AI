@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { AIAssistantWorkspace } from "@/components/ai-assistant-workspace";
 import { AppShell, type AppNavigationTarget } from "@/components/app-shell";
@@ -19,6 +19,7 @@ export function StageSixShell() {
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>("dashboard");
   const [open, setOpen] = useState(false);
   const [created, setCreated] = useState(false);
+  const workspaceRef = useRef<HTMLDivElement>(null);
 
   const activeNavigation: MainNavigation =
     view === "map"
@@ -31,6 +32,10 @@ export function StageSixShell() {
             ? "compare"
             : "search";
 
+  const revealWorkspace = () => {
+    workspaceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   const openWorkspace = (tab: WorkspaceTab) => {
     setWorkspaceTab(tab);
     setView("workspace");
@@ -39,33 +44,22 @@ export function StageSixShell() {
   const navigate = (target: AppNavigationTarget) => {
     if (target === "map") {
       setView("map");
-      return;
-    }
-    if (target === "favorites") {
+    } else if (target === "favorites") {
       openWorkspace("favorites");
-      return;
-    }
-    if (target === "compare") {
+    } else if (target === "compare") {
       openWorkspace("comparison");
-      return;
-    }
-    if (target === "feed") {
+    } else if (target === "feed") {
       openWorkspace("feed");
-      return;
-    }
-    if (target === "dashboard") {
+    } else if (target === "dashboard") {
       openWorkspace("dashboard");
-      return;
-    }
-    if (target === "profile") {
+    } else if (target === "profile") {
       setView("profile");
-      return;
-    }
-    if (target === "ai") {
+    } else if (target === "ai") {
       setView("ai");
-      return;
+    } else {
+      setView("clusters");
     }
-    setView("clusters");
+    revealWorkspace();
   };
 
   return (
@@ -77,56 +71,58 @@ export function StageSixShell() {
         }}
         onNavigate={navigate}
       />
-      <nav className="stage-six-switch" aria-label="Режим перегляду">
-        <button
-          type="button"
-          className={view === "clusters" ? "is-active" : ""}
-          onClick={() => {
-            setView("clusters");
-          }}
-        >
-          ≋ Оголошення
-        </button>
-        <button
-          type="button"
-          className={view === "workspace" ? "is-active" : ""}
-          onClick={() => {
-            openWorkspace("dashboard");
-          }}
-        >
-          ▦ Кабінет
-        </button>
-        <button
-          type="button"
-          className={view === "map" ? "is-active" : ""}
-          onClick={() => {
-            setView("map");
-          }}
-        >
-          ◉ Карта
-        </button>
-        <button
-          type="button"
-          className={view === "ai" ? "is-active" : ""}
-          onClick={() => {
-            setView("ai");
-          }}
-        >
-          ✦ AI
-        </button>
-      </nav>
-      {view === "clusters" && <ClusterBrowser />}
-      {view === "workspace" && <ListingFeed initialTab={workspaceTab} />}
-      {view === "map" && <MapWorkspace />}
-      {view === "ai" && <AIAssistantWorkspace />}
-      {view === "profile" && (
-        <ProfileWorkspace
-          onCreateSearch={() => {
-            setOpen(true);
-          }}
-          onNavigate={navigate}
-        />
-      )}
+      <div ref={workspaceRef} className="stage-six-workspace">
+        <nav className="stage-six-switch" aria-label="Режим перегляду">
+          <button
+            type="button"
+            className={view === "clusters" ? "is-active" : ""}
+            onClick={() => {
+              setView("clusters");
+            }}
+          >
+            ≋ Оголошення
+          </button>
+          <button
+            type="button"
+            className={view === "workspace" ? "is-active" : ""}
+            onClick={() => {
+              openWorkspace("dashboard");
+            }}
+          >
+            ▦ Кабінет
+          </button>
+          <button
+            type="button"
+            className={view === "map" ? "is-active" : ""}
+            onClick={() => {
+              setView("map");
+            }}
+          >
+            ◉ Карта
+          </button>
+          <button
+            type="button"
+            className={view === "ai" ? "is-active" : ""}
+            onClick={() => {
+              setView("ai");
+            }}
+          >
+            ✦ AI
+          </button>
+        </nav>
+        {view === "clusters" && <ClusterBrowser />}
+        {view === "workspace" && <ListingFeed initialTab={workspaceTab} />}
+        {view === "map" && <MapWorkspace />}
+        {view === "ai" && <AIAssistantWorkspace />}
+        {view === "profile" && (
+          <ProfileWorkspace
+            onCreateSearch={() => {
+              setOpen(true);
+            }}
+            onNavigate={navigate}
+          />
+        )}
+      </div>
       <button
         className="stage-six-create"
         type="button"
