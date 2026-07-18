@@ -156,4 +156,20 @@ describe("StageSixShell", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Active navigation: profile")).toBeInTheDocument();
   });
+
+  it("scrolls the selected product workspace into view", () => {
+    const scrollIntoView = vi.fn();
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+
+    render(<StageSixShell />);
+    fireEvent.click(screen.getByRole("button", { name: "Bottom map" }));
+
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      behavior: "smooth",
+      block: "start",
+    });
+
+    HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+  });
 });
