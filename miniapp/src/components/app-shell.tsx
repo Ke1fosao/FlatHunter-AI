@@ -12,15 +12,31 @@ import {
   SparkleIcon,
   UserIcon
 } from "@/components/icons";
+import { useTelegram } from "@/hooks/use-telegram";
 import { authenticateTelegram, fetchBackendHealth, type AuthenticatedUser, type HealthResponse } from "@/lib/api";
 import { triggerSelectionFeedback } from "@/lib/telegram";
 import en from "@/locales/en.json";
 import uk from "@/locales/uk.json";
-import { useTelegram } from "@/hooks/use-telegram";
 
 type Locale = "uk" | "en";
 type Dictionary = typeof uk;
 type ConnectionState = "checking" | "ready" | "degraded" | "offline";
+
+export type AppNavigationTarget =
+  | "search"
+  | "dashboard"
+  | "feed"
+  | "map"
+  | "favorites"
+  | "compare"
+  | "profile"
+  | "ai";
+
+type AppShellProps = {
+  activeNavigation: "search" | "map" | "favorites" | "compare" | "profile";
+  onCreateSearch: () => void;
+  onNavigate: (target: AppNavigationTarget) => void;
+};
 
 const dictionaries: Record<Locale, Dictionary> = { uk, en };
 
@@ -28,14 +44,13 @@ function StatusDot({ status }: { status: ConnectionState }) {
   return <span className={`status-dot status-dot--${status}`} aria-hidden="true" />;
 }
 
-export function AppShell() {
+export function AppShell({ activeNavigation, onCreateSearch, onNavigate }: AppShellProps) {
   const telegram = useTelegram();
   const [locale, setLocale] = useState<Locale>("uk");
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [connection, setConnection] = useState<ConnectionState>("checking");
   const [user, setUser] = useState<AuthenticatedUser | null>(null);
   const [authFailed, setAuthFailed] = useState(false);
-  const [activeNav, setActiveNav] = useState("search");
 
   const dictionary = dictionaries[locale];
 
@@ -112,13 +127,18 @@ export function AppShell() {
     triggerSelectionFeedback();
   };
 
+  const navigate = (target: AppNavigationTarget) => {
+    triggerSelectionFeedback();
+    onNavigate(target);
+  };
+
   const navItems = [
     { id: "search", label: dictionary.navigation.search, icon: SearchIcon },
     { id: "map", label: dictionary.navigation.map, icon: MapIcon },
     { id: "favorites", label: dictionary.navigation.favorites, icon: HeartIcon },
     { id: "compare", label: dictionary.navigation.compare, icon: CompareIcon },
     { id: "profile", label: dictionary.navigation.profile, icon: UserIcon }
-  ];
+  ] as const;
 
   return (
     <main className="app-shell">
@@ -160,10 +180,10 @@ export function AppShell() {
           <h1>{dictionary.hero.title}</h1>
           <p>{dictionary.hero.description}</p>
           <div className="hero-actions">
-            <button className="button button--primary" type="button">
+            <button className="button button--primary" type="button" onClick={onCreateSearch}>
               {dictionary.hero.primaryAction}<ArrowIcon />
             </button>
-            <button className="button button--secondary" type="button">
+            <button className="button button--secondary" type="button" onClick={() => { navigate("feed"); }}>
               {dictionary.hero.secondaryAction}
             </button>
           </div>
@@ -188,7 +208,7 @@ export function AppShell() {
         <section className="panel search-panel">
           <div className="panel-heading">
             <div><span className="section-kicker">01</span><h2>{dictionary.search.title}</h2></div>
-            <button className="text-button" type="button">{dictionary.search.edit}</button>
+            <button className="text-button" type="button" onClick={() => { navigate("dashboard"); }}>{dictionary.search.edit}</button>
           </div>
           <div className="search-summary">
             <div className="search-icon"><SearchIcon /></div>
@@ -222,12 +242,15 @@ export function AppShell() {
           <span className="match-score">{dictionary.listing.match}</span>
         </div>
         <div className="listing-content">
-          <div className="listing-topline"><span>{dictionary.listing.location}</span><button type="button" aria-label={dictionary.navigation.favorites}><HeartIcon /></button></div>
+          <div className="listing-topline">
+            <span>{dictionary.listing.location}</span>
+            <button type="button" aria-label={dictionary.navigation.favorites} onClick={() => { navigate("favorites"); }}><HeartIcon /></button>
+          </div>
           <h2>{dictionary.listing.title}</h2>
           <strong className="listing-price">{dictionary.listing.price}</strong>
           <p className="listing-details">{dictionary.listing.details}</p>
           <div className="feature-chips"><span>🚋 {dictionary.listing.travel}</span><span>🐈 {dictionary.listing.pet}</span><span className="risk-chip">! {dictionary.listing.risk}</span></div>
-          <button className="button button--dark" type="button">{dictionary.listing.open}<ArrowIcon /></button>
+          <button className="button button--dark" type="button" onClick={() => { navigate("search"); }}>{dictionary.listing.open}<ArrowIcon /></button>
         </div>
       </section>
 
@@ -241,8 +264,8 @@ export function AppShell() {
           <button
             key={id}
             type="button"
-            className={activeNav === id ? "is-active" : ""}
-            onClick={() => { setActiveNav(id); triggerSelectionFeedback(); }}
+            className={activeNavigation === id ? "is-active" : ""}
+            onClick={() => { navigate(id); }}
           >
             <Icon /><span>{label}</span>
           </button>
