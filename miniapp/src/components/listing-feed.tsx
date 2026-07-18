@@ -25,7 +25,7 @@ function listingAnalysis(listing: ListingFeedItem): AnalysisSummary | undefined 
   return (listing as AnalyzedListing).analysis_summary;
 }
 
-type WorkspaceTab = "dashboard" | "feed" | "favorites" | "comparison";
+export type WorkspaceTab = "dashboard" | "feed" | "favorites" | "comparison";
 
 type Filters = {
   city: string;
@@ -179,8 +179,8 @@ function ComparisonTable({ items, onOpen, onRemove }: { items: ListingFeedItem[]
   );
 }
 
-export function ListingFeed() {
-  const [tab, setTab] = useState<WorkspaceTab>("dashboard");
+export function ListingFeed({ initialTab = "dashboard" }: { initialTab?: WorkspaceTab }) {
+  const [tab, setTab] = useState<WorkspaceTab>(initialTab);
   const [profiles, setProfiles] = useState<SearchProfileSummary[]>([]);
   const [profileId, setProfileId] = useState("");
   const [matches, setMatches] = useState<PersonalizedMatch[]>([]);
@@ -190,6 +190,10 @@ export function ListingFeed() {
   const [filters, setFilters] = useState<Filters>(initialFilters);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    setTab(initialTab);
+  }, [initialTab]);
 
   const loadProfiles = useCallback(async (signal?: AbortSignal) => {
     const result = await fetchSearchProfiles(signal);

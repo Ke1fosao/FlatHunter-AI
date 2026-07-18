@@ -11,7 +11,11 @@ export function StageTwoShell() {
 
   return (
     <>
-      <AppShell />
+      <AppShell
+        activeNavigation="search"
+        onCreateSearch={() => { setOpen(true); }}
+        onNavigate={(target) => { void target; }}
+      />
       <button className="stage-two-create" type="button" onClick={() => { setOpen(true); }}>
         ＋ Створити пошук
       </button>
