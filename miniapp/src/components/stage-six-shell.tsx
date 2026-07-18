@@ -33,7 +33,10 @@ export function StageSixShell() {
             : "search";
 
   const revealWorkspace = () => {
-    workspaceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const workspace = workspaceRef.current;
+    if (workspace && typeof workspace.scrollIntoView === "function") {
+      workspace.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
 
   const openWorkspace = (tab: WorkspaceTab) => {
