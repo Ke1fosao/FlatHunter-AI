@@ -1,0 +1,50 @@
+name: Apply search wizard CSS correction
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-css:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/search-wizard-responsive-modal
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: miniapp/package-lock.json
+      - name: Anchor the mobile sheet handle to the dialog
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("miniapp/src/app/search-wizard.css")
+          content = path.read_text()
+          marker = ".wizard-sheet {\n  width: min(760px, calc(100vw - 32px));"
+          replacement = ".wizard-sheet {\n  position: relative;\n  width: min(760px, calc(100vw - 32px));"
+          if marker not in content:
+              raise SystemExit("wizard sheet marker not found")
+          path.write_text(content.replace(marker, replacement, 1))
+          PY
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+        working-directory: miniapp
+      - run: npm run lint
+        working-directory: miniapp
+      - run: npm test -- src/app/layout-styles.test.ts src/components/search-wizard.test.tsx
+        working-directory: miniapp
+      - name: Commit verified CSS correction
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add miniapp/src/app/search-wizard.css
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "style: anchor search wizard sheet decorations"
+          git push
