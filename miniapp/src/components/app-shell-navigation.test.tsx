@@ -1,9 +1,11 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const fetchBackendHealth = vi.fn();
-const authenticateTelegram = vi.fn();
-const triggerSelectionFeedback = vi.fn();
+const mocks = vi.hoisted(() => ({
+  fetchBackendHealth: vi.fn(),
+  authenticateTelegram: vi.fn(),
+  triggerSelectionFeedback: vi.fn(),
+}));
 
 vi.mock("@/hooks/use-telegram", () => ({
   useTelegram: () => ({
@@ -16,12 +18,12 @@ vi.mock("@/hooks/use-telegram", () => ({
 }));
 
 vi.mock("@/lib/api", () => ({
-  fetchBackendHealth: (...args: unknown[]) => fetchBackendHealth(...args),
-  authenticateTelegram: (...args: unknown[]) => authenticateTelegram(...args),
+  fetchBackendHealth: mocks.fetchBackendHealth,
+  authenticateTelegram: mocks.authenticateTelegram,
 }));
 
 vi.mock("@/lib/telegram", () => ({
-  triggerSelectionFeedback: () => triggerSelectionFeedback(),
+  triggerSelectionFeedback: mocks.triggerSelectionFeedback,
 }));
 
 import { AppShell, type AppNavigationTarget } from "@/components/app-shell";
@@ -29,12 +31,12 @@ import { AppShell, type AppNavigationTarget } from "@/components/app-shell";
 describe("AppShell navigation", () => {
   beforeEach(() => {
     window.localStorage.clear();
-    fetchBackendHealth.mockResolvedValue({
+    mocks.fetchBackendHealth.mockResolvedValue({
       status: "ready",
       checks: { database: "ok", cache: "ok" },
     });
-    authenticateTelegram.mockReset();
-    triggerSelectionFeedback.mockReset();
+    mocks.authenticateTelegram.mockReset();
+    mocks.triggerSelectionFeedback.mockReset();
   });
 
   it("connects every primary visible action to its intended product destination", () => {
