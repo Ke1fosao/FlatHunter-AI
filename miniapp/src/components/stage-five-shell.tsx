@@ -12,7 +12,11 @@ export function StageFiveShell() {
 
   return (
     <>
-      <AppShell />
+      <AppShell
+        activeNavigation="search"
+        onCreateSearch={() => { setOpen(true); }}
+        onNavigate={(target) => { void target; }}
+      />
       <ListingFeed />
       <button
         className="stage-five-create"
