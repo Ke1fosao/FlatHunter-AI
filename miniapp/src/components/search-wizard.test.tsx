@@ -31,8 +31,10 @@ describe("SearchWizard modal lifecycle", () => {
     );
     const backdrop = container.querySelector<HTMLElement>(".wizard-backdrop");
 
-    expect(backdrop).not.toBeNull();
-    fireEvent.click(backdrop as HTMLElement);
+    if (!backdrop) {
+      throw new Error("Search wizard backdrop was not rendered");
+    }
+    fireEvent.click(backdrop);
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
