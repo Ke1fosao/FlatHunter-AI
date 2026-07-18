@@ -72,35 +72,45 @@ export function StageSixShell() {
     <>
       <AppShell
         activeNavigation={activeNavigation}
-        onCreateSearch={() => { setOpen(true); }}
+        onCreateSearch={() => {
+          setOpen(true);
+        }}
         onNavigate={navigate}
       />
       <nav className="stage-six-switch" aria-label="Режим перегляду">
         <button
           type="button"
           className={view === "clusters" ? "is-active" : ""}
-          onClick={() => { setView("clusters"); }}
+          onClick={() => {
+            setView("clusters");
+          }}
         >
           ≋ Оголошення
         </button>
         <button
           type="button"
           className={view === "workspace" ? "is-active" : ""}
-          onClick={() => { openWorkspace("dashboard"); }}
+          onClick={() => {
+            openWorkspace("dashboard");
+          }}
         >
           ▦ Кабінет
         </button>
         <button
           type="button"
           className={view === "map" ? "is-active" : ""}
-          onClick={() => { setView("map"); }}
+          onClick={() => {
+            setView("map");
+          }}
         >
           ◉ Карта
         </button>
         <button
           type="button"
           className={view === "ai" ? "is-active" : ""}
-          onClick={() => { setView("ai"); }}
+          onClick={() => {
+            setView("ai");
+          }}
         >
           ✦ AI
         </button>
@@ -109,19 +119,38 @@ export function StageSixShell() {
       {view === "workspace" && <ListingFeed initialTab={workspaceTab} />}
       {view === "map" && <MapWorkspace />}
       {view === "ai" && <AIAssistantWorkspace />}
-      {view === "profile" && <ProfileWorkspace onCreateSearch={() => { setOpen(true); }} onNavigate={navigate} />}
-      <button className="stage-six-create" type="button" onClick={() => { setOpen(true); }}>
+      {view === "profile" && (
+        <ProfileWorkspace
+          onCreateSearch={() => {
+            setOpen(true);
+          }}
+          onNavigate={navigate}
+        />
+      )}
+      <button
+        className="stage-six-create"
+        type="button"
+        onClick={() => {
+          setOpen(true);
+        }}
+      >
         ＋ Створити пошук
       </button>
-      {created && <div className="stage-six-toast">✅ Пошуковий профіль створено</div>}
+      {created && (
+        <div className="stage-six-toast">✅ Пошуковий профіль створено</div>
+      )}
       {open && (
         <SearchWizard
-          onClose={() => { setOpen(false); }}
+          onClose={() => {
+            setOpen(false);
+          }}
           onCreated={() => {
             setOpen(false);
             setCreated(true);
             window.dispatchEvent(new Event("flathunter:authenticated"));
-            window.setTimeout(() => { setCreated(false); }, 3000);
+            window.setTimeout(() => {
+              setCreated(false);
+            }, 3000);
           }}
         />
       )}
