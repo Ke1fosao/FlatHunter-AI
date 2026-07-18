@@ -12,6 +12,7 @@
 }
 
 .wizard-sheet {
+  position: relative;
   width: min(760px, calc(100vw - 32px));
   max-height: min(90dvh, 860px);
   display: grid;
