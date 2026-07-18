@@ -26,10 +26,11 @@ jobs:
 
           path = Path("miniapp/src/components/app-shell.tsx")
           content = path.read_text()
-          old = 'onClick={() => {\n                navigate("search");\n              }}\n            >\n              {dictionary.listing.open}'
-          new = 'onClick={() => {\n                navigate("feed");\n              }}\n            >\n              {dictionary.listing.open}'
-          if old not in content:
-              raise SystemExit("featured listing navigation marker not found")
+          old = 'navigate("search");'
+          new = 'navigate("feed");'
+          count = content.count(old)
+          if count != 1:
+              raise SystemExit(f"expected exactly one featured listing marker, found {count}")
           path.write_text(content.replace(old, new, 1))
           PY
       - run: npm ci --ignore-scripts --no-audit --no-fund
