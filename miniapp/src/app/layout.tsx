@@ -10,6 +10,7 @@ import "./miniapp-shell.css";
 import "./routed-pages.css";
 import "./search-wizard.css";
 import "./search-manager.css";
+import "./cluster-routes.css";
 
 export const metadata: Metadata = {
   title: uk.meta.title,
