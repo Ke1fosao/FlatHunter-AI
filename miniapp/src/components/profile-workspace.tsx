@@ -1,185 +1,294 @@
 "use client";
 
-import type { AppNavigationTarget } from "@/components/app-shell";
-import { useTelegram } from "@/hooks/use-telegram";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 
-type ProfileWorkspaceProps = {
-  onCreateSearch: () => void;
-  onNavigate: (target: AppNavigationTarget) => void;
+import { useMiniApp } from "@/components/miniapp-context";
+import { PageState } from "@/components/page-state";
+import {
+  ApiError,
+  fetchSearchProfiles,
+  TELEGRAM_AUTHENTICATED_EVENT,
+  type SearchProfileSummary,
+} from "@/lib/api";
+
+type NotificationSettings = {
+  enabled: boolean;
+  quietHours: boolean;
+  quietStart: string;
+  quietEnd: string;
 };
 
-export function ProfileWorkspace({
-  onCreateSearch,
-  onNavigate,
-}: ProfileWorkspaceProps) {
-  const telegram = useTelegram();
-  const displayName = telegram.firstName.trim() || "Користувач FlatHunter";
+const defaultSettings: NotificationSettings = {
+  enabled: true,
+  quietHours: true,
+  quietStart: "23:00",
+  quietEnd: "08:00",
+};
+
+export function ProfileWorkspace() {
+  const {
+    telegram,
+    user,
+    displayName,
+    locale,
+    setLocale,
+    connection,
+    health,
+    authFailed,
+  } = useMiniApp();
+  const [profiles, setProfiles] = useState<SearchProfileSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
+  const [settings, setSettings] = useState<NotificationSettings>(defaultSettings);
+  const [saved, setSaved] = useState(false);
+
+  const loadProfiles = useCallback(async (signal?: AbortSignal) => {
+    setLoading(true);
+    setMessage("");
+    try {
+      setProfiles(await fetchSearchProfiles(signal));
+    } catch (reason) {
+      if (!(reason instanceof DOMException && reason.name === "AbortError")) {
+        setMessage(
+          reason instanceof ApiError
+            ? reason.message
+            : "Не вдалося завантажити пошукові профілі.",
+        );
+      }
+    } finally {
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const raw = window.localStorage.getItem("flathunter-notifications");
+    if (raw) {
+      try {
+        setSettings({ ...defaultSettings, ...(JSON.parse(raw) as NotificationSettings) });
+      } catch {
+        window.localStorage.removeItem("flathunter-notifications");
+      }
+    }
+
+    const controller = new AbortController();
+    void loadProfiles(controller.signal);
+    const reload = () => {
+      void loadProfiles();
+    };
+    window.addEventListener(TELEGRAM_AUTHENTICATED_EVENT, reload);
+    return () => {
+      controller.abort();
+      window.removeEventListener(TELEGRAM_AUTHENTICATED_EVENT, reload);
+    };
+  }, [loadProfiles]);
+
+  const saveSettings = () => {
+    window.localStorage.setItem(
+      "flathunter-notifications",
+      JSON.stringify(settings),
+    );
+    setSaved(true);
+    window.setTimeout(() => {
+      setSaved(false);
+    }, 2200);
+  };
 
   return (
-    <section
-      className="profile-workspace"
-      role="region"
-      aria-label="Профіль користувача"
-    >
-      <div className="profile-workspace__card">
-        <div className="profile-workspace__avatar" aria-hidden="true">
+    <div className="route-page profile-route" role="region" aria-label="Профіль користувача">
+      <header className="profile-identity">
+        <div className="profile-identity__avatar" aria-hidden="true">
           {displayName.slice(0, 1).toUpperCase()}
         </div>
         <div>
-          <span>ПРОФІЛЬ</span>
-          <h2>{displayName}</h2>
+          <span className="route-kicker">ПРОФІЛЬ</span>
+          <h1>{displayName}</h1>
           <p>
             {telegram.isTelegram
-              ? "Профіль підключено до Telegram Mini App."
-              : "Відкрийте застосунок у Telegram для захищеної авторизації."}
+              ? user?.username
+                ? `@${user.username}`
+                : "Підключено через Telegram Mini App"
+              : "Preview-режим — відкрийте застосунок у Telegram для авторизації"}
           </p>
         </div>
-      </div>
+        <span className={`connection-pill connection-pill--${connection}`}>
+          {connection === "ready"
+            ? "Онлайн"
+            : connection === "offline"
+              ? "Офлайн"
+              : connection === "checking"
+                ? "Перевірка"
+                : "Обмежено"}
+        </span>
+      </header>
 
-      <div className="profile-workspace__grid">
-        <article>
-          <span>Мова Telegram</span>
-          <strong>{telegram.languageCode.toUpperCase()}</strong>
-        </article>
-        <article>
-          <span>Тема</span>
-          <strong>
-            {telegram.colorScheme === "dark" ? "Темна" : "Світла"}
-          </strong>
-        </article>
-        <article>
-          <span>Режим</span>
-          <strong>{telegram.isTelegram ? "Telegram" : "Preview"}</strong>
-        </article>
-      </div>
+      {authFailed && (
+        <p className="route-inline-error" role="status">
+          Не вдалося підтвердити Telegram-профіль. Закрийте та повторно відкрийте Mini App.
+        </p>
+      )}
 
-      <div className="profile-workspace__actions">
-        <button
-          type="button"
-          className="button button--primary"
-          onClick={onCreateSearch}
-        >
-          ＋ Новий пошук
-        </button>
-        <button
-          type="button"
-          className="button button--secondary"
-          onClick={() => {
-            onNavigate("favorites");
-          }}
-        >
-          Відкрити обране
-        </button>
-        <button
-          type="button"
-          className="button button--secondary"
-          onClick={() => {
-            onNavigate("ai");
-          }}
-        >
-          Відкрити AI
-        </button>
-      </div>
+      <section className="route-section">
+        <div className="route-section__heading">
+          <div>
+            <span className="route-kicker">ЗАСТОСУНОК</span>
+            <h2>Мова та режим</h2>
+          </div>
+        </div>
+        <div className="profile-settings-grid">
+          <article>
+            <span>Мова інтерфейсу</span>
+            <div className="profile-segmented-control">
+              <button
+                type="button"
+                className={locale === "uk" ? "is-active" : undefined}
+                onClick={() => {
+                  setLocale("uk");
+                }}
+              >
+                Українська
+              </button>
+              <button
+                type="button"
+                className={locale === "en" ? "is-active" : undefined}
+                onClick={() => {
+                  setLocale("en");
+                }}
+              >
+                English
+              </button>
+            </div>
+          </article>
+          <article>
+            <span>Режим</span>
+            <strong>{telegram.isTelegram ? "Telegram" : "Preview"}</strong>
+            <small>Тема: {telegram.colorScheme === "dark" ? "темна" : "світла"}</small>
+          </article>
+          <article>
+            <span>З’єднання</span>
+            <strong>{health?.service ?? "FlatHunter API"}</strong>
+            <small>
+              База: {health?.checks.database === "ok" ? "готова" : "перевіряється"}
+            </small>
+          </article>
+        </div>
+      </section>
 
-      <style jsx>{`
-        .profile-workspace {
-          width: min(900px, calc(100% - 28px));
-          margin: 24px auto 140px;
-        }
-        .profile-workspace__card {
-          display: flex;
-          align-items: center;
-          gap: 18px;
-          padding: 26px;
-          border: 1px solid var(--line);
-          border-radius: 28px;
-          background: var(--surface-solid);
-          box-shadow: var(--shadow);
-        }
-        .profile-workspace__avatar {
-          display: grid;
-          place-items: center;
-          flex: 0 0 72px;
-          width: 72px;
-          height: 72px;
-          border-radius: 24px;
-          background: linear-gradient(
-            145deg,
-            var(--accent),
-            color-mix(in srgb, var(--accent) 65%, #071a10)
-          );
-          color: var(--accent-text);
-          font-size: 30px;
-          font-weight: 900;
-        }
-        .profile-workspace__card span {
-          color: var(--accent);
-          font-size: 10px;
-          font-weight: 900;
-          letter-spacing: 0.14em;
-        }
-        .profile-workspace__card h2 {
-          margin: 5px 0 7px;
-          font-size: 28px;
-        }
-        .profile-workspace__card p {
-          margin: 0;
-          color: var(--muted);
-        }
-        .profile-workspace__grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 10px;
-          margin-top: 14px;
-        }
-        .profile-workspace__grid article {
-          display: grid;
-          gap: 8px;
-          padding: 18px;
-          border: 1px solid var(--line);
-          border-radius: 20px;
-          background: var(--surface-solid);
-        }
-        .profile-workspace__grid span {
-          color: var(--muted);
-          font-size: 12px;
-        }
-        .profile-workspace__grid strong {
-          font-size: 18px;
-        }
-        .profile-workspace__actions {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 10px;
-          margin-top: 14px;
-          padding: 18px;
-          border: 1px solid var(--line);
-          border-radius: 22px;
-          background: var(--surface-solid);
-        }
-        @media (max-width: 620px) {
-          .profile-workspace__card {
-            align-items: flex-start;
-            padding: 20px;
-          }
-          .profile-workspace__avatar {
-            flex-basis: 56px;
-            width: 56px;
-            height: 56px;
-            border-radius: 18px;
-            font-size: 24px;
-          }
-          .profile-workspace__grid {
-            grid-template-columns: 1fr;
-          }
-          .profile-workspace__actions {
-            display: grid;
-          }
-          .profile-workspace__actions button {
-            width: 100%;
-          }
-        }
-      `}</style>
-    </section>
+      <section className="route-section">
+        <div className="route-section__heading">
+          <div>
+            <span className="route-kicker">СПОВІЩЕННЯ</span>
+            <h2>Коли повідомляти</h2>
+          </div>
+        </div>
+        <div className="notification-settings">
+          <label className="settings-toggle">
+            <span>
+              <strong>Нові збіги</strong>
+              <small>Отримувати повідомлення про відповідні квартири</small>
+            </span>
+            <input
+              type="checkbox"
+              checked={settings.enabled}
+              onChange={(event) => {
+                setSettings((current) => ({
+                  ...current,
+                  enabled: event.target.checked,
+                }));
+              }}
+            />
+          </label>
+          <label className="settings-toggle">
+            <span>
+              <strong>Тихі години</strong>
+              <small>Не турбувати вночі</small>
+            </span>
+            <input
+              type="checkbox"
+              checked={settings.quietHours}
+              onChange={(event) => {
+                setSettings((current) => ({
+                  ...current,
+                  quietHours: event.target.checked,
+                }));
+              }}
+            />
+          </label>
+          {settings.quietHours && (
+            <div className="quiet-hours-grid">
+              <label>
+                З
+                <input
+                  type="time"
+                  value={settings.quietStart}
+                  onChange={(event) => {
+                    setSettings((current) => ({
+                      ...current,
+                      quietStart: event.target.value,
+                    }));
+                  }}
+                />
+              </label>
+              <label>
+                До
+                <input
+                  type="time"
+                  value={settings.quietEnd}
+                  onChange={(event) => {
+                    setSettings((current) => ({
+                      ...current,
+                      quietEnd: event.target.value,
+                    }));
+                  }}
+                />
+              </label>
+            </div>
+          )}
+          <button type="button" className="route-primary-action" onClick={saveSettings}>
+            {saved ? "Збережено ✓" : "Зберегти налаштування"}
+          </button>
+        </div>
+      </section>
+
+      <section className="route-section">
+        <div className="route-section__heading">
+          <div>
+            <span className="route-kicker">ПОШУКОВІ ПРОФІЛІ</span>
+            <h2>Ваші пошуки</h2>
+          </div>
+          <Link href="/search" className="route-text-action">
+            Керувати
+          </Link>
+        </div>
+        {loading && <PageState kind="loading" title="Завантажую профілі" />}
+        {!loading && message && (
+          <PageState kind="error" title="Не вдалося завантажити" description={message} />
+        )}
+        {!loading && !message && profiles.length === 0 && (
+          <PageState
+            kind="empty"
+            title="Пошуків ще немає"
+            action={<Link href="/search">Створити перший пошук</Link>}
+          />
+        )}
+        {!loading && profiles.length > 0 && (
+          <div className="profile-search-list">
+            {profiles.map((profile) => (
+              <article key={profile.id}>
+                <div>
+                  <strong>{profile.name}</strong>
+                  <span>{profile.city}</span>
+                </div>
+                <span className={profile.is_active ? "is-active" : undefined}>
+                  {profile.is_active ? "Активний" : "Пауза"}
+                </span>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
   );
 }
