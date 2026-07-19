@@ -92,7 +92,7 @@ export function MiniAppProvider({ children }: { children: React.ReactNode }) {
         setConnection(response.status === "ready" ? "ready" : "degraded");
       } catch {
         if (!controller.signal.aborted) {
-          setConnection(navigator.onLine ? "degraded" : "offline");
+          setConnection("degraded");
         }
       }
     };
