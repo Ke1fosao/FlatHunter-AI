@@ -1,3 +1,4 @@
+import type { Route } from "next";
 import Link from "next/link";
 
 import { AnalysisChips } from "@/components/listing-analysis-panel";
@@ -26,7 +27,7 @@ function analysisSummary(listing: ClusterListing): AnalysisSummary | undefined {
   return (listing as AnalyzedClusterListing).analysis_summary;
 }
 
-function detailHref(listing: ClusterListing, profileId?: string): string {
+function detailHref(listing: ClusterListing, profileId?: string): Route {
   const params = new URLSearchParams();
   if (profileId) {
     params.set("profile", profileId);
@@ -35,7 +36,7 @@ function detailHref(listing: ClusterListing, profileId?: string): string {
     params.set("cluster", listing.cluster_id);
   }
   const query = params.size > 0 ? `?${params.toString()}` : "";
-  return `/listings/${listing.id}${query}`;
+  return `/listings/${listing.id}${query}` as Route;
 }
 
 export function ClusterListingCard({
@@ -96,9 +97,9 @@ export function ClusterListingCard({
           type="button"
           disabled={pending}
           className={listing.user_state.is_favorite ? "is-active" : undefined}
-          onClick={() =>
-            { onState("is_favorite", !listing.user_state.is_favorite); }
-          }
+          onClick={() => {
+            onState("is_favorite", !listing.user_state.is_favorite);
+          }}
         >
           {listing.user_state.is_favorite ? "В обраному" : "В обране"}
         </button>
@@ -106,9 +107,9 @@ export function ClusterListingCard({
           type="button"
           disabled={pending}
           className={listing.user_state.is_compared ? "is-active" : undefined}
-          onClick={() =>
-            { onState("is_compared", !listing.user_state.is_compared); }
-          }
+          onClick={() => {
+            onState("is_compared", !listing.user_state.is_compared);
+          }}
         >
           {listing.user_state.is_compared ? "У порівнянні" : "Порівняти"}
         </button>
@@ -116,7 +117,9 @@ export function ClusterListingCard({
           <button
             type="button"
             disabled={pending}
-            onClick={() => { onState("is_hidden", true); }}
+            onClick={() => {
+              onState("is_hidden", true);
+            }}
           >
             Сховати
           </button>
