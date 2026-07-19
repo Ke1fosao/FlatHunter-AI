@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const modulePath = join(process.cwd(), "src/lib/api-client.ts");
+const clientImportPath = "@/lib/api-client";
 
 describe("same-origin API client", () => {
   beforeEach(() => {
@@ -17,7 +18,7 @@ describe("same-origin API client", () => {
 
   it("always calls the same-origin /api/v1 gateway", async () => {
     expect(existsSync(modulePath), "api-client.ts must exist").toBe(true);
-    const { apiRequest } = await import("@/lib/api-client");
+    const { apiRequest } = await import(clientImportPath);
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ status: "ready" }), {
         status: 200,
@@ -39,7 +40,7 @@ describe("same-origin API client", () => {
 
   it("adds the Telegram-auth CSRF token to unsafe requests", async () => {
     expect(existsSync(modulePath), "api-client.ts must exist").toBe(true);
-    const { apiRequest, setCsrfToken } = await import("@/lib/api-client");
+    const { apiRequest, setCsrfToken } = await import(clientImportPath);
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ id: "profile-1" }), {
         status: 201,
@@ -65,7 +66,7 @@ describe("same-origin API client", () => {
     expect(existsSync(modulePath), "api-client.ts must exist").toBe(true);
     window.sessionStorage.setItem("flathunter-csrf", "stored-token");
     vi.resetModules();
-    const { apiRequest } = await import("@/lib/api-client");
+    const { apiRequest } = await import(clientImportPath);
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ ok: true }), {
         status: 200,
@@ -85,7 +86,7 @@ describe("same-origin API client", () => {
 
   it("returns normalized API errors", async () => {
     expect(existsSync(modulePath), "api-client.ts must exist").toBe(true);
-    const { apiRequest, ApiClientError } = await import("@/lib/api-client");
+    const { apiRequest } = await import(clientImportPath);
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
@@ -102,7 +103,7 @@ describe("same-origin API client", () => {
     );
 
     await expect(apiRequest("/me/")).rejects.toEqual(
-      expect.objectContaining<ApiClientError>({
+      expect.objectContaining({
         name: "ApiClientError",
         status: 401,
         code: "not_authenticated",
