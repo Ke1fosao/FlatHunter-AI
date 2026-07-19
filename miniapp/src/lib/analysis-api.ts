@@ -1,4 +1,4 @@
-import { ApiError, buildApiUrl } from "@/lib/api";
+import { apiRequest } from "@/lib/api-client";
 
 export type AnalysisStatus =
   | "pending"
@@ -115,62 +115,46 @@ export type AnalysisRefreshResponse = {
   risk: RiskAssessment;
 };
 
-type ApiErrorPayload = { error?: { code?: string; message?: string } };
-
-function csrfToken(): string {
-  if (typeof document === "undefined") return "";
-  return document.cookie.split("; ").find((row) => row.startsWith("csrftoken="))?.split("=")[1] ?? "";
-}
-
-async function parseResponse<T>(response: Response): Promise<T> {
-  const payload = (await response.json().catch(() => ({}))) as T & ApiErrorPayload;
-  if (!response.ok) {
-    throw new ApiError(
-      payload.error?.message ?? `API request failed with status ${String(response.status)}`,
-      response.status,
-      payload.error?.code
-    );
-  }
-  return payload;
-}
-
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-
-function getJson<T>(endpoint: string, signal?: AbortSignal): Promise<T> {
-  return fetch(buildApiUrl(apiBaseUrl, endpoint), {
-    credentials: "include",
-    headers: { Accept: "application/json" },
-    cache: "no-store",
-    signal
-  }).then(parseResponse<T>);
-}
-
-export function fetchPriceHistory(listingId: string, signal?: AbortSignal): Promise<PriceHistoryResponse> {
-  return getJson<PriceHistoryResponse>(`/listings/${listingId}/price-history/`, signal);
-}
-
-export function fetchMarketAnalysis(listingId: string, signal?: AbortSignal): Promise<MarketAnalysisResponse> {
-  return getJson<MarketAnalysisResponse>(`/listings/${listingId}/market-analysis/`, signal);
-}
-
-export function fetchRiskAnalysis(listingId: string, signal?: AbortSignal): Promise<RiskAnalysisResponse> {
-  return getJson<RiskAnalysisResponse>(`/listings/${listingId}/risk-analysis/`, signal);
-}
-
-export async function refreshListingAnalysis(
+export function fetchPriceHistory(
   listingId: string,
-  idempotencyKey = `manual-${listingId}`
+  signal?: AbortSignal,
+): Promise<PriceHistoryResponse> {
+  return apiRequest<PriceHistoryResponse>(
+    `/listings/${listingId}/price-history/`,
+    { signal },
+  );
+}
+
+export function fetchMarketAnalysis(
+  listingId: string,
+  signal?: AbortSignal,
+): Promise<MarketAnalysisResponse> {
+  return apiRequest<MarketAnalysisResponse>(
+    `/listings/${listingId}/market-analysis/`,
+    { signal },
+  );
+}
+
+export function fetchRiskAnalysis(
+  listingId: string,
+  signal?: AbortSignal,
+): Promise<RiskAnalysisResponse> {
+  return apiRequest<RiskAnalysisResponse>(
+    `/listings/${listingId}/risk-analysis/`,
+    { signal },
+  );
+}
+
+export function refreshListingAnalysis(
+  listingId: string,
+  idempotencyKey = `manual-${listingId}`,
 ): Promise<AnalysisRefreshResponse> {
-  const response = await fetch(buildApiUrl(apiBaseUrl, `/listings/${listingId}/analysis/refresh/`), {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "X-CSRFToken": csrfToken(),
-      "Idempotency-Key": idempotencyKey
+  return apiRequest<AnalysisRefreshResponse>(
+    `/listings/${listingId}/analysis/refresh/`,
+    {
+      method: "POST",
+      headers: { "Idempotency-Key": idempotencyKey },
+      body: { force: true },
     },
-    body: JSON.stringify({ force: true })
-  });
-  return parseResponse<AnalysisRefreshResponse>(response);
+  );
 }
