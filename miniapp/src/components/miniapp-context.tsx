@@ -34,6 +34,17 @@ type MiniAppContextValue = {
 
 const MiniAppContext = createContext<MiniAppContextValue | null>(null);
 
+function resolveDisplayName(
+  authenticatedName: string | undefined,
+  telegramName: string,
+): string {
+  const candidates = [authenticatedName, telegramName];
+  const resolved = candidates.find(
+    (candidate) => candidate !== undefined && candidate.trim().length > 0,
+  );
+  return resolved?.trim() ?? "Користувач";
+}
+
 export function MiniAppProvider({ children }: { children: React.ReactNode }) {
   const telegram = useTelegram();
   const [user, setUser] = useState<AuthenticatedUser | null>(null);
@@ -68,7 +79,7 @@ export function MiniAppProvider({ children }: { children: React.ReactNode }) {
         setConnection(response.status === "ready" ? "ready" : "degraded");
       } catch {
         if (!controller.signal.aborted) {
-          setConnection(navigator.onLine ? "degraded" : "offline");
+          setConnection("degraded");
         }
       }
     };
@@ -120,8 +131,7 @@ export function MiniAppProvider({ children }: { children: React.ReactNode }) {
     () => ({
       telegram,
       user,
-      displayName:
-        user?.firstName.trim() || telegram.firstName.trim() || "Користувач",
+      displayName: resolveDisplayName(user?.firstName, telegram.firstName),
       locale,
       setLocale,
       connection,
