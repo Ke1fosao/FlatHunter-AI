@@ -1,5 +1,6 @@
 "use client";
 
+import type { Route } from "next";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
@@ -34,13 +35,13 @@ function pricePerSquareMetre(listing: ListingFeedItem): string {
   )} грн/м²`;
 }
 
-function listingHref(listing: ListingFeedItem, profileId: string): string {
+function listingHref(listing: ListingFeedItem, profileId: string): Route {
   const cluster = (listing as ClusterListing).cluster_id;
   const params = new URLSearchParams();
   if (profileId) params.set("profile", profileId);
   if (cluster) params.set("cluster", cluster);
   const query = params.size > 0 ? `?${params.toString()}` : "";
-  return `/listings/${listing.id}${query}`;
+  return `/listings/${listing.id}${query}` as Route;
 }
 
 export function ComparisonWorkspace() {
@@ -87,12 +88,17 @@ export function ComparisonWorkspace() {
   useEffect(() => {
     const controller = new AbortController();
     void load(controller.signal);
-    return () => { controller.abort(); };
+    return () => {
+      controller.abort();
+    };
   }, [load]);
 
   const rows = useMemo(
     () => [
-      { label: "Ціна", value: (listing: ListingFeedItem) => formatPrice(listing.price_uah) },
+      {
+        label: "Ціна",
+        value: (listing: ListingFeedItem) => formatPrice(listing.price_uah),
+      },
       {
         label: "Джерела",
         value: (listing: ListingFeedItem) => {
@@ -182,7 +188,12 @@ export function ComparisonWorkspace() {
           {profiles.length > 0 && (
             <label>
               Профіль для AI
-              <select value={profileId} onChange={(event) => { setProfileId(event.target.value); }}>
+              <select
+                value={profileId}
+                onChange={(event) => {
+                  setProfileId(event.target.value);
+                }}
+              >
                 {profiles.map((profile) => (
                   <option key={profile.id} value={profile.id}>
                     {profile.name} · {profile.city}
@@ -241,7 +252,9 @@ export function ComparisonWorkspace() {
                       (updated) => {
                         setItems((current) =>
                           current
-                            .map((item) => (item.id === updated.id ? updated : item))
+                            .map((item) =>
+                              item.id === updated.id ? updated : item,
+                            )
                             .filter((item) => item.user_state.is_compared),
                         );
                         setAiResult(null);
@@ -276,7 +289,9 @@ export function ComparisonWorkspace() {
           <p className="comparison-ai-result__lead">{aiResult.recommendation}</p>
           {aiResult.tradeoffs.length > 0 && (
             <ul>
-              {aiResult.tradeoffs.map((item) => <li key={item}>{item}</li>)}
+              {aiResult.tradeoffs.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
             </ul>
           )}
           {aiResult.unknowns.length > 0 && (
