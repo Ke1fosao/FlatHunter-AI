@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   context: {
     authStatus: "booting",
+    authError: "",
     connection: "checking",
     retryAuthentication: vi.fn(),
   },
@@ -15,6 +16,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/components/miniapp-context", () => ({
   useMiniApp: () => mocks.context,
+}));
+
+vi.mock("@/components/preview-hub", () => ({
+  PreviewHub: () => <div>Повна демо-версія FlatHunter</div>,
 }));
 
 type AuthGateModule = {
@@ -32,6 +37,7 @@ async function loadGate(): Promise<AuthGateModule> {
 describe("AuthGate", () => {
   beforeEach(() => {
     mocks.context.authStatus = "booting";
+    mocks.context.authError = "";
     mocks.context.connection = "checking";
     mocks.context.retryAuthentication.mockReset();
   });
@@ -51,8 +57,7 @@ describe("AuthGate", () => {
     expect(screen.getByText("Захищений кабінет")).toBeInTheDocument();
   });
 
-  it("shows a Telegram preview explanation outside Telegram", async () => {
-    expect(existsSync(modulePath), "auth-gate.tsx must exist").toBe(true);
+  it("renders a complete interactive browser demo outside Telegram", async () => {
     const { AuthGate } = await loadGate();
     mocks.context.authStatus = "preview";
     mocks.context.connection = "ready";
@@ -63,14 +68,11 @@ describe("AuthGate", () => {
       </AuthGate>,
     );
 
-    expect(
-      screen.getByRole("heading", { name: "Відкрийте FlatHunter у Telegram" }),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Повна демо-версія FlatHunter")).toBeInTheDocument();
     expect(screen.queryByText("Захищений кабінет")).not.toBeInTheDocument();
   });
 
   it("shows a deterministic authentication progress state", async () => {
-    expect(existsSync(modulePath), "auth-gate.tsx must exist").toBe(true);
     const { AuthGate } = await loadGate();
     mocks.context.authStatus = "authenticating";
 
@@ -84,7 +86,6 @@ describe("AuthGate", () => {
   });
 
   it("shows an offline state before a generic auth error", async () => {
-    expect(existsSync(modulePath), "auth-gate.tsx must exist").toBe(true);
     const { AuthGate } = await loadGate();
     mocks.context.authStatus = "error";
     mocks.context.connection = "offline";
@@ -99,7 +100,6 @@ describe("AuthGate", () => {
   });
 
   it("allows retrying failed Telegram authentication", async () => {
-    expect(existsSync(modulePath), "auth-gate.tsx must exist").toBe(true);
     const { AuthGate } = await loadGate();
     mocks.context.authStatus = "error";
     mocks.context.connection = "ready";

@@ -1,6 +1,7 @@
 "use client";
 
 import { PageState } from "@/components/page-state";
+import { PreviewHub } from "@/components/preview-hub";
 import { useMiniApp } from "@/components/miniapp-context";
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
@@ -31,13 +32,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   }
 
   if (authStatus === "preview") {
-    return (
-      <PageState
-        kind="empty"
-        title="Відкрийте FlatHunter у Telegram"
-        description="Захищені пошуки, обране, порівняння та профіль доступні після запуску Mini App з Telegram-бота."
-      />
-    );
+    return <PreviewHub />;
   }
 
   if (authStatus === "error") {
