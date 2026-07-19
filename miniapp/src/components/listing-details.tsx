@@ -13,7 +13,6 @@ import {
   fetchSearchProfiles,
   generateOwnerQuestionsWithAI,
   summarizeListingWithAI,
-  TELEGRAM_AUTHENTICATED_EVENT,
   type AIOwnerQuestionsResponse,
   type AISummaryResponse,
   type ListingFeedItem,
@@ -72,17 +71,12 @@ export function ListingDetails({ listingId }: { listingId: string }) {
   }, [listingId]);
 
   useEffect(() => {
-    const controller = new AbortController();
-    void load(controller.signal);
-    const reload = () => {
-      void load();
-    };
-    window.addEventListener(TELEGRAM_AUTHENTICATED_EVENT, reload);
-    return () => {
-      controller.abort();
-      window.removeEventListener(TELEGRAM_AUTHENTICATED_EVENT, reload);
-    };
-  }, [load]);
+  const controller = new AbortController();
+  void load(controller.signal);
+  return () => {
+    controller.abort();
+  };
+}, [load]);
 
   const facts = useMemo(() => {
     if (!listing) {
