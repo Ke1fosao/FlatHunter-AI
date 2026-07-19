@@ -1,7 +1,7 @@
 import type { ComponentType, ReactNode } from "react";
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   telegram: {
@@ -33,6 +33,7 @@ vi.mock("@/lib/telegram", () => ({
 type AuthStatus =
   | "booting"
   | "preview"
+  | "waiting_backend"
   | "authenticating"
   | "authenticated"
   | "error";
@@ -56,6 +57,12 @@ async function loadContext(): Promise<ContextModule> {
   return imported as ContextModule;
 }
 
+const backendHealth = {
+  status: "ready" as const,
+  service: "flathunter-backend",
+  checks: { database: "ok", cache: "ok" },
+};
+
 const authenticatedResponse = {
   user: {
     id: "user-1",
@@ -77,15 +84,15 @@ describe("MiniAppProvider authentication", () => {
     mocks.telegram.initData = "query_id=valid";
     mocks.authenticateTelegram.mockReset();
     mocks.fetchBackendHealth.mockReset();
-    mocks.fetchBackendHealth.mockResolvedValue({
-      status: "ready",
-      service: "flathunter-backend",
-      checks: { database: "ok", cache: "ok" },
-    });
+    mocks.fetchBackendHealth.mockResolvedValue(backendHealth);
     Object.defineProperty(window.navigator, "onLine", {
       configurable: true,
       value: true,
     });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("stays in booting until Telegram initialization is resolved", async () => {
@@ -123,6 +130,80 @@ describe("MiniAppProvider authentication", () => {
 
     expect(await screen.findByText("preview")).toBeInTheDocument();
     expect(mocks.authenticateTelegram).not.toHaveBeenCalled();
+  });
+
+  it("waits for backend readiness before authenticating Telegram", async () => {
+    const { MiniAppProvider, useMiniApp } = await loadContext();
+    let resolveHealth: ((value: typeof backendHealth) => void) | undefined;
+    mocks.fetchBackendHealth.mockReturnValue(
+      new Promise((resolve) => {
+        resolveHealth = resolve;
+      }),
+    );
+    mocks.authenticateTelegram.mockResolvedValue(authenticatedResponse);
+
+    function Probe() {
+      return <span>{useMiniApp().authStatus}</span>;
+    }
+
+    render(
+      <MiniAppProvider>
+        <Probe />
+      </MiniAppProvider>,
+    );
+
+    expect(await screen.findByText("waiting_backend")).toBeInTheDocument();
+    expect(mocks.authenticateTelegram).not.toHaveBeenCalled();
+
+    act(() => {
+      if (resolveHealth === undefined) {
+        throw new Error("Health resolver was not initialized");
+      }
+      resolveHealth(backendHealth);
+    });
+
+    expect(await screen.findByText("authenticated")).toBeInTheDocument();
+    expect(mocks.authenticateTelegram).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries a sleeping backend automatically and authenticates after recovery", async () => {
+    vi.useFakeTimers();
+    const { MiniAppProvider, useMiniApp } = await loadContext();
+    const backendUnavailable = Object.assign(new Error("Backend unavailable"), {
+      code: "backend_unavailable",
+      status: 502,
+    });
+    mocks.fetchBackendHealth
+      .mockRejectedValueOnce(backendUnavailable)
+      .mockResolvedValueOnce(backendHealth);
+    mocks.authenticateTelegram.mockResolvedValue(authenticatedResponse);
+
+    function Probe() {
+      return <span>{useMiniApp().authStatus}</span>;
+    }
+
+    render(
+      <MiniAppProvider>
+        <Probe />
+      </MiniAppProvider>,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(screen.getByText("waiting_backend")).toBeInTheDocument();
+    expect(mocks.authenticateTelegram).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText("authenticated")).toBeInTheDocument();
+    expect(mocks.fetchBackendHealth).toHaveBeenCalledTimes(2);
+    expect(mocks.authenticateTelegram).toHaveBeenCalledTimes(1);
   });
 
   it("publishes authenticated state before the authenticated event", async () => {

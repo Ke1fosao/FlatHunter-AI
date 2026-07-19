@@ -66,10 +66,12 @@ class TelegramInitDataValidator:
 
         data = dict(pairs)
         received_hash = data.pop("hash", "")
-        data.pop("signature", None)
         if not received_hash:
             raise TelegramInitDataError("Telegram signature is missing")
 
+        # Telegram's bot-token HMAC covers every received field except `hash`.
+        # Current clients also send `signature`; removing it changes the
+        # data-check-string and incorrectly rejects valid Mini App sessions.
         data_check_string = "\n".join(f"{key}={value}" for key, value in sorted(data.items()))
         secret_key = hmac.new(b"WebAppData", self.bot_token.encode(), hashlib.sha256).digest()
         expected_hash = hmac.new(

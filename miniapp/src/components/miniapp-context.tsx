@@ -19,11 +19,19 @@ import {
 } from "@/lib/api";
 import { triggerSelectionFeedback } from "@/lib/telegram";
 
+const BACKEND_RETRY_DELAY_MS = 3000;
+
 export type MiniAppLocale = "uk" | "en";
-export type ConnectionState = "checking" | "ready" | "degraded" | "offline";
+export type ConnectionState =
+  | "checking"
+  | "waking"
+  | "ready"
+  | "degraded"
+  | "offline";
 export type AuthStatus =
   | "booting"
   | "preview"
+  | "waiting_backend"
   | "authenticating"
   | "authenticated"
   | "error";
@@ -38,9 +46,16 @@ type MiniAppContextValue = {
   health: HealthResponse | null;
   authStatus: AuthStatus;
   authError: string;
+  authErrorCode: string;
+  backendWakeAttempt: number;
   authFailed: boolean;
   isAuthenticated: boolean;
   retryAuthentication: () => void;
+};
+
+type ApiErrorShape = {
+  code?: unknown;
+  status?: unknown;
 };
 
 const MiniAppContext = createContext<MiniAppContextValue | null>(null);
@@ -56,6 +71,41 @@ function resolveDisplayName(
   return resolved?.trim() ?? "Користувач";
 }
 
+function apiErrorCode(reason: unknown): string {
+  if (reason === null || typeof reason !== "object") {
+    return "";
+  }
+  const value = (reason as ApiErrorShape).code;
+  return typeof value === "string" ? value : "";
+}
+
+function apiErrorStatus(reason: unknown): number | undefined {
+  if (reason === null || typeof reason !== "object") {
+    return undefined;
+  }
+  const value = (reason as ApiErrorShape).status;
+  return typeof value === "number" ? value : undefined;
+}
+
+function isBackendUnavailable(reason: unknown): boolean {
+  const code = apiErrorCode(reason);
+  const status = apiErrorStatus(reason);
+  return (
+    reason instanceof TypeError ||
+    code === "backend_unavailable" ||
+    code === "backend_waking" ||
+    status === 502 ||
+    status === 503 ||
+    status === 504
+  );
+}
+
+function errorMessage(reason: unknown): string {
+  return reason instanceof Error
+    ? reason.message
+    : "Не вдалося підтвердити Telegram-профіль.";
+}
+
 export function MiniAppProvider({ children }: { children: React.ReactNode }) {
   const telegram = useTelegram();
   const [user, setUser] = useState<AuthenticatedUser | null>(null);
@@ -64,7 +114,10 @@ export function MiniAppProvider({ children }: { children: React.ReactNode }) {
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [authStatus, setAuthStatus] = useState<AuthStatus>("booting");
   const [authError, setAuthError] = useState("");
+  const [authErrorCode, setAuthErrorCode] = useState("");
   const [authRetryKey, setAuthRetryKey] = useState(0);
+  const [healthRetryKey, setHealthRetryKey] = useState(0);
+  const [backendWakeAttempt, setBackendWakeAttempt] = useState(0);
 
   useEffect(() => {
     const stored = window.localStorage.getItem("flathunter-locale");
@@ -79,26 +132,41 @@ export function MiniAppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const controller = new AbortController();
+    let retryTimer: number | undefined;
+
+    const scheduleRetry = () => {
+      retryTimer = window.setTimeout(() => {
+        setHealthRetryKey((current) => current + 1);
+      }, BACKEND_RETRY_DELAY_MS);
+    };
 
     const checkHealth = async () => {
       if (!navigator.onLine) {
         setConnection("offline");
         return;
       }
-      setConnection("checking");
+      setConnection((current) => (current === "waking" ? "waking" : "checking"));
       try {
         const response = await fetchBackendHealth(controller.signal);
         setHealth(response);
+        setBackendWakeAttempt(0);
         setConnection(response.status === "ready" ? "ready" : "degraded");
-      } catch {
-        if (!controller.signal.aborted) {
-          setConnection("degraded");
+      } catch (reason: unknown) {
+        if (controller.signal.aborted) {
+          return;
         }
+        if (isBackendUnavailable(reason)) {
+          setConnection("waking");
+          setBackendWakeAttempt((current) => current + 1);
+          scheduleRetry();
+          return;
+        }
+        setConnection("degraded");
       }
     };
 
     const handleOnline = () => {
-      void checkHealth();
+      setHealthRetryKey((current) => current + 1);
     };
     const handleOffline = () => {
       setConnection("offline");
@@ -109,10 +177,13 @@ export function MiniAppProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener("offline", handleOffline);
     return () => {
       controller.abort();
+      if (retryTimer !== undefined) {
+        window.clearTimeout(retryTimer);
+      }
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, []);
+  }, [healthRetryKey]);
 
   useEffect(() => {
     if (!telegram.isReady) {
@@ -123,6 +194,18 @@ export function MiniAppProvider({ children }: { children: React.ReactNode }) {
     if (!telegram.isTelegram || telegram.initData.length === 0) {
       setAuthStatus("preview");
       setAuthError("");
+      setAuthErrorCode("");
+      setUser(null);
+      return;
+    }
+    if (
+      connection === "checking" ||
+      connection === "waking" ||
+      connection === "offline"
+    ) {
+      setAuthStatus("waiting_backend");
+      setAuthError("");
+      setAuthErrorCode("");
       setUser(null);
       return;
     }
@@ -130,6 +213,7 @@ export function MiniAppProvider({ children }: { children: React.ReactNode }) {
     const controller = new AbortController();
     setAuthStatus("authenticating");
     setAuthError("");
+    setAuthErrorCode("");
     authenticateTelegram(telegram.initData, controller.signal)
       .then((response) => {
         if (controller.signal.aborted) {
@@ -143,18 +227,30 @@ export function MiniAppProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         setUser(null);
-        setAuthError(
-          reason instanceof Error
-            ? reason.message
-            : "Не вдалося підтвердити Telegram-профіль.",
-        );
+        if (isBackendUnavailable(reason)) {
+          setConnection("waking");
+          setBackendWakeAttempt((current) => Math.max(current, 1));
+          setAuthStatus("waiting_backend");
+          setAuthError("");
+          setAuthErrorCode(apiErrorCode(reason));
+          setHealthRetryKey((current) => current + 1);
+          return;
+        }
+        setAuthError(errorMessage(reason));
+        setAuthErrorCode(apiErrorCode(reason));
         setAuthStatus("error");
       });
 
     return () => {
       controller.abort();
     };
-  }, [authRetryKey, telegram.initData, telegram.isReady, telegram.isTelegram]);
+  }, [
+    authRetryKey,
+    connection,
+    telegram.initData,
+    telegram.isReady,
+    telegram.isTelegram,
+  ]);
 
   useEffect(() => {
     if (authStatus === "authenticated" && user !== null) {
@@ -163,8 +259,15 @@ export function MiniAppProvider({ children }: { children: React.ReactNode }) {
   }, [authStatus, user]);
 
   const retryAuthentication = useCallback(() => {
+    setAuthError("");
+    setAuthErrorCode("");
+    if (connection === "waking" || connection === "offline") {
+      setBackendWakeAttempt(0);
+      setConnection(navigator.onLine ? "checking" : "offline");
+      setHealthRetryKey((current) => current + 1);
+    }
     setAuthRetryKey((current) => current + 1);
-  }, []);
+  }, [connection]);
 
   const setLocale = useCallback((nextLocale: MiniAppLocale) => {
     setLocaleState(nextLocale);
@@ -183,13 +286,17 @@ export function MiniAppProvider({ children }: { children: React.ReactNode }) {
       health,
       authStatus,
       authError,
+      authErrorCode,
+      backendWakeAttempt,
       authFailed: authStatus === "error",
       isAuthenticated: authStatus === "authenticated",
       retryAuthentication,
     }),
     [
       authError,
+      authErrorCode,
       authStatus,
+      backendWakeAttempt,
       connection,
       health,
       locale,
