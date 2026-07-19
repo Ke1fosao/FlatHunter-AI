@@ -1,13 +1,12 @@
 import {
-  ApiError,
-  buildApiUrl,
   fetchListings,
   fetchMatches,
   type ListingFeedItem,
   type ListingUserState,
   type MatchComponent,
-  type SearchProfileSummary
+  type SearchProfileSummary,
 } from "@/lib/api";
+import { apiRequest } from "@/lib/api-client";
 
 export type ClusterListing = ListingFeedItem & {
   cluster_id: string | null;
@@ -59,27 +58,6 @@ export type ClusterFeedItem = {
   match: ClusterMatch | null;
 };
 
-type ApiErrorPayload = { error?: { code?: string; message?: string } };
-
-function csrfToken(): string {
-  if (typeof document === "undefined") return "";
-  return document.cookie.split("; ").find((row) => row.startsWith("csrftoken="))?.split("=")[1] ?? "";
-}
-
-async function parseResponse<T>(response: Response): Promise<T> {
-  const payload = (await response.json().catch(() => ({}))) as T & ApiErrorPayload;
-  if (!response.ok) {
-    throw new ApiError(
-      payload.error?.message ?? `API request failed with status ${String(response.status)}`,
-      response.status,
-      payload.error?.code
-    );
-  }
-  return payload;
-}
-
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-
 export function sourceLabel(count: number): string {
   const absolute = Math.abs(count);
   const lastTwo = absolute % 100;
@@ -90,10 +68,16 @@ export function sourceLabel(count: number): string {
   return `${String(count)} джерел`;
 }
 
-export function formatClusterPriceRange(minimum: number, maximum: number): string {
+export function formatClusterPriceRange(
+  minimum: number,
+  maximum: number,
+): string {
   const numberFormat = new Intl.NumberFormat("uk-UA");
   const format = (value: number) =>
-    numberFormat.format(value).replaceAll("\u00A0", " ").replaceAll("\u202F", " ");
+    numberFormat
+      .format(value)
+      .replaceAll("\u00A0", " ")
+      .replaceAll("\u202F", " ");
   if (minimum === maximum) return `${format(minimum)} грн`;
   return `${format(minimum)}–${format(maximum)} грн`;
 }
@@ -101,52 +85,54 @@ export function formatClusterPriceRange(minimum: number, maximum: number): strin
 export async function fetchClusterFeed(
   profile: SearchProfileSummary | null,
   minScore: number,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<ClusterFeedItem[]> {
   if (profile !== null) {
-    const response = await fetchMatches(profile.id, { minScore, ordering: "-match_score" }, signal);
+    const response = await fetchMatches(
+      profile.id,
+      { minScore, ordering: "-match_score" },
+      signal,
+    );
     return response.results.map((item) => ({
       listing: item.listing as ClusterListing,
-      match: item.match
+      match: item.match,
     }));
   }
   const response = await fetchListings({}, signal);
   return response.results.map((listing) => ({
     listing: listing as ClusterListing,
-    match: null
+    match: null,
   }));
 }
 
-export async function fetchListingCluster(
+export function fetchListingCluster(
   clusterId: string,
   profileId?: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<ListingClusterDetail> {
   const params = new URLSearchParams();
   if (profileId) params.set("profile_id", profileId);
   const suffix = params.size > 0 ? `?${params.toString()}` : "";
-  const response = await fetch(buildApiUrl(apiBaseUrl, `/listing-clusters/${clusterId}/${suffix}`), {
-    credentials: "include",
-    headers: { Accept: "application/json" },
-    cache: "no-store",
-    signal
-  });
-  return parseResponse<ListingClusterDetail>(response);
+  return apiRequest<ListingClusterDetail>(
+    `/listing-clusters/${clusterId}/${suffix}`,
+    { signal },
+  );
 }
 
-export async function setClusterState(
+export function setClusterState(
   clusterId: string,
-  values: Partial<Pick<ListingUserState, "is_favorite" | "is_hidden" | "is_compared" | "note">>
+  values: Partial<
+    Pick<
+      ListingUserState,
+      "is_favorite" | "is_hidden" | "is_compared" | "note"
+    >
+  >,
 ): Promise<ListingClusterDetail> {
-  const response = await fetch(buildApiUrl(apiBaseUrl, `/listing-clusters/${clusterId}/state/`), {
-    method: "PATCH",
-    credentials: "include",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "X-CSRFToken": csrfToken()
+  return apiRequest<ListingClusterDetail>(
+    `/listing-clusters/${clusterId}/state/`,
+    {
+      method: "PATCH",
+      body: values,
     },
-    body: JSON.stringify(values)
-  });
-  return parseResponse<ListingClusterDetail>(response);
+  );
 }

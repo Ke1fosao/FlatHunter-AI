@@ -2,7 +2,7 @@
 
 This project is prepared for a free-demo deployment split across:
 
-- Vercel: `miniapp` Next.js Telegram Mini App.
+- Vercel: `miniapp` Next.js Telegram Mini App and same-origin API gateway.
 - Render: `backend` Django API and Telegram webhook.
 - Supabase: PostgreSQL with PostGIS.
 
@@ -84,17 +84,31 @@ Create a Vercel project with root directory `miniapp`.
 Set:
 
 ```env
-NEXT_PUBLIC_API_URL=https://<your-render-service>.onrender.com/api/v1
+BACKEND_API_URL=https://<your-render-service>.onrender.com/api/v1
 NEXT_PUBLIC_MAP_TILES_URL=https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png
 NEXT_PUBLIC_MAP_ATTRIBUTION=© OpenStreetMap contributors
 ```
 
-After Vercel deploys, update Render's `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`, and `TELEGRAM_MINI_APP_URL` to the final Vercel URL.
+Do not point browser code directly at Render. The browser always calls the same-origin `/api/v1/...` route on Vercel. The Next.js catch-all route forwards that request to `BACKEND_API_URL`, rewrites backend cookies onto the Vercel origin, preserves the Django session, and forwards the CSRF token returned by Telegram authentication.
+
+`BACKEND_API_URL` is server-only and must include `/api/v1`. `NEXT_PUBLIC_API_URL` is not required in production; when present, keep it as `/api/v1` for local compatibility.
+
+After Vercel deploys, update Render's `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`, and `TELEGRAM_MINI_APP_URL` to the final Vercel URL. These remain useful for direct operational tools and Django origin validation, even though normal Mini App traffic uses the Vercel gateway.
 
 ## Verification
+
+Render backend:
 
 ```bash
 curl --fail https://<your-render-service>.onrender.com/health/live/
 curl --fail https://<your-render-service>.onrender.com/health/ready/
-curl --fail https://<your-render-service>.onrender.com/api/docs/
+curl --fail https://<your-render-service>.onrender.com/api/v1/health/
 ```
+
+Deployed Vercel gateway:
+
+```bash
+curl --fail https://<your-vercel-app>.vercel.app/api/v1/health/
+```
+
+The Vercel response should match the backend health JSON. Telegram authentication must then create a first-party session cookie on the Vercel domain, and subsequent protected API calls must return authenticated data instead of `401` or CSRF failures.

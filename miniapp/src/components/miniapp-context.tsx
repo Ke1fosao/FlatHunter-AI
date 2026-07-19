@@ -13,6 +13,7 @@ import { useTelegram, type TelegramContext } from "@/hooks/use-telegram";
 import {
   authenticateTelegram,
   fetchBackendHealth,
+  TELEGRAM_AUTHENTICATED_EVENT,
   type AuthenticatedUser,
   type HealthResponse,
 } from "@/lib/api";
@@ -20,6 +21,12 @@ import { triggerSelectionFeedback } from "@/lib/telegram";
 
 export type MiniAppLocale = "uk" | "en";
 export type ConnectionState = "checking" | "ready" | "degraded" | "offline";
+export type AuthStatus =
+  | "booting"
+  | "preview"
+  | "authenticating"
+  | "authenticated"
+  | "error";
 
 type MiniAppContextValue = {
   telegram: TelegramContext;
@@ -29,7 +36,11 @@ type MiniAppContextValue = {
   setLocale: (locale: MiniAppLocale) => void;
   connection: ConnectionState;
   health: HealthResponse | null;
+  authStatus: AuthStatus;
+  authError: string;
   authFailed: boolean;
+  isAuthenticated: boolean;
+  retryAuthentication: () => void;
 };
 
 const MiniAppContext = createContext<MiniAppContextValue | null>(null);
@@ -51,7 +62,9 @@ export function MiniAppProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<MiniAppLocale>("uk");
   const [connection, setConnection] = useState<ConnectionState>("checking");
   const [health, setHealth] = useState<HealthResponse | null>(null);
-  const [authFailed, setAuthFailed] = useState(false);
+  const [authStatus, setAuthStatus] = useState<AuthStatus>("booting");
+  const [authError, setAuthError] = useState("");
+  const [authRetryKey, setAuthRetryKey] = useState(0);
 
   useEffect(() => {
     const stored = window.localStorage.getItem("flathunter-locale");
@@ -102,24 +115,56 @@ export function MiniAppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!telegram.initData) {
+    if (!telegram.isReady) {
+      setAuthStatus("booting");
+      setUser(null);
       return;
     }
+    if (!telegram.isTelegram || telegram.initData.length === 0) {
+      setAuthStatus("preview");
+      setAuthError("");
+      setUser(null);
+      return;
+    }
+
     const controller = new AbortController();
+    setAuthStatus("authenticating");
+    setAuthError("");
     authenticateTelegram(telegram.initData, controller.signal)
       .then((response) => {
-        setUser(response.user);
-        setAuthFailed(false);
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) {
-          setAuthFailed(true);
+        if (controller.signal.aborted) {
+          return;
         }
+        setUser(response.user);
+        setAuthStatus("authenticated");
+      })
+      .catch((reason: unknown) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+        setUser(null);
+        setAuthError(
+          reason instanceof Error
+            ? reason.message
+            : "Не вдалося підтвердити Telegram-профіль.",
+        );
+        setAuthStatus("error");
       });
+
     return () => {
       controller.abort();
     };
-  }, [telegram.initData]);
+  }, [authRetryKey, telegram.initData, telegram.isReady, telegram.isTelegram]);
+
+  useEffect(() => {
+    if (authStatus === "authenticated" && user !== null) {
+      window.dispatchEvent(new Event(TELEGRAM_AUTHENTICATED_EVENT));
+    }
+  }, [authStatus, user]);
+
+  const retryAuthentication = useCallback(() => {
+    setAuthRetryKey((current) => current + 1);
+  }, []);
 
   const setLocale = useCallback((nextLocale: MiniAppLocale) => {
     setLocaleState(nextLocale);
@@ -136,9 +181,23 @@ export function MiniAppProvider({ children }: { children: React.ReactNode }) {
       setLocale,
       connection,
       health,
-      authFailed,
+      authStatus,
+      authError,
+      authFailed: authStatus === "error",
+      isAuthenticated: authStatus === "authenticated",
+      retryAuthentication,
     }),
-    [authFailed, connection, health, locale, setLocale, telegram, user],
+    [
+      authError,
+      authStatus,
+      connection,
+      health,
+      locale,
+      retryAuthentication,
+      setLocale,
+      telegram,
+      user,
+    ],
   );
 
   return (

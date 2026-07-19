@@ -1,3 +1,9 @@
+import {
+  ApiClientError,
+  apiRequest,
+  setCsrfToken,
+} from "@/lib/api-client";
+
 export type HealthResponse = {
   status: "ready" | "degraded";
   service: string;
@@ -14,6 +20,46 @@ export type AuthenticatedUser = {
   role: string;
 };
 
+export type NotificationFrequency =
+  | "instant"
+  | "15m"
+  | "hourly"
+  | "twice_daily"
+  | "daily";
+
+export type NotificationPreferenceInput = {
+  frequency: NotificationFrequency;
+  min_match_score: number;
+  max_risk_score: number;
+  daily_limit: number;
+  quiet_hours_enabled: boolean;
+  quiet_hours_start: string;
+  quiet_hours_end: string;
+  notify_price_changes: boolean;
+  notify_reactivated: boolean;
+};
+
+export type NotificationPreference = NotificationPreferenceInput & {
+  id: string;
+  updated_at: string;
+};
+
+export type SearchImportantPlace = {
+  id: string;
+  name: string;
+  address: string;
+  latitude: string | number | null;
+  longitude: string | number | null;
+  geocoding_provider: string;
+  geocoding_confidence: string | null;
+  max_distance_km: string | null;
+  max_walk_minutes: number | null;
+  max_drive_minutes: number | null;
+  max_transit_minutes: number | null;
+  importance: number;
+  created_at: string;
+};
+
 export type SearchProfileInput = {
   name: string;
   city: string;
@@ -24,31 +70,31 @@ export type SearchProfileInput = {
   rooms: number[];
   desired_districts: string[];
   excluded_districts: string[];
+  move_in_date?: string | null;
   occupants: number;
   children: boolean;
   pets: Record<string, boolean>;
   property_types: string[];
   filters: Record<string, unknown>;
   source_text?: string;
-  notification_preference: {
-    frequency: "instant" | "15m" | "hourly" | "twice_daily" | "daily";
-    min_match_score: number;
-    max_risk_score: number;
-    daily_limit: number;
-    quiet_hours_enabled: boolean;
-    quiet_hours_start: string;
-    quiet_hours_end: string;
-    notify_price_changes: boolean;
-    notify_reactivated: boolean;
-  };
+  notification_preference: NotificationPreferenceInput;
 };
 
-export type SearchProfileSummary = {
+export type SearchProfile = SearchProfileInput & {
   id: string;
-  name: string;
-  city: string;
+  move_in_date: string | null;
   is_active: boolean;
+  source_text: string;
+  important_places: SearchImportantPlace[];
+  notification_preference: NotificationPreference;
+  created_at: string;
+  updated_at: string;
 };
+
+export type SearchProfileSummary = Pick<
+  SearchProfile,
+  "id" | "name" | "city" | "is_active"
+>;
 
 export type AIMeta = {
   feature?: string;
@@ -153,7 +199,12 @@ export type MatchFeedResponse = {
   profile: { id: string; name: string; city: string };
   count: number;
   results: PersonalizedMatch[];
-  meta: { algorithm: string; min_score: number; eligible_only: boolean; ordering: string };
+  meta: {
+    algorithm: string;
+    min_score: number;
+    eligible_only: boolean;
+    ordering: string;
+  };
 };
 
 export type AISummaryResponse = {
@@ -211,18 +262,11 @@ export type AIComparisonResponse = {
   meta: AIMeta;
 };
 
-type PaginatedProfiles = { count: number; results: SearchProfileSummary[] };
+type PaginatedProfiles = { count: number; results: SearchProfile[] };
 type TelegramAuthResponse = { user: AuthenticatedUser; csrfToken: string };
-type ApiErrorPayload = { error?: { code?: string; message?: string } };
 
 export const TELEGRAM_AUTHENTICATED_EVENT = "flathunter:authenticated";
-
-export class ApiError extends Error {
-  constructor(message: string, readonly status: number, readonly code = "api_error") {
-    super(message);
-    this.name = "ApiError";
-  }
-}
+export { ApiClientError as ApiError };
 
 export function normalizeApiBaseUrl(value: string | undefined): string {
   const candidate = value?.trim();
@@ -237,93 +281,108 @@ export function buildApiUrl(baseUrl: string | undefined, endpoint: string): stri
   return `${base}${path}`;
 }
 
-async function parseResponse<T>(response: Response): Promise<T> {
-  const payload = (await response.json().catch(() => ({}))) as T & ApiErrorPayload;
-  if (!response.ok) {
-    throw new ApiError(
-      payload.error?.message ?? `API request failed with status ${String(response.status)}`,
-      response.status,
-      payload.error?.code
-    );
-  }
-  return payload;
-}
-
-function csrfToken(): string {
-  if (typeof document === "undefined") return "";
-  return document.cookie.split("; ").find((row) => row.startsWith("csrftoken="))?.split("=")[1] ?? "";
-}
-
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-
 function getJson<T>(endpoint: string, signal?: AbortSignal): Promise<T> {
-  return fetch(buildApiUrl(apiBaseUrl, endpoint), {
-    credentials: "include",
-    headers: { Accept: "application/json" },
-    cache: "no-store",
-    signal
-  }).then(parseResponse<T>);
+  return apiRequest<T>(endpoint, { signal });
 }
 
-async function postJson<T>(endpoint: string, body: Record<string, unknown>): Promise<T> {
-  const response = await fetch(buildApiUrl(apiBaseUrl, endpoint), {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "X-CSRFToken": csrfToken()
-    },
-    body: JSON.stringify(body)
-  });
-  return parseResponse<T>(response);
+function postJson<T>(endpoint: string, body: unknown): Promise<T> {
+  return apiRequest<T>(endpoint, { method: "POST", body });
 }
 
-export async function fetchBackendHealth(signal?: AbortSignal): Promise<HealthResponse> {
+function patchJson<T>(endpoint: string, body: unknown): Promise<T> {
+  return apiRequest<T>(endpoint, { method: "PATCH", body });
+}
+
+export async function fetchBackendHealth(
+  signal?: AbortSignal,
+): Promise<HealthResponse> {
   return getJson<HealthResponse>("/health/", signal);
 }
 
-export async function authenticateTelegram(initData: string, signal?: AbortSignal): Promise<TelegramAuthResponse> {
-  const response = await fetch(buildApiUrl(apiBaseUrl, "/auth/telegram/"), {
+export async function authenticateTelegram(
+  initData: string,
+  signal?: AbortSignal,
+): Promise<TelegramAuthResponse> {
+  const payload = await apiRequest<TelegramAuthResponse>("/auth/telegram/", {
     method: "POST",
-    credentials: "include",
-    headers: { Accept: "application/json", "Content-Type": "application/json" },
-    body: JSON.stringify({ initData }),
-    signal
+    body: { initData },
+    signal,
   });
-  const payload = await parseResponse<TelegramAuthResponse>(response);
-  if (typeof window !== "undefined") window.dispatchEvent(new Event(TELEGRAM_AUTHENTICATED_EVENT));
+  setCsrfToken(payload.csrfToken);
   return payload;
 }
 
-export async function parseNaturalLanguageSearch(text: string): Promise<ParsedSearchResponse> {
-  return postJson<ParsedSearchResponse>("/search-profiles/parse-natural-language/", { text });
+export async function parseNaturalLanguageSearch(
+  text: string,
+): Promise<ParsedSearchResponse> {
+  return postJson<ParsedSearchResponse>(
+    "/search-profiles/parse-natural-language/",
+    { text },
+  );
 }
 
-export async function createSearchProfile(payload: SearchProfileInput): Promise<{ id: string }> {
-  return postJson<{ id: string }>("/search-profiles/", payload);
+export async function createSearchProfile(
+  payload: SearchProfileInput,
+): Promise<SearchProfile> {
+  return postJson<SearchProfile>("/search-profiles/", payload);
 }
 
-export async function fetchSearchProfiles(signal?: AbortSignal): Promise<SearchProfileSummary[]> {
-  const payload = await getJson<PaginatedProfiles | SearchProfileSummary[]>("/search-profiles/", signal);
+export async function fetchSearchProfiles(
+  signal?: AbortSignal,
+): Promise<SearchProfile[]> {
+  const payload = await getJson<PaginatedProfiles | SearchProfile[]>(
+    "/search-profiles/",
+    signal,
+  );
   return Array.isArray(payload) ? payload : payload.results;
+}
+
+export function fetchSearchProfile(
+  profileId: string,
+  signal?: AbortSignal,
+): Promise<SearchProfile> {
+  return getJson<SearchProfile>(`/search-profiles/${profileId}/`, signal);
+}
+
+export function updateSearchProfile(
+  profileId: string,
+  payload: Partial<SearchProfileInput>,
+): Promise<SearchProfile> {
+  return patchJson<SearchProfile>(`/search-profiles/${profileId}/`, payload);
+}
+
+export async function deleteSearchProfile(profileId: string): Promise<void> {
+  await apiRequest<undefined>(`/search-profiles/${profileId}/`, {
+    method: "DELETE",
+  });
+}
+
+export function activateSearchProfile(profileId: string): Promise<SearchProfile> {
+  return postJson<SearchProfile>(`/search-profiles/${profileId}/activate/`, {});
+}
+
+export function pauseSearchProfile(profileId: string): Promise<SearchProfile> {
+  return postJson<SearchProfile>(`/search-profiles/${profileId}/pause/`, {});
 }
 
 export async function fetchMatches(
   profileId: string,
   options: { minScore?: number; ordering?: string } = {},
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<MatchFeedResponse> {
   const params = new URLSearchParams({
     min_score: String(options.minScore ?? 0),
-    ordering: options.ordering ?? "-match_score"
+    ordering: options.ordering ?? "-match_score",
   });
-  return getJson<MatchFeedResponse>(`/search-profiles/${profileId}/matches/?${params.toString()}`, signal);
+  return getJson<MatchFeedResponse>(
+    `/search-profiles/${profileId}/matches/?${params.toString()}`,
+    signal,
+  );
 }
 
 export async function fetchListings(
   filters: Record<string, string | number | boolean | undefined> = {},
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<ListingFeedResponse> {
   const params = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {
@@ -333,41 +392,51 @@ export async function fetchListings(
   return getJson<ListingFeedResponse>(`/listings/${query}`, signal);
 }
 
-export async function fetchListing(id: string, signal?: AbortSignal): Promise<ListingFeedItem> {
+export async function fetchListing(
+  id: string,
+  signal?: AbortSignal,
+): Promise<ListingFeedItem> {
   return getJson<ListingFeedItem>(`/listings/${id}/`, signal);
 }
 
-export async function fetchDashboard(signal?: AbortSignal): Promise<DashboardResponse> {
+export async function fetchDashboard(
+  signal?: AbortSignal,
+): Promise<DashboardResponse> {
   return getJson<DashboardResponse>("/listings/dashboard/", signal);
 }
 
 export async function setListingState(
   id: string,
   action: "favorite" | "hide" | "compare",
-  value: boolean
+  value: boolean,
 ): Promise<ListingFeedItem> {
   return postJson<ListingFeedItem>(`/listings/${id}/${action}/`, { value });
 }
 
-export async function summarizeListingWithAI(id: string): Promise<AISummaryResponse> {
+export async function summarizeListingWithAI(
+  id: string,
+): Promise<AISummaryResponse> {
   return postJson<AISummaryResponse>(`/ai/listings/${id}/summary/`, {});
 }
 
 export async function generateOwnerQuestionsWithAI(
   id: string,
-  searchProfileId?: string
+  searchProfileId?: string,
 ): Promise<AIOwnerQuestionsResponse> {
-  return postJson<AIOwnerQuestionsResponse>(`/ai/listings/${id}/owner-questions/`, {
-    ...(searchProfileId ? { search_profile_id: searchProfileId } : {})
-  });
+  return postJson<AIOwnerQuestionsResponse>(
+    `/ai/listings/${id}/owner-questions/`,
+    {
+      ...(searchProfileId ? { search_profile_id: searchProfileId } : {}),
+    },
+  );
 }
 
 export async function compareListingsWithAI(
   listingIds: string[],
-  searchProfileId?: string
+  searchProfileId?: string,
 ): Promise<AIComparisonResponse> {
   return postJson<AIComparisonResponse>("/ai/listings/compare/", {
     listing_ids: listingIds,
-    ...(searchProfileId ? { search_profile_id: searchProfileId } : {})
+    ...(searchProfileId ? { search_profile_id: searchProfileId } : {}),
   });
 }

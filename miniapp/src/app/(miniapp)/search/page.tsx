@@ -1,5 +1,5 @@
-import { SearchHome } from "@/components/search-home";
+import { FullSearchExperience } from "@/components/full-search-experience";
 
 export default function SearchPage() {
-  return <SearchHome />;
+  return <FullSearchExperience />;
 }

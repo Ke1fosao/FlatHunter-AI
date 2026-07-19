@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { initializeTelegramWebApp } from "@/lib/telegram";
 
 export type TelegramContext = {
+  isReady: boolean;
   isTelegram: boolean;
   initData: string;
   firstName: string;
@@ -13,11 +14,12 @@ export type TelegramContext = {
 };
 
 const initialState: TelegramContext = {
+  isReady: false,
   isTelegram: false,
   initData: "",
   firstName: "",
   languageCode: "uk",
-  colorScheme: "light"
+  colorScheme: "light",
 };
 
 export function useTelegram(): TelegramContext {
@@ -26,15 +28,17 @@ export function useTelegram(): TelegramContext {
   useEffect(() => {
     const webApp = initializeTelegramWebApp();
     if (!webApp) {
+      setContext((current) => ({ ...current, isReady: true }));
       return;
     }
 
     setContext({
+      isReady: true,
       isTelegram: true,
       initData: webApp.initData,
       firstName: webApp.initDataUnsafe?.user?.first_name ?? "",
       languageCode: webApp.initDataUnsafe?.user?.language_code ?? "uk",
-      colorScheme: webApp.colorScheme
+      colorScheme: webApp.colorScheme,
     });
   }, []);
 

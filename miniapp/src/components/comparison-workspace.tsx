@@ -1,5 +1,6 @@
 "use client";
 
+import type { Route } from "next";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
@@ -11,10 +12,12 @@ import {
   ApiError,
   compareListingsWithAI,
   fetchListings,
-  TELEGRAM_AUTHENTICATED_EVENT,
+  fetchSearchProfiles,
   type AIComparisonResponse,
   type ListingFeedItem,
+  type SearchProfile,
 } from "@/lib/api";
+import type { ClusterListing } from "@/lib/cluster-api";
 
 type AnalyzedListing = ListingFeedItem & {
   analysis_summary?: AnalysisSummary;
@@ -26,16 +29,25 @@ function formatPrice(value: number): string {
 
 function pricePerSquareMetre(listing: ListingFeedItem): string {
   const area = Number.parseFloat(listing.total_area ?? "");
-  if (!Number.isFinite(area) || area <= 0) {
-    return "—";
-  }
+  if (!Number.isFinite(area) || area <= 0) return "—";
   return `${new Intl.NumberFormat("uk-UA", { maximumFractionDigits: 0 }).format(
     listing.price_uah / area,
   )} грн/м²`;
 }
 
+function listingHref(listing: ListingFeedItem, profileId: string): Route {
+  const cluster = (listing as ClusterListing).cluster_id;
+  const params = new URLSearchParams();
+  if (profileId) params.set("profile", profileId);
+  if (cluster) params.set("cluster", cluster);
+  const query = params.size > 0 ? `?${params.toString()}` : "";
+  return `/listings/${listing.id}${query}` as Route;
+}
+
 export function ComparisonWorkspace() {
   const [items, setItems] = useState<ListingFeedItem[]>([]);
+  const [profiles, setProfiles] = useState<SearchProfile[]>([]);
+  const [profileId, setProfileId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [working, setWorking] = useState(false);
@@ -46,11 +58,19 @@ export function ComparisonWorkspace() {
     setLoading(true);
     setError("");
     try {
-      const response = await fetchListings({ compared: true }, signal);
+      const [listingResponse, profileResponse] = await Promise.all([
+        fetchListings({ compared: true }, signal),
+        fetchSearchProfiles(signal),
+      ]);
+      const activeProfiles = profileResponse.filter((profile) => profile.is_active);
       setItems(
-        response.results
+        listingResponse.results
           .filter((item) => !item.user_state.is_hidden)
-          .slice(0, 5),
+          .slice(0, 4),
+      );
+      setProfiles(activeProfiles);
+      setProfileId((current) =>
+        current.length > 0 ? current : (activeProfiles.at(0)?.id ?? ""),
       );
     } catch (reason) {
       if (!(reason instanceof DOMException && reason.name === "AbortError")) {
@@ -61,22 +81,15 @@ export function ComparisonWorkspace() {
         );
       }
     } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
+      if (!signal?.aborted) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     const controller = new AbortController();
     void load(controller.signal);
-    const reload = () => {
-      void load();
-    };
-    window.addEventListener(TELEGRAM_AUTHENTICATED_EVENT, reload);
     return () => {
       controller.abort();
-      window.removeEventListener(TELEGRAM_AUTHENTICATED_EVENT, reload);
     };
   }, [load]);
 
@@ -87,14 +100,27 @@ export function ComparisonWorkspace() {
         value: (listing: ListingFeedItem) => formatPrice(listing.price_uah),
       },
       {
+        label: "Джерела",
+        value: (listing: ListingFeedItem) => {
+          const clustered = listing as ClusterListing;
+          return clustered.source_count > 1
+            ? `${String(clustered.source_count)} джерела`
+            : "1 джерело";
+        },
+      },
+      {
+        label: "Діапазон цін",
+        value: (listing: ListingFeedItem) => {
+          const clustered = listing as ClusterListing;
+          return `${formatPrice(clustered.price_min_uah)} – ${formatPrice(clustered.price_max_uah)}`;
+        },
+      },
+      {
         label: "Площа",
         value: (listing: ListingFeedItem) =>
           listing.total_area ? `${listing.total_area} м²` : "—",
       },
-      {
-        label: "Ціна за м²",
-        value: pricePerSquareMetre,
-      },
+      { label: "Ціна за м²", value: pricePerSquareMetre },
       {
         label: "Поверх",
         value: (listing: ListingFeedItem) =>
@@ -106,9 +132,7 @@ export function ComparisonWorkspace() {
         label: "Ринкова оцінка",
         value: (listing: ListingFeedItem) => {
           const summary = (listing as AnalyzedListing).analysis_summary;
-          if (summary?.market.status !== "ready") {
-            return "Недостатньо даних";
-          }
+          if (summary?.market.status !== "ready") return "Недостатньо даних";
           return summary.market.deviation_percent
             ? `${summary.market.deviation_percent}% від медіани`
             : "Близько до ринку";
@@ -128,13 +152,16 @@ export function ComparisonWorkspace() {
   );
 
   const runAiComparison = async () => {
-    if (items.length < 2) {
-      return;
-    }
+    if (items.length < 2) return;
     setWorking(true);
     setError("");
     try {
-      setAiResult(await compareListingsWithAI(items.map((item) => item.id)));
+      setAiResult(
+        await compareListingsWithAI(
+          items.map((item) => item.id),
+          profileId || undefined,
+        ),
+      );
     } catch (reason) {
       setError(
         reason instanceof ApiError
@@ -152,16 +179,38 @@ export function ComparisonWorkspace() {
         <div>
           <span className="route-kicker">ВИБІР БЕЗ ХАОСУ</span>
           <h1>Порівняння квартир</h1>
-          <p>Ціна, характеристики, ринок і ризики в одному структурованому вигляді.</p>
+          <p>
+            До чотирьох унікальних квартир: ціна, джерела, характеристики,
+            ринок, ризики та profile-aware AI.
+          </p>
         </div>
-        <button
-          type="button"
-          className="route-primary-action"
-          disabled={items.length < 2 || working}
-          onClick={() => void runAiComparison()}
-        >
-          {working ? "AI аналізує…" : "✦ AI-порівняння"}
-        </button>
+        <div className="comparison-header-actions">
+          {profiles.length > 0 && (
+            <label>
+              Профіль для AI
+              <select
+                value={profileId}
+                onChange={(event) => {
+                  setProfileId(event.target.value);
+                }}
+              >
+                {profiles.map((profile) => (
+                  <option key={profile.id} value={profile.id}>
+                    {profile.name} · {profile.city}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <button
+            type="button"
+            className="route-primary-action"
+            disabled={items.length < 2 || working}
+            onClick={() => void runAiComparison()}
+          >
+            {working ? "AI аналізує…" : "✦ AI-порівняння"}
+          </button>
+        </div>
       </header>
 
       {(error || actionError) && !loading && (
@@ -169,14 +218,12 @@ export function ComparisonWorkspace() {
           {actionError || error}
         </p>
       )}
-
       {loading && <PageState kind="loading" title="Завантажую порівняння" />}
-
       {!loading && items.length < 2 && (
         <PageState
           kind="empty"
           title="Потрібно щонайменше дві квартири"
-          description="Додавайте варіанти до порівняння у пошуку, на карті або в деталях квартири."
+          description="Додавайте унікальні варіанти до порівняння у пошуку, на карті або в деталях. Максимум — чотири."
           action={<Link href="/search">Перейти до пошуку</Link>}
         />
       )}
@@ -192,7 +239,7 @@ export function ComparisonWorkspace() {
             <span>Параметр</span>
             {items.map((listing) => (
               <div key={listing.id}>
-                <Link href={`/listings/${listing.id}`}>{listing.title}</Link>
+                <Link href={listingHref(listing, profileId)}>{listing.title}</Link>
                 <button
                   type="button"
                   disabled={pendingId === listing.id}
