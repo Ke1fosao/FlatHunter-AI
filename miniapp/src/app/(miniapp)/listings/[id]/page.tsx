@@ -13,6 +13,7 @@ export default async function ListingPage({
     <>
       <ListingDetails listingId={id} />
       <ClusterDetailExtras
+        listingId={id}
         clusterId={query.cluster}
         profileId={query.profile}
       />
