@@ -55,19 +55,25 @@ jobs:
           cache: npm
           cache-dependency-path: miniapp/package-lock.json
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Capture lint and targeted test output
+      - name: Capture lint, typecheck and targeted test output
         shell: bash
         run: |
           set +e
           npm run lint > ../frontend-red-lint.log 2>&1
           echo "$?" > ../frontend-red-lint.exit
+          npm run typecheck > ../frontend-red-typecheck.log 2>&1
+          echo "$?" > ../frontend-red-typecheck.exit
           npm test -- \
             src/lib/api-client.test.ts \
             src/lib/server-api-proxy.test.ts \
+            src/lib/api-contract.test.ts \
             src/components/auth-gate.test.tsx \
             src/components/miniapp-context.test.tsx \
             src/components/search-profile-manager.test.tsx \
             src/components/search-wizard-edit.test.tsx \
+            src/components/search-results-workspace.test.tsx \
+            src/components/cluster-note-editor.test.tsx \
+            src/app/full-route-smoke.test.tsx \
             > ../frontend-red-tests.log 2>&1
           echo "$?" > ../frontend-red-tests.exit
           exit 0
@@ -77,6 +83,8 @@ jobs:
           path: |
             frontend-red-lint.log
             frontend-red-lint.exit
+            frontend-red-typecheck.log
+            frontend-red-typecheck.exit
             frontend-red-tests.log
             frontend-red-tests.exit
           if-no-files-found: error
