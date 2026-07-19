@@ -41,7 +41,7 @@ export function SearchHome() {
       setDashboard(dashboardResponse);
       setProfiles(profileResponse);
 
-      const primaryProfile = activeProfiles[0];
+      const primaryProfile = activeProfiles.at(0);
       if (!primaryProfile) {
         setMatches([]);
       } else {

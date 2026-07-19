@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ListingCard } from "@/components/listing-card";
@@ -131,7 +132,7 @@ export function FavoritesWorkspace() {
           kind="empty"
           title="В обраному поки порожньо"
           description="Додавайте квартири з пошуку або карти — вони з’являться тут."
-          action={<a href="/search">Перейти до пошуку</a>}
+          action={<Link href="/search">Перейти до пошуку</Link>}
         />
       )}
 

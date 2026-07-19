@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { CSSProperties } from "react";
 
 import { PageState } from "@/components/page-state";
 import { useListingState } from "@/hooks/use-listing-state";
@@ -181,7 +182,12 @@ export function ComparisonWorkspace() {
       )}
 
       {!loading && items.length >= 2 && (
-        <div className="comparison-cards" role="region" aria-label="Порівняння квартир">
+        <div
+          className="comparison-cards"
+          role="region"
+          aria-label="Порівняння квартир"
+          style={{ "--comparison-count": String(items.length) } as CSSProperties}
+        >
           <div className="comparison-cards__head">
             <span>Параметр</span>
             {items.map((listing) => (

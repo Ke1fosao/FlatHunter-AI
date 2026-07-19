@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ListingAnalysisPanel } from "@/components/listing-analysis-panel";
@@ -168,7 +169,7 @@ export function ListingDetails({ listingId }: { listingId: string }) {
           kind="empty"
           title="Квартиру не знайдено"
           description="Оголошення могло бути видалене або вже недоступне."
-          action={<a href="/search">Повернутися до пошуку</a>}
+          action={<Link href="/search">Повернутися до пошуку</Link>}
         />
       </div>
     );
