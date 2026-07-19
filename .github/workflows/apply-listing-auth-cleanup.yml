@@ -1,0 +1,56 @@
+name: Remove duplicate listing auth reload
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/apply-listing-auth-cleanup.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/miniapp-full-functionality
+      - name: Apply exact listener cleanup
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("miniapp/src/components/listing-details.tsx")
+          content = path.read_text()
+          content = content.replace("  TELEGRAM_AUTHENTICATED_EVENT,\n", "", 1)
+          old = '''  useEffect(() => {
+            const controller = new AbortController();
+            void load(controller.signal);
+            const reload = () => {
+              void load();
+            };
+            window.addEventListener(TELEGRAM_AUTHENTICATED_EVENT, reload);
+            return () => {
+              controller.abort();
+              window.removeEventListener(TELEGRAM_AUTHENTICATED_EVENT, reload);
+            };
+          }, [load]);'''
+          new = '''  useEffect(() => {
+            const controller = new AbortController();
+            void load(controller.signal);
+            return () => {
+              controller.abort();
+            };
+          }, [load]);'''
+          if old not in content:
+              raise SystemExit("listener block not found")
+          path.write_text(content.replace(old, new, 1))
+          PY
+      - name: Commit cleanup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add miniapp/src/components/listing-details.tsx
+          git commit -m "fix: avoid duplicate listing loads after auth gate"
+          git push
