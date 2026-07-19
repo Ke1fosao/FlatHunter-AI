@@ -5,6 +5,7 @@ import uk from "@/locales/uk.json";
 
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
+import "./stage-six.css";
 import "./miniapp-shell.css";
 import "./routed-pages.css";
 import "./search-wizard.css";
