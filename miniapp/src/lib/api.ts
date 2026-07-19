@@ -20,6 +20,46 @@ export type AuthenticatedUser = {
   role: string;
 };
 
+export type NotificationFrequency =
+  | "instant"
+  | "15m"
+  | "hourly"
+  | "twice_daily"
+  | "daily";
+
+export type NotificationPreferenceInput = {
+  frequency: NotificationFrequency;
+  min_match_score: number;
+  max_risk_score: number;
+  daily_limit: number;
+  quiet_hours_enabled: boolean;
+  quiet_hours_start: string;
+  quiet_hours_end: string;
+  notify_price_changes: boolean;
+  notify_reactivated: boolean;
+};
+
+export type NotificationPreference = NotificationPreferenceInput & {
+  id: string;
+  updated_at: string;
+};
+
+export type SearchImportantPlace = {
+  id: string;
+  name: string;
+  address: string;
+  latitude: string | number | null;
+  longitude: string | number | null;
+  geocoding_provider: string;
+  geocoding_confidence: string | null;
+  max_distance_km: string | null;
+  max_walk_minutes: number | null;
+  max_drive_minutes: number | null;
+  max_transit_minutes: number | null;
+  importance: number;
+  created_at: string;
+};
+
 export type SearchProfileInput = {
   name: string;
   city: string;
@@ -30,31 +70,31 @@ export type SearchProfileInput = {
   rooms: number[];
   desired_districts: string[];
   excluded_districts: string[];
+  move_in_date?: string | null;
   occupants: number;
   children: boolean;
   pets: Record<string, boolean>;
   property_types: string[];
   filters: Record<string, unknown>;
   source_text?: string;
-  notification_preference: {
-    frequency: "instant" | "15m" | "hourly" | "twice_daily" | "daily";
-    min_match_score: number;
-    max_risk_score: number;
-    daily_limit: number;
-    quiet_hours_enabled: boolean;
-    quiet_hours_start: string;
-    quiet_hours_end: string;
-    notify_price_changes: boolean;
-    notify_reactivated: boolean;
-  };
+  notification_preference: NotificationPreferenceInput;
 };
 
-export type SearchProfileSummary = {
+export type SearchProfile = SearchProfileInput & {
   id: string;
-  name: string;
-  city: string;
+  move_in_date: string | null;
   is_active: boolean;
+  source_text: string;
+  important_places: SearchImportantPlace[];
+  notification_preference: NotificationPreference;
+  created_at: string;
+  updated_at: string;
 };
+
+export type SearchProfileSummary = Pick<
+  SearchProfile,
+  "id" | "name" | "city" | "is_active"
+>;
 
 export type AIMeta = {
   feature?: string;
@@ -222,7 +262,7 @@ export type AIComparisonResponse = {
   meta: AIMeta;
 };
 
-type PaginatedProfiles = { count: number; results: SearchProfileSummary[] };
+type PaginatedProfiles = { count: number; results: SearchProfile[] };
 type TelegramAuthResponse = { user: AuthenticatedUser; csrfToken: string };
 
 export const TELEGRAM_AUTHENTICATED_EVENT = "flathunter:authenticated";
@@ -249,6 +289,10 @@ function postJson<T>(endpoint: string, body: unknown): Promise<T> {
   return apiRequest<T>(endpoint, { method: "POST", body });
 }
 
+function patchJson<T>(endpoint: string, body: unknown): Promise<T> {
+  return apiRequest<T>(endpoint, { method: "PATCH", body });
+}
+
 export async function fetchBackendHealth(
   signal?: AbortSignal,
 ): Promise<HealthResponse> {
@@ -265,9 +309,6 @@ export async function authenticateTelegram(
     signal,
   });
   setCsrfToken(payload.csrfToken);
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new Event(TELEGRAM_AUTHENTICATED_EVENT));
-  }
   return payload;
 }
 
@@ -282,18 +323,46 @@ export async function parseNaturalLanguageSearch(
 
 export async function createSearchProfile(
   payload: SearchProfileInput,
-): Promise<{ id: string }> {
-  return postJson<{ id: string }>("/search-profiles/", payload);
+): Promise<SearchProfile> {
+  return postJson<SearchProfile>("/search-profiles/", payload);
 }
 
 export async function fetchSearchProfiles(
   signal?: AbortSignal,
-): Promise<SearchProfileSummary[]> {
-  const payload = await getJson<PaginatedProfiles | SearchProfileSummary[]>(
+): Promise<SearchProfile[]> {
+  const payload = await getJson<PaginatedProfiles | SearchProfile[]>(
     "/search-profiles/",
     signal,
   );
   return Array.isArray(payload) ? payload : payload.results;
+}
+
+export function fetchSearchProfile(
+  profileId: string,
+  signal?: AbortSignal,
+): Promise<SearchProfile> {
+  return getJson<SearchProfile>(`/search-profiles/${profileId}/`, signal);
+}
+
+export function updateSearchProfile(
+  profileId: string,
+  payload: Partial<SearchProfileInput>,
+): Promise<SearchProfile> {
+  return patchJson<SearchProfile>(`/search-profiles/${profileId}/`, payload);
+}
+
+export async function deleteSearchProfile(profileId: string): Promise<void> {
+  await apiRequest<undefined>(`/search-profiles/${profileId}/`, {
+    method: "DELETE",
+  });
+}
+
+export function activateSearchProfile(profileId: string): Promise<SearchProfile> {
+  return postJson<SearchProfile>(`/search-profiles/${profileId}/activate/`, {});
+}
+
+export function pauseSearchProfile(profileId: string): Promise<SearchProfile> {
+  return postJson<SearchProfile>(`/search-profiles/${profileId}/pause/`, {});
 }
 
 export async function fetchMatches(
