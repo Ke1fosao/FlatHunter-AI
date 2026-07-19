@@ -41,3 +41,35 @@ jobs:
           name: miniapp-production-diagnostic
           path: diagnostic
           if-no-files-found: error
+
+  frontend-red-diagnostic:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: miniapp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: miniapp/package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Capture lint and targeted test output
+        shell: bash
+        run: |
+          set +e
+          npm run lint > ../frontend-red-lint.log 2>&1
+          echo "$?" > ../frontend-red-lint.exit
+          npm test -- src/lib/api-client.test.ts src/lib/server-api-proxy.test.ts > ../frontend-red-tests.log 2>&1
+          echo "$?" > ../frontend-red-tests.exit
+          exit 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: miniapp-frontend-red-diagnostic
+          path: |
+            frontend-red-lint.log
+            frontend-red-lint.exit
+            frontend-red-tests.log
+            frontend-red-tests.exit
+          if-no-files-found: error
