@@ -63,6 +63,19 @@ type WizardModule = {
   SearchWizard: ComponentType<WizardProps>;
 };
 
+type SavedProfilePayload = {
+  name: string;
+  price_min?: number | null;
+  price_max?: number | null;
+  desired_districts: string[];
+  excluded_districts: string[];
+  notification_preference: {
+    frequency: string;
+    min_match_score: number;
+    daily_limit: number;
+  };
+};
+
 async function loadWizard(): Promise<WizardModule> {
   const imported: unknown = await import("@/components/search-wizard");
   return imported as WizardModule;
@@ -103,22 +116,25 @@ describe("SearchWizard edit mode", () => {
     fireEvent.click(screen.getByRole("button", { name: "Зберегти зміни" }));
 
     await waitFor(() => {
-      expect(mocks.updateSearchProfile).toHaveBeenCalledWith(
-        "profile-1",
-        expect.objectContaining({
-          name: "Оновлений пошук",
-          price_min: 10000,
-          price_max: 18000,
-          desired_districts: ["Франківський"],
-          excluded_districts: ["Залізничний"],
-          notification_preference: expect.objectContaining({
-            frequency: "hourly",
-            min_match_score: 80,
-            daily_limit: 12,
-          }),
-        }),
-      );
+      expect(mocks.updateSearchProfile).toHaveBeenCalledTimes(1);
       expect(onSaved).toHaveBeenCalledTimes(1);
+    });
+    const calls = mocks.updateSearchProfile.mock.calls as unknown as Array<
+      [string, SavedProfilePayload]
+    >;
+    const call = calls.at(0);
+    expect(call?.[0]).toBe("profile-1");
+    expect(call?.[1]).toMatchObject({
+      name: "Оновлений пошук",
+      price_min: 10000,
+      price_max: 18000,
+      desired_districts: ["Франківський"],
+      excluded_districts: ["Залізничний"],
+      notification_preference: {
+        frequency: "hourly",
+        min_match_score: 80,
+        daily_limit: 12,
+      },
     });
     expect(mocks.createSearchProfile).not.toHaveBeenCalled();
   });
