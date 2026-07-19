@@ -10,7 +10,6 @@ import {
   fetchListing,
   fetchSearchProfiles,
   setListingState,
-  TELEGRAM_AUTHENTICATED_EVENT,
   type ListingFeedItem,
   type SearchProfileSummary,
 } from "@/lib/api";
@@ -64,7 +63,8 @@ function ListingMapSheet({
       <h3>{listing.title}</h3>
       <strong>{formatPrice(listing.price_uah)}</strong>
       <p>
-        {listing.rooms} кімн. · {listing.total_area ? `${listing.total_area} м²` : "площа не вказана"}
+        {listing.rooms} кімн. ·{" "}
+        {listing.total_area ? `${listing.total_area} м²` : "площа не вказана"}
       </p>
       {distances.length > 0 && (
         <div className="map-listing-sheet__distances">
@@ -100,7 +100,9 @@ function ListingMapSheet({
             onState("compare", !listing.user_state.is_compared);
           }}
         >
-          {listing.user_state.is_compared ? "✓ Порівнюється" : "⇄ Порівняти"}
+          {listing.user_state.is_compared
+            ? "✓ Порівнюється"
+            : "⇄ Порівняти"}
         </button>
       </div>
       <Link
@@ -144,7 +146,9 @@ export function MapWorkspace() {
       (profile) => profile.is_active,
     );
     setProfiles(result);
-    setProfileId((current) => current || result[0]?.id || "");
+    setProfileId((current) =>
+      current.length > 0 ? current : (result.at(0)?.id ?? ""),
+    );
     return result;
   }, []);
 
@@ -185,7 +189,7 @@ export function MapWorkspace() {
         let targetProfile = profileId;
         if (!targetProfile) {
           const available = await loadProfiles(signal);
-          targetProfile = available[0]?.id ?? "";
+          targetProfile = available.at(0)?.id ?? "";
         }
         await loadMap(targetProfile, signal);
       } catch (error) {
@@ -208,13 +212,8 @@ export function MapWorkspace() {
   useEffect(() => {
     const controller = new AbortController();
     void reload(controller.signal);
-    const authenticated = () => {
-      void reload();
-    };
-    window.addEventListener(TELEGRAM_AUTHENTICATED_EVENT, authenticated);
     return () => {
       controller.abort();
-      window.removeEventListener(TELEGRAM_AUTHENTICATED_EVENT, authenticated);
     };
   }, [reload]);
 
