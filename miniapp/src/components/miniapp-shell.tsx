@@ -1,5 +1,6 @@
 "use client";
 
+import { AuthGate } from "@/components/auth-gate";
 import { BottomNavigation } from "@/components/bottom-navigation";
 import { MiniAppHeader } from "@/components/miniapp-header";
 import { MiniAppProvider } from "@/components/miniapp-context";
@@ -14,7 +15,7 @@ export function MiniAppShell({ children }: { children: React.ReactNode }) {
         <MiniAppHeader />
         <TelegramBackButton />
         <main id="miniapp-main" className="miniapp-content">
-          {children}
+          <AuthGate>{children}</AuthGate>
         </main>
         <BottomNavigation />
       </div>
