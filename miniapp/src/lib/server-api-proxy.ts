@@ -132,12 +132,13 @@ function responseHeaders(source: Headers): Headers {
   });
 
   const extended = source as HeadersWithSetCookie;
+  const singleCookie = source.get("Set-Cookie");
   const cookies =
     typeof extended.getSetCookie === "function"
       ? extended.getSetCookie()
-      : source.get("Set-Cookie")
-        ? [source.get("Set-Cookie")!]
-        : [];
+      : singleCookie === null
+        ? []
+        : [singleCookie];
   cookies.forEach((cookie) => {
     headers.append("Set-Cookie", rewrittenCookie(cookie));
   });
