@@ -1,33 +1,33 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { AIAssistantWorkspace } from "@/components/ai-assistant-workspace";
-import { ListingCard } from "@/components/listing-card";
 import { PageState } from "@/components/page-state";
 import { SearchProfileCard } from "@/components/search-profile-card";
+import { SearchResultsWorkspace } from "@/components/search-results-workspace";
 import { SearchWizard } from "@/components/search-wizard";
-import { useListingState } from "@/hooks/use-listing-state";
 import {
   ApiError,
   fetchDashboard,
-  fetchMatches,
   fetchSearchProfiles,
-  TELEGRAM_AUTHENTICATED_EVENT,
   type DashboardResponse,
-  type PersonalizedMatch,
-  type SearchProfileSummary,
+  type SearchProfile,
 } from "@/lib/api";
 
 export function SearchHome() {
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
-  const [profiles, setProfiles] = useState<SearchProfileSummary[]>([]);
-  const [matches, setMatches] = useState<PersonalizedMatch[]>([]);
+  const [profiles, setProfiles] = useState<SearchProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [wizardOpen, setWizardOpen] = useState(false);
   const [created, setCreated] = useState(false);
-  const { pendingId, error: actionError, updateListingState } = useListingState();
+  const [resultsVersion, setResultsVersion] = useState(0);
+
+  const activeProfiles = useMemo(
+    () => profiles.filter((profile) => profile.is_active),
+    [profiles],
+  );
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
@@ -37,25 +37,8 @@ export function SearchHome() {
         fetchDashboard(signal),
         fetchSearchProfiles(signal),
       ]);
-      const activeProfiles = profileResponse.filter((profile) => profile.is_active);
       setDashboard(dashboardResponse);
       setProfiles(profileResponse);
-
-      const primaryProfile = activeProfiles.at(0);
-      if (!primaryProfile) {
-        setMatches([]);
-      } else {
-        const matchResponse = await fetchMatches(
-          primaryProfile.id,
-          { minScore: 50, ordering: "-match_score" },
-          signal,
-        );
-        setMatches(
-          matchResponse.results
-            .filter((item) => !item.listing.user_state.is_hidden)
-            .slice(0, 6),
-        );
-      }
     } catch (reason) {
       if (!(reason instanceof DOMException && reason.name === "AbortError")) {
         setError(
@@ -74,24 +57,15 @@ export function SearchHome() {
   useEffect(() => {
     const controller = new AbortController();
     void load(controller.signal);
-    const reload = () => {
-      void load();
-    };
-    window.addEventListener(TELEGRAM_AUTHENTICATED_EVENT, reload);
-    return () => {
-      controller.abort();
-      window.removeEventListener(TELEGRAM_AUTHENTICATED_EVENT, reload);
-    };
+    return () => controller.abort();
   }, [load]);
 
-  const replaceListing = (updatedId: string, updated: PersonalizedMatch["listing"]) => {
-    setMatches((current) =>
-      current
-        .map((item) =>
-          item.listing.id === updatedId ? { ...item, listing: updated } : item,
-        )
-        .filter((item) => !item.listing.user_state.is_hidden),
-    );
+  const handleCreated = () => {
+    setWizardOpen(false);
+    setCreated(true);
+    setResultsVersion((value) => value + 1);
+    void load();
+    window.setTimeout(() => setCreated(false), 3000);
   };
 
   return (
@@ -101,15 +75,14 @@ export function SearchHome() {
           <span className="route-kicker">ПОШУК ЖИТЛА</span>
           <h1>Ваші квартири в одному місці</h1>
           <p>
-            Пошукові профілі, нові збіги та AI-підказки без зайвих екранів.
+            Повна кластеризована стрічка, профілі пошуку, аналітика та AI без
+            дублів і втрачених умов.
           </p>
         </div>
         <button
           type="button"
           className="route-primary-action"
-          onClick={() => {
-            setWizardOpen(true);
-          }}
+          onClick={() => setWizardOpen(true)}
         >
           ＋ Створити пошук
         </button>
@@ -125,7 +98,7 @@ export function SearchHome() {
         <PageState
           kind="loading"
           title="Завантажую ваш простір"
-          description="Отримую пошукові профілі та найкращі збіги."
+          description="Отримую пошукові профілі та статистику."
         />
       )}
 
@@ -172,31 +145,24 @@ export function SearchHome() {
               <button
                 type="button"
                 className="route-text-action"
-                onClick={() => {
-                  setWizardOpen(true);
-                }}
+                onClick={() => setWizardOpen(true)}
               >
                 Додати новий
               </button>
             </div>
-            {profiles.length > 0 ? (
+            {activeProfiles.length > 0 ? (
               <div className="search-profile-grid">
-                {profiles.map((profile) => (
+                {activeProfiles.map((profile) => (
                   <SearchProfileCard key={profile.id} profile={profile} />
                 ))}
               </div>
             ) : (
               <PageState
                 kind="empty"
-                title="Пошуків ще немає"
-                description="Створіть перший профіль, і FlatHunter почне підбирати квартири."
+                title="Активних пошуків немає"
+                description="Створіть новий пошук або активуйте призупинений у профілі."
                 action={
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setWizardOpen(true);
-                    }}
-                  >
+                  <button type="button" onClick={() => setWizardOpen(true)}>
                     Створити пошук
                   </button>
                 }
@@ -204,46 +170,8 @@ export function SearchHome() {
             )}
           </section>
 
-          <section className="route-section">
-            <div className="route-section__heading">
-              <div>
-                <span className="route-kicker">НОВІ ЗБІГИ</span>
-                <h2>Квартири для вас</h2>
-              </div>
-            </div>
-            {(actionError || error) && (
-              <p className="route-inline-error" role="status">
-                {actionError || error}
-              </p>
-            )}
-            {matches.length > 0 ? (
-              <div className="routed-listing-grid">
-                {matches.map((item) => (
-                  <ListingCard
-                    key={item.listing.id}
-                    listing={item.listing}
-                    match={item.match}
-                    pending={pendingId === item.listing.id}
-                    onState={(listing, action, value) => {
-                      void updateListingState(
-                        listing,
-                        action,
-                        value,
-                        (updated) => {
-                          replaceListing(listing.id, updated);
-                        },
-                      );
-                    }}
-                  />
-                ))}
-              </div>
-            ) : (
-              <PageState
-                kind="empty"
-                title="Нових збігів поки немає"
-                description="Змініть критерії або зачекайте, поки система знайде нові оголошення."
-              />
-            )}
+          <section className="route-section search-results-section">
+            <SearchResultsWorkspace key={resultsVersion} />
           </section>
 
           <section className="route-section search-ai-panel">
@@ -260,17 +188,8 @@ export function SearchHome() {
 
       {wizardOpen && (
         <SearchWizard
-          onClose={() => {
-            setWizardOpen(false);
-          }}
-          onCreated={() => {
-            setWizardOpen(false);
-            setCreated(true);
-            window.dispatchEvent(new Event(TELEGRAM_AUTHENTICATED_EVENT));
-            window.setTimeout(() => {
-              setCreated(false);
-            }, 3000);
-          }}
+          onClose={() => setWizardOpen(false)}
+          onCreated={handleCreated}
         />
       )}
     </div>
