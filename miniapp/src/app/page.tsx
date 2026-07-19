@@ -1,5 +1,5 @@
-import { StageSixShell } from "@/components/stage-six-shell";
+import { redirect } from "next/navigation";
 
 export default function HomePage() {
-  return <StageSixShell />;
+  redirect("/search");
 }
