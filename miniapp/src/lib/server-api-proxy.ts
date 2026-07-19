@@ -172,7 +172,7 @@ export async function proxyApiRequest(
 
   const fetchImpl = dependencies.fetchImpl ?? fetch;
   const controller = new AbortController();
-  const timeout = window.setTimeout(
+  const timeout = globalThis.setTimeout(
     () => controller.abort(),
     dependencies.timeoutMs ?? DEFAULT_TIMEOUT_MS,
   );
@@ -203,7 +203,7 @@ export async function proxyApiRequest(
       "FlatHunter backend is temporarily unavailable.",
     );
   } finally {
-    window.clearTimeout(timeout);
+    globalThis.clearTimeout(timeout);
     request.signal.removeEventListener("abort", abortProxy);
   }
 }
