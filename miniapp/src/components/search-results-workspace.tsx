@@ -35,7 +35,7 @@ function updateListingFromCluster(
   return {
     ...current,
     ...primary,
-    user_state: response.user_state ?? primary.user_state ?? current.user_state,
+    user_state: response.user_state ?? primary.user_state,
   };
 }
 
@@ -64,7 +64,9 @@ export function SearchResultsWorkspace() {
     const result = await fetchSearchProfiles(signal);
     const active = result.filter((profile) => profile.is_active);
     setProfiles(active);
-    setProfileId((current) => current || active.at(0)?.id || "");
+    setProfileId((current) =>
+      current.length > 0 ? current : (active.at(0)?.id ?? ""),
+    );
     return active;
   }, []);
 

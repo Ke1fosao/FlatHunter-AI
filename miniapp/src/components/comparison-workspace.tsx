@@ -68,7 +68,9 @@ export function ComparisonWorkspace() {
           .slice(0, 4),
       );
       setProfiles(activeProfiles);
-      setProfileId((current) => current || activeProfiles.at(0)?.id || "");
+      setProfileId((current) =>
+        current.length > 0 ? current : (activeProfiles.at(0)?.id ?? ""),
+      );
     } catch (reason) {
       if (!(reason instanceof DOMException && reason.name === "AbortError")) {
         setError(
