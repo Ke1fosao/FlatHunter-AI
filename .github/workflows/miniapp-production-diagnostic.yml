@@ -66,6 +66,8 @@ jobs:
             src/lib/server-api-proxy.test.ts \
             src/components/auth-gate.test.tsx \
             src/components/miniapp-context.test.tsx \
+            src/components/search-profile-manager.test.tsx \
+            src/components/search-wizard-edit.test.tsx \
             > ../frontend-red-tests.log 2>&1
           echo "$?" > ../frontend-red-tests.exit
           exit 0
