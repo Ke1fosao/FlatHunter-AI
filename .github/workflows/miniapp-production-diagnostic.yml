@@ -1,0 +1,40 @@
+name: Mini App production diagnostic
+
+on:
+  push:
+    branches:
+      - fix/miniapp-full-functionality
+
+permissions:
+  contents: read
+
+jobs:
+  backend-reachability:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe Render backend
+        shell: bash
+        run: |
+          set +e
+          mkdir -p diagnostic
+          base="https://flathunter-ai-backend.onrender.com"
+          for path in "/health/live/" "/health/ready/" "/api/v1/health/"; do
+            name="$(echo "$path" | tr '/' '_' | sed 's/^_//;s/_$//')"
+            echo "=== $base$path ===" | tee -a diagnostic/summary.txt
+            curl --location --silent --show-error --max-time 90 \
+              --dump-header "diagnostic/${name}.headers" \
+              --output "diagnostic/${name}.body" \
+              --write-out "http_code=%{http_code}\ntime_total=%{time_total}\nremote_ip=%{remote_ip}\n" \
+              "$base$path" | tee -a diagnostic/summary.txt
+            status=${PIPESTATUS[0]}
+            echo "curl_exit=$status" | tee -a diagnostic/summary.txt
+            cat "diagnostic/${name}.body" | tee -a diagnostic/summary.txt
+            echo | tee -a diagnostic/summary.txt
+          done
+          exit 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: miniapp-production-diagnostic
+          path: diagnostic
+          if-no-files-found: error
