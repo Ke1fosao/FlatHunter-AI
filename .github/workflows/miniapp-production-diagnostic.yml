@@ -61,7 +61,12 @@ jobs:
           set +e
           npm run lint > ../frontend-red-lint.log 2>&1
           echo "$?" > ../frontend-red-lint.exit
-          npm test -- src/lib/api-client.test.ts src/lib/server-api-proxy.test.ts > ../frontend-red-tests.log 2>&1
+          npm test -- \
+            src/lib/api-client.test.ts \
+            src/lib/server-api-proxy.test.ts \
+            src/components/auth-gate.test.tsx \
+            src/components/miniapp-context.test.tsx \
+            > ../frontend-red-tests.log 2>&1
           echo "$?" > ../frontend-red-tests.exit
           exit 0
       - uses: actions/upload-artifact@v4
