@@ -3,13 +3,32 @@ import { join } from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
+type ProxyDependencies = {
+  backendApiUrl: string;
+  fetchImpl: typeof fetch;
+  timeoutMs?: number;
+};
+
+type ProxyModule = {
+  proxyApiRequest: (
+    request: Request,
+    path: string[],
+    dependencies?: ProxyDependencies,
+  ) => Promise<Response>;
+};
+
 const modulePath = join(process.cwd(), "src/lib/server-api-proxy.ts");
 const proxyImportPath = "@/lib/server-api-proxy";
+
+async function loadProxy(): Promise<ProxyModule> {
+  const imported: unknown = await import(proxyImportPath);
+  return imported as ProxyModule;
+}
 
 describe("server API proxy", () => {
   it("forwards method, query, body, cookies and CSRF to the fixed backend", async () => {
     expect(existsSync(modulePath), "server-api-proxy.ts must exist").toBe(true);
-    const { proxyApiRequest } = await import(proxyImportPath);
+    const { proxyApiRequest } = await loadProxy();
     const backendHeaders = new Headers({ "Content-Type": "application/json" });
     backendHeaders.append(
       "Set-Cookie",
@@ -19,7 +38,7 @@ describe("server API proxy", () => {
       "Set-Cookie",
       "csrftoken=csrf-value; Path=/; Secure; SameSite=Lax",
     );
-    const fetchMock = vi.fn().mockResolvedValue(
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
       new Response(JSON.stringify({ ok: true }), {
         status: 200,
         headers: backendHeaders,
@@ -71,8 +90,13 @@ describe("server API proxy", () => {
 
   it("does not forward arbitrary incoming hosts as a backend destination", async () => {
     expect(existsSync(modulePath), "server-api-proxy.ts must exist").toBe(true);
-    const { proxyApiRequest } = await import(proxyImportPath);
-    const fetchMock = vi.fn();
+    const { proxyApiRequest } = await loadProxy();
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
     const request = new Request(
       "https://attacker.example/api/v1/health/?target=https://evil.example",
     );
@@ -91,8 +115,8 @@ describe("server API proxy", () => {
 
   it("rejects path traversal before contacting the backend", async () => {
     expect(existsSync(modulePath), "server-api-proxy.ts must exist").toBe(true);
-    const { proxyApiRequest } = await import(proxyImportPath);
-    const fetchMock = vi.fn();
+    const { proxyApiRequest } = await loadProxy();
+    const fetchMock = vi.fn<typeof fetch>();
     const request = new Request("https://miniapp.example.com/api/v1/admin/");
 
     const response = await proxyApiRequest(request, ["..", "admin"], {
@@ -112,12 +136,12 @@ describe("server API proxy", () => {
 
   it("returns a normalized error for an invalid backend configuration", async () => {
     expect(existsSync(modulePath), "server-api-proxy.ts must exist").toBe(true);
-    const { proxyApiRequest } = await import(proxyImportPath);
+    const { proxyApiRequest } = await loadProxy();
     const request = new Request("https://miniapp.example.com/api/v1/health/");
 
     const response = await proxyApiRequest(request, ["health"], {
       backendApiUrl: "file:///etc/passwd",
-      fetchImpl: vi.fn(),
+      fetchImpl: vi.fn<typeof fetch>(),
     });
 
     expect(response.status).toBe(500);
@@ -131,12 +155,14 @@ describe("server API proxy", () => {
 
   it("returns 502 when the backend cannot be reached", async () => {
     expect(existsSync(modulePath), "server-api-proxy.ts must exist").toBe(true);
-    const { proxyApiRequest } = await import(proxyImportPath);
+    const { proxyApiRequest } = await loadProxy();
     const request = new Request("https://miniapp.example.com/api/v1/health/");
 
     const response = await proxyApiRequest(request, ["health"], {
       backendApiUrl: "https://backend.example.com/api/v1",
-      fetchImpl: vi.fn().mockRejectedValue(new TypeError("fetch failed")),
+      fetchImpl: vi
+        .fn<typeof fetch>()
+        .mockRejectedValue(new TypeError("fetch failed")),
     });
 
     expect(response.status).toBe(502);
