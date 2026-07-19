@@ -10,6 +10,14 @@ declare global {
     is_premium?: boolean;
   };
 
+  type TelegramBackButton = {
+    isVisible?: boolean;
+    show(): void;
+    hide(): void;
+    onClick(callback: () => void): void;
+    offClick(callback: () => void): void;
+  };
+
   type TelegramWebApp = {
     initData: string;
     initDataUnsafe?: {
@@ -25,6 +33,7 @@ declare global {
     setHeaderColor?(color: string): void;
     setBackgroundColor?(color: string): void;
     enableClosingConfirmation?(): void;
+    BackButton?: TelegramBackButton;
     HapticFeedback?: {
       impactOccurred(style: "light" | "medium" | "heavy" | "rigid" | "soft"): void;
       notificationOccurred(type: "error" | "success" | "warning"): void;
