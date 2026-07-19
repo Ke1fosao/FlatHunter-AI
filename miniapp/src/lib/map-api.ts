@@ -95,7 +95,7 @@ export async function deleteImportantPlace(
   profileId: string,
   placeId: string,
 ): Promise<void> {
-  await apiRequest<void>(
+  await apiRequest<undefined>(
     `/search-profiles/${profileId}/important-places/${placeId}/`,
     { method: "DELETE" },
   );
