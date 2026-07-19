@@ -226,21 +226,26 @@
   z-index: var(--layer-modal) !important;
 }
 
-.stage-six-toast,
 .miniapp-toast {
   z-index: var(--layer-toast) !important;
 }
 
 .map-workspace__toolbar,
-.workspace-tabs,
 .map-workspace__filters {
   z-index: var(--layer-sticky) !important;
 }
 
-.leaflet-pane,
+.map-workspace__map-card {
+  isolation: isolate;
+}
+
+.leaflet-container {
+  z-index: var(--layer-content);
+}
+
 .leaflet-top,
 .leaflet-bottom {
-  z-index: 20 !important;
+  z-index: 500 !important;
 }
 
 @media (max-width: 520px) {
