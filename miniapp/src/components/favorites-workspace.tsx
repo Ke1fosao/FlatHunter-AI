@@ -54,7 +54,7 @@ export function FavoritesWorkspace() {
   useEffect(() => {
     const controller = new AbortController();
     void load(controller.signal);
-    return () => controller.abort();
+    return () => { controller.abort(); };
   }, [load]);
 
   const visibleItems = useMemo(() => {
@@ -108,13 +108,13 @@ export function FavoritesWorkspace() {
       <div className="search-results-filters favorites-filters">
         <label>
           Місто
-          <input value={city} onChange={(event) => setCity(event.target.value)} />
+          <input value={city} onChange={(event) => { setCity(event.target.value); }} />
         </label>
         <label>
           Район
           <input
             value={district}
-            onChange={(event) => setDistrict(event.target.value)}
+            onChange={(event) => { setDistrict(event.target.value); }}
           />
         </label>
         <label>
@@ -123,7 +123,7 @@ export function FavoritesWorkspace() {
             type="number"
             min="1"
             value={rooms}
-            onChange={(event) => setRooms(event.target.value)}
+            onChange={(event) => { setRooms(event.target.value); }}
           />
         </label>
         <label>
@@ -132,7 +132,7 @@ export function FavoritesWorkspace() {
             type="number"
             min="0"
             value={priceMin}
-            onChange={(event) => setPriceMin(event.target.value)}
+            onChange={(event) => { setPriceMin(event.target.value); }}
           />
         </label>
         <label>
@@ -141,14 +141,14 @@ export function FavoritesWorkspace() {
             type="number"
             min="0"
             value={priceMax}
-            onChange={(event) => setPriceMax(event.target.value)}
+            onChange={(event) => { setPriceMax(event.target.value); }}
           />
         </label>
         <label>
           Сортування
           <select
             value={sort}
-            onChange={(event) => setSort(event.target.value as SortMode)}
+            onChange={(event) => { setSort(event.target.value as SortMode); }}
           >
             <option value="newest">Спочатку нові</option>
             <option value="price-asc">Спочатку дешевші</option>
@@ -159,7 +159,7 @@ export function FavoritesWorkspace() {
           Текст
           <input
             value={text}
-            onChange={(event) => setText(event.target.value)}
+            onChange={(event) => { setText(event.target.value); }}
             placeholder="Назва, вулиця або опис"
           />
         </label>

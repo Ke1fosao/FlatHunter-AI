@@ -105,7 +105,7 @@ export function SearchResultsWorkspace() {
   useEffect(() => {
     const controller = new AbortController();
     void load(controller.signal);
-    return () => controller.abort();
+    return () => { controller.abort(); };
   }, [load]);
 
   const visibleItems = useMemo(() => {
@@ -219,7 +219,7 @@ export function SearchResultsWorkspace() {
           Пошук
           <select
             value={profileId}
-            onChange={(event) => setProfileId(event.target.value)}
+            onChange={(event) => { setProfileId(event.target.value); }}
           >
             {profiles.length === 0 && <option value="">Без активного профілю</option>}
             {profiles.map((profile) => (
@@ -231,7 +231,7 @@ export function SearchResultsWorkspace() {
         </label>
         <label>
           Match від
-          <select value={minScore} onChange={(event) => setMinScore(event.target.value)}>
+          <select value={minScore} onChange={(event) => { setMinScore(event.target.value); }}>
             <option value="0">0%</option>
             <option value="50">50%</option>
             <option value="70">70%</option>
@@ -242,7 +242,7 @@ export function SearchResultsWorkspace() {
           Сортування
           <select
             value={ordering}
-            onChange={(event) => setOrdering(event.target.value as SortMode)}
+            onChange={(event) => { setOrdering(event.target.value as SortMode); }}
           >
             <option value="match">Найкращий Match</option>
             <option value="newest">Спочатку нові</option>
@@ -252,11 +252,11 @@ export function SearchResultsWorkspace() {
         </label>
         <label>
           Місто
-          <input value={city} onChange={(event) => setCity(event.target.value)} />
+          <input value={city} onChange={(event) => { setCity(event.target.value); }} />
         </label>
         <label>
           Район
-          <input value={district} onChange={(event) => setDistrict(event.target.value)} />
+          <input value={district} onChange={(event) => { setDistrict(event.target.value); }} />
         </label>
         <label>
           Кімнати
@@ -264,7 +264,7 @@ export function SearchResultsWorkspace() {
             type="number"
             min="1"
             value={rooms}
-            onChange={(event) => setRooms(event.target.value)}
+            onChange={(event) => { setRooms(event.target.value); }}
           />
         </label>
         <label>
@@ -273,7 +273,7 @@ export function SearchResultsWorkspace() {
             type="number"
             min="0"
             value={priceMin}
-            onChange={(event) => setPriceMin(event.target.value)}
+            onChange={(event) => { setPriceMin(event.target.value); }}
           />
         </label>
         <label>
@@ -282,14 +282,14 @@ export function SearchResultsWorkspace() {
             type="number"
             min="0"
             value={priceMax}
-            onChange={(event) => setPriceMax(event.target.value)}
+            onChange={(event) => { setPriceMax(event.target.value); }}
           />
         </label>
         <label className="search-results-filters__text">
           Текст
           <input
             value={text}
-            onChange={(event) => setText(event.target.value)}
+            onChange={(event) => { setText(event.target.value); }}
             placeholder="Вулиця, опис або назва"
           />
         </label>

@@ -270,14 +270,14 @@ export function SearchWizard({
               <button
                 type="button"
                 className={mode === "form" ? "is-active" : ""}
-                onClick={() => setMode("form")}
+                onClick={() => { setMode("form"); }}
               >
                 Покроково
               </button>
               <button
                 type="button"
                 className={mode === "natural" ? "is-active" : ""}
-                onClick={() => setMode("natural")}
+                onClick={() => { setMode("natural"); }}
               >
                 Описати словами
               </button>
@@ -292,7 +292,7 @@ export function SearchWizard({
               <textarea
                 id="natural-search"
                 value={naturalText}
-                onChange={(event) => setNaturalText(event.target.value)}
+                onChange={(event) => { setNaturalText(event.target.value); }}
                 placeholder="Шукаю однокімнатну квартиру у Львові до 18 тисяч, новобудова, не перший поверх, можна з котом, без комісії…"
               />
               <button
@@ -318,7 +318,7 @@ export function SearchWizard({
                       Назва пошуку
                       <input
                         value={form.name}
-                        onChange={(event) => patch("name", event.target.value)}
+                        onChange={(event) => { patch("name", event.target.value); }}
                         required
                       />
                     </label>
@@ -326,7 +326,7 @@ export function SearchWizard({
                       Місто
                       <input
                         value={form.city}
-                        onChange={(event) => patch("city", event.target.value)}
+                        onChange={(event) => { patch("city", event.target.value); }}
                         required
                       />
                     </label>
@@ -335,10 +335,10 @@ export function SearchWizard({
                       <select
                         value={form.deal_type}
                         onChange={(event) =>
-                          patch(
+                          { patch(
                             "deal_type",
                             event.target.value as "rent" | "buy",
-                          )
+                          ); }
                         }
                       >
                         <option value="rent">Оренда</option>
@@ -352,10 +352,10 @@ export function SearchWizard({
                         min="0"
                         value={form.price_min ?? ""}
                         onChange={(event) =>
-                          patch(
+                          { patch(
                             "price_min",
                             event.target.value ? Number(event.target.value) : null,
-                          )
+                          ); }
                         }
                       />
                     </label>
@@ -366,10 +366,10 @@ export function SearchWizard({
                         min="0"
                         value={form.price_max ?? ""}
                         onChange={(event) =>
-                          patch(
+                          { patch(
                             "price_max",
                             event.target.value ? Number(event.target.value) : null,
-                          )
+                          ); }
                         }
                         required
                       />
@@ -379,7 +379,7 @@ export function SearchWizard({
                       <input
                         value={form.rooms.join(",")}
                         onChange={(event) =>
-                          patch("rooms", csvNumbers(event.target.value))
+                          { patch("rooms", csvNumbers(event.target.value)); }
                         }
                         placeholder="1,2"
                         required
@@ -390,7 +390,7 @@ export function SearchWizard({
                       <input
                         value={form.desired_districts.join(", ")}
                         onChange={(event) =>
-                          patch("desired_districts", csvStrings(event.target.value))
+                          { patch("desired_districts", csvStrings(event.target.value)); }
                         }
                         placeholder="Франківський, Личаківський"
                       />
@@ -400,7 +400,7 @@ export function SearchWizard({
                       <input
                         value={form.excluded_districts.join(", ")}
                         onChange={(event) =>
-                          patch("excluded_districts", csvStrings(event.target.value))
+                          { patch("excluded_districts", csvStrings(event.target.value)); }
                         }
                         placeholder="Залізничний"
                       />
@@ -411,7 +411,7 @@ export function SearchWizard({
                         type="date"
                         value={form.move_in_date ?? ""}
                         onChange={(event) =>
-                          patch("move_in_date", event.target.value || null)
+                          { patch("move_in_date", event.target.value || null); }
                         }
                       />
                     </label>
@@ -423,7 +423,7 @@ export function SearchWizard({
                         max="20"
                         value={form.occupants}
                         onChange={(event) =>
-                          patch("occupants", Number(event.target.value))
+                          { patch("occupants", Number(event.target.value)); }
                         }
                       />
                     </label>
@@ -432,7 +432,7 @@ export function SearchWizard({
                       <input
                         value={form.property_types.join(", ")}
                         onChange={(event) =>
-                          patch("property_types", csvStrings(event.target.value))
+                          { patch("property_types", csvStrings(event.target.value)); }
                         }
                         placeholder="apartment, house"
                       />
@@ -446,7 +446,7 @@ export function SearchWizard({
                       type="button"
                       className={form.pets.cat ? "option-chip is-active" : "option-chip"}
                       onClick={() =>
-                        patch("pets", { ...form.pets, cat: !form.pets.cat })
+                        { patch("pets", { ...form.pets, cat: !form.pets.cat }); }
                       }
                     >
                       🐈 Можна з котом
@@ -455,7 +455,7 @@ export function SearchWizard({
                       type="button"
                       className={form.pets.dog ? "option-chip is-active" : "option-chip"}
                       onClick={() =>
-                        patch("pets", { ...form.pets, dog: !form.pets.dog })
+                        { patch("pets", { ...form.pets, dog: !form.pets.dog }); }
                       }
                     >
                       🐕 Можна із собакою
@@ -467,7 +467,7 @@ export function SearchWizard({
                           ? "option-chip is-active"
                           : "option-chip"
                       }
-                      onClick={() => toggleFilter("exclude_first_floor")}
+                      onClick={() => { toggleFilter("exclude_first_floor"); }}
                     >
                       Не перший поверх
                     </button>
@@ -478,7 +478,7 @@ export function SearchWizard({
                           ? "option-chip is-active"
                           : "option-chip"
                       }
-                      onClick={() => toggleFilter("exclude_last_floor")}
+                      onClick={() => { toggleFilter("exclude_last_floor"); }}
                     >
                       Не останній поверх
                     </button>
@@ -490,11 +490,11 @@ export function SearchWizard({
                           : "option-chip"
                       }
                       onClick={() =>
-                        patch("filters", {
+                        { patch("filters", {
                           ...form.filters,
                           commission_allowed:
                             form.filters.commission_allowed !== false,
-                        })
+                        }); }
                       }
                     >
                       Без комісії
@@ -502,7 +502,7 @@ export function SearchWizard({
                     <button
                       type="button"
                       className={form.children ? "option-chip is-active" : "option-chip"}
-                      onClick={() => patch("children", !form.children)}
+                      onClick={() => { patch("children", !form.children); }}
                     >
                       Можна з дітьми
                     </button>
@@ -510,7 +510,7 @@ export function SearchWizard({
                       Оригінальний опис пошуку
                       <textarea
                         value={naturalText}
-                        onChange={(event) => setNaturalText(event.target.value)}
+                        onChange={(event) => { setNaturalText(event.target.value); }}
                         placeholder="Додаткові умови, які важливо не втратити"
                       />
                     </label>
@@ -526,10 +526,10 @@ export function SearchWizard({
                         <select
                           value={form.notification_preference.frequency}
                           onChange={(event) =>
-                            patchNotification(
+                            { patchNotification(
                               "frequency",
                               event.target.value as NotificationPreferenceInput["frequency"],
-                            )
+                            ); }
                           }
                         >
                           <option value="instant">Миттєво</option>
@@ -547,10 +547,10 @@ export function SearchWizard({
                           max="100"
                           value={form.notification_preference.min_match_score}
                           onChange={(event) =>
-                            patchNotification(
+                            { patchNotification(
                               "min_match_score",
                               Number(event.target.value),
-                            )
+                            ); }
                           }
                         />
                       </label>
@@ -562,10 +562,10 @@ export function SearchWizard({
                           max="100"
                           value={form.notification_preference.max_risk_score}
                           onChange={(event) =>
-                            patchNotification(
+                            { patchNotification(
                               "max_risk_score",
                               Number(event.target.value),
-                            )
+                            ); }
                           }
                         />
                       </label>
@@ -577,7 +577,7 @@ export function SearchWizard({
                           max="100"
                           value={form.notification_preference.daily_limit}
                           onChange={(event) =>
-                            patchNotification("daily_limit", Number(event.target.value))
+                            { patchNotification("daily_limit", Number(event.target.value)); }
                           }
                         />
                       </label>
@@ -588,7 +588,7 @@ export function SearchWizard({
                           value={form.notification_preference.quiet_hours_start}
                           disabled={!form.notification_preference.quiet_hours_enabled}
                           onChange={(event) =>
-                            patchNotification("quiet_hours_start", event.target.value)
+                            { patchNotification("quiet_hours_start", event.target.value); }
                           }
                         />
                       </label>
@@ -599,7 +599,7 @@ export function SearchWizard({
                           value={form.notification_preference.quiet_hours_end}
                           disabled={!form.notification_preference.quiet_hours_enabled}
                           onChange={(event) =>
-                            patchNotification("quiet_hours_end", event.target.value)
+                            { patchNotification("quiet_hours_end", event.target.value); }
                           }
                         />
                       </label>
@@ -613,10 +613,10 @@ export function SearchWizard({
                             : "option-chip"
                         }
                         onClick={() =>
-                          patchNotification(
+                          { patchNotification(
                             "quiet_hours_enabled",
                             !form.notification_preference.quiet_hours_enabled,
-                          )
+                          ); }
                         }
                       >
                         Тихі години
@@ -629,10 +629,10 @@ export function SearchWizard({
                             : "option-chip"
                         }
                         onClick={() =>
-                          patchNotification(
+                          { patchNotification(
                             "notify_price_changes",
                             !form.notification_preference.notify_price_changes,
-                          )
+                          ); }
                         }
                       >
                         Зміни ціни
@@ -645,10 +645,10 @@ export function SearchWizard({
                             : "option-chip"
                         }
                         onClick={() =>
-                          patchNotification(
+                          { patchNotification(
                             "notify_reactivated",
                             !form.notification_preference.notify_reactivated,
-                          )
+                          ); }
                         }
                       >
                         Повторна активація
@@ -704,7 +704,7 @@ export function SearchWizard({
                   <button
                     type="button"
                     className="button button--primary"
-                    onClick={() => setStep((value) => value + 1)}
+                    onClick={() => { setStep((value) => value + 1); }}
                   >
                     Продовжити
                   </button>

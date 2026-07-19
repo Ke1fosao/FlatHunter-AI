@@ -58,7 +58,7 @@ export function ClusterDetailExtras({ listingId, clusterId, profileId }: Props) 
   useEffect(() => {
     const controller = new AbortController();
     void load(controller.signal);
-    return () => controller.abort();
+    return () => { controller.abort(); };
   }, [load]);
 
   const updateBooleanState = async (
@@ -146,11 +146,11 @@ export function ClusterDetailExtras({ listingId, clusterId, profileId }: Props) 
         clusterId={cluster.id}
         initialNote={cluster.user_state.note}
         onSaved={(note) =>
-          setCluster((current) =>
+          { setCluster((current) =>
             current
               ? { ...current, user_state: { ...current.user_state, note } }
               : current,
-          )
+          ); }
         }
       />
       <ClusterSources cluster={cluster} />

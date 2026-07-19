@@ -97,7 +97,7 @@ export function ClusterListingCard({
           disabled={pending}
           className={listing.user_state.is_favorite ? "is-active" : undefined}
           onClick={() =>
-            onState("is_favorite", !listing.user_state.is_favorite)
+            { onState("is_favorite", !listing.user_state.is_favorite); }
           }
         >
           {listing.user_state.is_favorite ? "В обраному" : "В обране"}
@@ -107,7 +107,7 @@ export function ClusterListingCard({
           disabled={pending}
           className={listing.user_state.is_compared ? "is-active" : undefined}
           onClick={() =>
-            onState("is_compared", !listing.user_state.is_compared)
+            { onState("is_compared", !listing.user_state.is_compared); }
           }
         >
           {listing.user_state.is_compared ? "У порівнянні" : "Порівняти"}
@@ -116,7 +116,7 @@ export function ClusterListingCard({
           <button
             type="button"
             disabled={pending}
-            onClick={() => onState("is_hidden", true)}
+            onClick={() => { onState("is_hidden", true); }}
           >
             Сховати
           </button>

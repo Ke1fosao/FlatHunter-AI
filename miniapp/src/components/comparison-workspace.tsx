@@ -85,7 +85,7 @@ export function ComparisonWorkspace() {
   useEffect(() => {
     const controller = new AbortController();
     void load(controller.signal);
-    return () => controller.abort();
+    return () => { controller.abort(); };
   }, [load]);
 
   const rows = useMemo(
@@ -180,7 +180,7 @@ export function ComparisonWorkspace() {
           {profiles.length > 0 && (
             <label>
               Профіль для AI
-              <select value={profileId} onChange={(event) => setProfileId(event.target.value)}>
+              <select value={profileId} onChange={(event) => { setProfileId(event.target.value); }}>
                 {profiles.map((profile) => (
                   <option key={profile.id} value={profile.id}>
                     {profile.name} · {profile.city}

@@ -57,7 +57,7 @@ export function SearchHome() {
   useEffect(() => {
     const controller = new AbortController();
     void load(controller.signal);
-    return () => controller.abort();
+    return () => { controller.abort(); };
   }, [load]);
 
   const handleCreated = () => {
@@ -65,7 +65,7 @@ export function SearchHome() {
     setCreated(true);
     setResultsVersion((value) => value + 1);
     void load();
-    window.setTimeout(() => setCreated(false), 3000);
+    window.setTimeout(() => { setCreated(false); }, 3000);
   };
 
   return (
@@ -82,7 +82,7 @@ export function SearchHome() {
         <button
           type="button"
           className="route-primary-action"
-          onClick={() => setWizardOpen(true)}
+          onClick={() => { setWizardOpen(true); }}
         >
           ＋ Створити пошук
         </button>
@@ -145,7 +145,7 @@ export function SearchHome() {
               <button
                 type="button"
                 className="route-text-action"
-                onClick={() => setWizardOpen(true)}
+                onClick={() => { setWizardOpen(true); }}
               >
                 Додати новий
               </button>
@@ -162,7 +162,7 @@ export function SearchHome() {
                 title="Активних пошуків немає"
                 description="Створіть новий пошук або активуйте призупинений у профілі."
                 action={
-                  <button type="button" onClick={() => setWizardOpen(true)}>
+                  <button type="button" onClick={() => { setWizardOpen(true); }}>
                     Створити пошук
                   </button>
                 }
@@ -188,7 +188,7 @@ export function SearchHome() {
 
       {wizardOpen && (
         <SearchWizard
-          onClose={() => setWizardOpen(false)}
+          onClose={() => { setWizardOpen(false); }}
           onCreated={handleCreated}
         />
       )}

@@ -68,7 +68,7 @@ export function SearchProfileManager({ compact = false, onChanged }: Props) {
   useEffect(() => {
     const controller = new AbortController();
     void load(controller.signal);
-    return () => controller.abort();
+    return () => { controller.abort(); };
   }, [load]);
 
   const runAction = async (
@@ -108,7 +108,7 @@ export function SearchProfileManager({ compact = false, onChanged }: Props) {
         <button
           type="button"
           className="route-primary-action"
-          onClick={() => setCreating(true)}
+          onClick={() => { setCreating(true); }}
         >
           ＋ Новий пошук
         </button>
@@ -128,7 +128,7 @@ export function SearchProfileManager({ compact = false, onChanged }: Props) {
           title="Пошуків ще немає"
           description="Створіть профіль — FlatHunter почне відбирати квартири, рахувати Match Score і надсилати сповіщення."
           action={
-            <button type="button" onClick={() => setCreating(true)}>
+            <button type="button" onClick={() => { setCreating(true); }}>
               Створити перший пошук
             </button>
           }
@@ -166,7 +166,7 @@ export function SearchProfileManager({ compact = false, onChanged }: Props) {
               <div className="search-manager__actions">
                 <button
                   type="button"
-                  onClick={() => setEditingProfile(profile)}
+                  onClick={() => { setEditingProfile(profile); }}
                 >
                   Редагувати
                 </button>
@@ -185,7 +185,7 @@ export function SearchProfileManager({ compact = false, onChanged }: Props) {
                 <button
                   type="button"
                   className="is-danger"
-                  onClick={() => setDeleteCandidate(profile)}
+                  onClick={() => { setDeleteCandidate(profile); }}
                 >
                   Видалити
                 </button>
@@ -236,7 +236,7 @@ export function SearchProfileManager({ compact = false, onChanged }: Props) {
               Пошук, важливі місця та його налаштування сповіщень буде видалено.
             </p>
             <div>
-              <button type="button" onClick={() => setDeleteCandidate(null)}>
+              <button type="button" onClick={() => { setDeleteCandidate(null); }}>
                 Скасувати
               </button>
               <button

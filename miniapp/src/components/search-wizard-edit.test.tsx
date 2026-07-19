@@ -119,9 +119,7 @@ describe("SearchWizard edit mode", () => {
       expect(mocks.updateSearchProfile).toHaveBeenCalledTimes(1);
       expect(onSaved).toHaveBeenCalledTimes(1);
     });
-    const calls = mocks.updateSearchProfile.mock.calls as unknown as Array<
-      [string, SavedProfilePayload]
-    >;
+    const calls = mocks.updateSearchProfile.mock.calls as unknown as [string, SavedProfilePayload][];
     const call = calls.at(0);
     expect(call?.[0]).toBe("profile-1");
     expect(call?.[1]).toMatchObject({

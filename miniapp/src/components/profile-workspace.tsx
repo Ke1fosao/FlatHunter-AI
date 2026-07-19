@@ -58,14 +58,14 @@ export function ProfileWorkspace() {
               <button
                 type="button"
                 className={locale === "uk" ? "is-active" : undefined}
-                onClick={() => setLocale("uk")}
+                onClick={() => { setLocale("uk"); }}
               >
                 Українська
               </button>
               <button
                 type="button"
                 className={locale === "en" ? "is-active" : undefined}
-                onClick={() => setLocale("en")}
+                onClick={() => { setLocale("en"); }}
               >
                 English
               </button>

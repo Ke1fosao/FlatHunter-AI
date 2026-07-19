@@ -51,7 +51,7 @@ export function ClusterNoteEditor({ clusterId, initialNote, onSaved }: Props) {
           value={note}
           maxLength={500}
           placeholder="Що уточнити у власника або перевірити на перегляді?"
-          onChange={(event) => setNote(event.target.value)}
+          onChange={(event) => { setNote(event.target.value); }}
         />
       </label>
       <div>
