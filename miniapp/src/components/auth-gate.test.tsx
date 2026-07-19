@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   context: {
     authStatus: "booting",
     authError: "",
+    authErrorCode: "",
+    backendWakeAttempt: 0,
     connection: "checking",
     retryAuthentication: vi.fn(),
   },
@@ -38,6 +40,8 @@ describe("AuthGate", () => {
   beforeEach(() => {
     mocks.context.authStatus = "booting";
     mocks.context.authError = "";
+    mocks.context.authErrorCode = "";
+    mocks.context.backendWakeAttempt = 0;
     mocks.context.connection = "checking";
     mocks.context.retryAuthentication.mockReset();
   });
@@ -72,9 +76,11 @@ describe("AuthGate", () => {
     expect(screen.queryByText("Захищений кабінет")).not.toBeInTheDocument();
   });
 
-  it("shows a deterministic authentication progress state", async () => {
+  it("shows a clear backend wake-up state while the free server starts", async () => {
     const { AuthGate } = await loadGate();
-    mocks.context.authStatus = "authenticating";
+    mocks.context.authStatus = "waiting_backend";
+    mocks.context.connection = "waking";
+    mocks.context.backendWakeAttempt = 2;
 
     render(
       <AuthGate>
@@ -82,7 +88,25 @@ describe("AuthGate", () => {
       </AuthGate>,
     );
 
-    expect(screen.getByText("Підключаю Telegram-профіль…")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Запускаю сервер FlatHunter…" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/20–60 секунд/)).toBeInTheDocument();
+    expect(screen.getByText(/спроба 2/)).toBeInTheDocument();
+  });
+
+  it("shows a deterministic authentication progress state", async () => {
+    const { AuthGate } = await loadGate();
+    mocks.context.authStatus = "authenticating";
+    mocks.context.connection = "ready";
+
+    render(
+      <AuthGate>
+        <div>Захищений кабінет</div>
+      </AuthGate>,
+    );
+
+    expect(screen.getByText("Перевіряю Telegram-профіль…")).toBeInTheDocument();
   });
 
   it("shows an offline state before a generic auth error", async () => {
@@ -97,6 +121,26 @@ describe("AuthGate", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Немає з’єднання" })).toBeInTheDocument();
+  });
+
+  it("replaces raw Telegram signature errors with an actionable explanation", async () => {
+    const { AuthGate } = await loadGate();
+    mocks.context.authStatus = "error";
+    mocks.context.connection = "ready";
+    mocks.context.authErrorCode = "invalid_telegram_data";
+    mocks.context.authError = "Telegram signature is invalid";
+
+    render(
+      <AuthGate>
+        <div>Захищений кабінет</div>
+      </AuthGate>,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Telegram не підтвердив вхід" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/закрийте Mini App/i)).toBeInTheDocument();
+    expect(screen.queryByText("Telegram signature is invalid")).not.toBeInTheDocument();
   });
 
   it("allows retrying failed Telegram authentication", async () => {

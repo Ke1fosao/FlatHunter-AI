@@ -20,6 +20,7 @@ def build_init_data(
     user_id: int = 12345,
     query_id: str = "query-1",
     is_premium: bool = False,
+    signature: str | None = None,
 ) -> str:
     data = {
         "auth_date": str(auth_date or int(time.time())),
@@ -37,6 +38,8 @@ def build_init_data(
             separators=(",", ":"),
         ),
     }
+    if signature is not None:
+        data["signature"] = signature
     data_check_string = "\n".join(f"{key}={value}" for key, value in sorted(data.items()))
     secret_key = hmac.new(b"WebAppData", BOT_TOKEN.encode(), hashlib.sha256).digest()
     data["hash"] = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
@@ -53,6 +56,15 @@ def test_accepts_valid_init_data() -> None:
 
     assert result.user.id == 12345
     assert result.user.first_name == "Дмитро"
+    assert result.query_id == "query-1"
+
+
+def test_accepts_current_init_data_with_signature_field() -> None:
+    result = TelegramInitDataValidator(BOT_TOKEN, max_age_seconds=300).validate(
+        build_init_data(signature="telegram-ed25519-signature")
+    )
+
+    assert result.user.id == 12345
     assert result.query_id == "query-1"
 
 

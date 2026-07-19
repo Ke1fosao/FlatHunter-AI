@@ -6,6 +6,17 @@ import { useMiniApp } from "@/components/miniapp-context";
 export function MiniAppHeader() {
   const { displayName, locale, setLocale, connection } = useMiniApp();
 
+  const connectionLabel =
+    connection === "ready"
+      ? "Система готова"
+      : connection === "offline"
+        ? "Офлайн"
+        : connection === "waking"
+          ? "Запускаю сервер"
+          : connection === "checking"
+            ? "Перевіряю з’єднання"
+            : "Обмежене з’єднання";
+
   return (
     <header className="miniapp-header">
       <div className="miniapp-brand">
@@ -14,15 +25,7 @@ export function MiniAppHeader() {
         </span>
         <span>
           <strong>FlatHunter AI</strong>
-          <small>
-            {connection === "ready"
-              ? "Система готова"
-              : connection === "offline"
-                ? "Офлайн"
-                : connection === "checking"
-                  ? "Перевіряю з’єднання"
-                  : "Обмежене з’єднання"}
-          </small>
+          <small>{connectionLabel}</small>
         </span>
       </div>
 

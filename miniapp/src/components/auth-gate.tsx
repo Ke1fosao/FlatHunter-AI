@@ -8,6 +8,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const {
     authStatus,
     authError,
+    authErrorCode,
+    backendWakeAttempt,
     connection,
     retryAuthentication,
   } = useMiniApp();
@@ -35,14 +37,38 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     return <PreviewHub />;
   }
 
+  if (authStatus === "waiting_backend") {
+    const attemptSuffix =
+      backendWakeAttempt > 1 ? ` Поточна спроба ${String(backendWakeAttempt)}.` : "";
+    return (
+      <PageState
+        kind="loading"
+        title="Запускаю сервер FlatHunter…"
+        description={`Backend на безкоштовному хостингу прокидається після паузи. Зазвичай це займає 20–60 секунд. Авторизація повториться автоматично.${attemptSuffix}`}
+        action={
+          <button type="button" onClick={retryAuthentication}>
+            Перевірити зараз
+          </button>
+        }
+      />
+    );
+  }
+
   if (authStatus === "error") {
+    const invalidTelegramData = authErrorCode === "invalid_telegram_data";
     return (
       <PageState
         kind="error"
-        title="Не вдалося увійти через Telegram"
+        title={
+          invalidTelegramData
+            ? "Telegram не підтвердив вхід"
+            : "Не вдалося увійти через Telegram"
+        }
         description={
-          authError ||
-          "Закрийте Mini App, відкрийте його знову або повторіть авторизацію."
+          invalidTelegramData
+            ? "Закрийте Mini App і відкрийте його заново з кнопки бота. Дані Telegram могли застаріти, а повторний запуск створить новий захищений підпис."
+            : authError ||
+              "Закрийте Mini App, відкрийте його знову або повторіть авторизацію."
         }
         action={
           <button type="button" onClick={retryAuthentication}>
@@ -53,11 +79,21 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     );
   }
 
+  if (authStatus === "authenticating") {
+    return (
+      <PageState
+        kind="loading"
+        title="Перевіряю Telegram-профіль…"
+        description="Сервер уже працює. Перевіряю захищені дані Telegram і відкриваю ваш кабінет."
+      />
+    );
+  }
+
   return (
     <PageState
       kind="loading"
       title="Підключаю Telegram-профіль…"
-      description="Перевіряю захищені дані та готую ваші пошуки."
+      description="Отримую дані Mini App та перевіряю доступність сервера."
     />
   );
 }
