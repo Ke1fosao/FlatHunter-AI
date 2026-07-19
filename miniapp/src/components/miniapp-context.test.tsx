@@ -130,7 +130,7 @@ describe("MiniAppProvider authentication", () => {
     mocks.authenticateTelegram.mockResolvedValue(authenticatedResponse);
     let statusWhenEvent = "";
     const onAuthenticated = () => {
-      statusWhenEvent = screen.getByTestId("auth-status").textContent ?? "";
+      statusWhenEvent = screen.getByTestId("auth-status").textContent;
     };
     window.addEventListener("flathunter:authenticated", onAuthenticated);
 
