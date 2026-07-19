@@ -1,9 +1,12 @@
 name: Mini App production diagnostic
 
 on:
-  push:
-    branches:
-      - fix/miniapp-full-functionality
+  pull_request:
+    paths:
+      - ".github/workflows/miniapp-production-diagnostic.yml"
+      - "miniapp/**"
+      - "render.yaml"
+      - "docs/cloud-hosting.md"
 
 permissions:
   contents: read
