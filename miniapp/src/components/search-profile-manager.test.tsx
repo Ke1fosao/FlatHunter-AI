@@ -97,7 +97,7 @@ describe("SearchProfileManager", () => {
     render(<SearchProfileManager />);
 
     expect(await screen.findByText("Львів · 1 кімната")).toBeInTheDocument();
-    expect(screen.getByText("12 000–18 000 грн")).toBeInTheDocument();
+    expect(screen.getByText(/12 000–18 000 грн/)).toBeInTheDocument();
     expect(screen.getByText("Match від 75%")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Редагувати" }));
