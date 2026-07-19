@@ -10,8 +10,10 @@ function source(path: string): string {
 }
 
 describe("Mini App routing contract", () => {
-  it("redirects the root route to search", () => {
-    expect(source("src/app/page.tsx")).toContain('redirect("/search")');
+  it("permanently redirects the root route to search", () => {
+    const page = source("src/app/page.tsx");
+    expect(page).toContain('permanentRedirect("/search")');
+    expect(page).not.toContain('redirect("/search")');
   });
 
   it("defines every user-facing route", () => {
