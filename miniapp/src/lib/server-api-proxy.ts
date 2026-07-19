@@ -39,13 +39,17 @@ function errorResponse(
   return Response.json({ error: { code, message } }, { status });
 }
 
+function nonEmpty(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : undefined;
+}
+
 function backendBaseUrl(configured?: string): URL | null {
+  const publicApiUrl = nonEmpty(process.env.NEXT_PUBLIC_API_URL);
   const candidate =
-    configured?.trim() ||
-    process.env.BACKEND_API_URL?.trim() ||
-    (process.env.NEXT_PUBLIC_API_URL?.startsWith("http")
-      ? process.env.NEXT_PUBLIC_API_URL.trim()
-      : "") ||
+    nonEmpty(configured) ??
+    nonEmpty(process.env.BACKEND_API_URL) ??
+    (publicApiUrl?.startsWith("http") === true ? publicApiUrl : undefined) ??
     DEFAULT_BACKEND_API_URL;
   try {
     const url = new URL(candidate);
@@ -132,7 +136,7 @@ function responseHeaders(source: Headers): Headers {
     typeof extended.getSetCookie === "function"
       ? extended.getSetCookie()
       : source.get("Set-Cookie")
-        ? [source.get("Set-Cookie") as string]
+        ? [source.get("Set-Cookie")!]
         : [];
   cookies.forEach((cookie) => {
     headers.append("Set-Cookie", rewrittenCookie(cookie));
@@ -172,11 +176,12 @@ export async function proxyApiRequest(
 
   const fetchImpl = dependencies.fetchImpl ?? fetch;
   const controller = new AbortController();
-  const timeout = globalThis.setTimeout(
-    () => controller.abort(),
-    dependencies.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-  );
-  const abortProxy = () => controller.abort();
+  const timeout = globalThis.setTimeout(() => {
+    controller.abort();
+  }, dependencies.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+  const abortProxy = () => {
+    controller.abort();
+  };
   request.signal.addEventListener("abort", abortProxy, { once: true });
 
   try {
